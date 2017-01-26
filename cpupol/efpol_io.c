@@ -173,7 +173,7 @@ int CheckIntegrity(CurState* cs){
 			if(unit && checkLattice[coor/32]&((uint)1<<(coor%32)) && !(POL_TYPE==POL_RING && mono==cs->polSize-1)){
 				PrintPol(iPol, cs);
 				printf("Lattice error, double occupancy!\n");
-				printf("mono=%i, polId=%i\n", mono, iPol);
+				printf("mono=%i, polId=%i, coor=%x\n", mono, iPol, coor);
 				return 3;
 			}
 			

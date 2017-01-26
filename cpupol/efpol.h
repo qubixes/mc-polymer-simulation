@@ -21,36 +21,7 @@ typedef unsigned int uint;
 #define MIN(X,Y) ((X<Y)?X:Y)
 #define MAX(X,Y) ((X>Y)?X:Y)
 
-// #define BLT 5 // 2^5=32
-// #define BLU 5 // 2^6=64
-// #define BLV 5 // 2^7=128
-
-// #define LT (1<<BLT)
-// #define LU (1<<BLU)
-// #define LV (1<<BLV)
-
-// #define ALLOC_T (2*LT)
-// #define ALLOC_U (2*LU)
-// #define ALLOC_V (LV)
 #define NOPT 16
-
-// #define LAT_SIZE (LT*LU*LV)
-// #define LAT_ALLOC ((ALLOC_T*ALLOC_V*ALLOC_U)/32)
-
-// #define LARGE_T_UNIT 1
-// #define LARGE_U_UNIT ALLOC_T
-// #define LARGE_V_UNIT (ALLOC_T*ALLOC_U)
-// #define LARGE_W_UNIT (ALLOC_T*ALLOC_U*ALLOC_V*2)
-// #define LARGE_TUV (LARGE_T_UNIT|LARGE_U_UNIT|LARGE_V_UNIT|LARGE_W_UNIT)
-
-// #define ADD_BASE (LT+LU*ALLOC_T+LV*ALLOC_T*ALLOC_U)
-// #define T_MASK (ALLOC_T-1)
-// #define U_MASK ((ALLOC_U-1)*ALLOC_T)
-// #define V_MASK ((ALLOC_V-1)*ALLOC_T*ALLOC_U)
-
-// #define BOUND_MASK 0x007f7f7f
-// #define BOUND_MASK ((LT-1)|((LU-1)*ALLOC_T)|((LV-1)*ALLOC_T*ALLOC_U))
-// #define TUV_MASK 0x00ffffff
 #define BLOCK_SELECT 8
 
 typedef struct Constants{
@@ -91,26 +62,20 @@ typedef struct CurState{
 	int polSize;
 	
 	int allocated;
+	char* dir;
 	Constants con;
 }CurState;
 
 typedef struct Config{
 	long tMax;
-	long* time;
-	int* nSample;
-	int* sampled;
-	int nTime;
-	long totT;
-	long tMaxSS;
 	long interval;
-	long eqInterval;
-	long nEq;
+	int initPolSize;
+	int LStart;
+	int dblStep;
 	int nRun;
 	unsigned int seed;
 	char* dir;
 	double density;
-	double EField;
-	int efPolId;
 	uint rngState[4];
 }Config;
 
@@ -168,14 +133,14 @@ uint OccupLattice(int coor, CurState* cs);
 void CopyState(CurState* srcCS, CurState* dstCS);
 void ConfigInit();
 void PCInit(CurState* cs, PolyConfig* pcfg);
-int DoMCStep(CurState* cs, int nTime);
+long DoMCStep(CurState* cs, long nTime);
 int DoStep(CurState* cs);
 
 void SetTransTable(Constants* con);
 void CreatePolymers(Config* cfg, CurState* cs);
 void ResultInit(Config* cfg, CurState* cs, Result* res);
 void SetConstants(Constants* con, int BL);
-void CSInit(CurState* cs, int BL, int polSize, int nPol);
+void CSInit(CurState* cs, int BL, int polSize, int nPol, char* dir);
 void DoubleLattice(CurState* cs, CurState* cs_next);
 void CSClear(CurState* cs);
 

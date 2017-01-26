@@ -52,7 +52,7 @@ int GetDtMax(char* dir, long* dt, long* tMax){
 	return 1;
 }
 
-void CSInit(CurState* cs, int BL, int polSize, int nPol){
+void CSInit(CurState* cs, int BL, int polSize, int nPol, char* dir){
 	cs->polSize = polSize;
 	cs->nPol = nPol;
 	cs->intsPerPol = cs->polSize/8+((cs->polSize%8==0)?0:1);
@@ -67,6 +67,13 @@ void CSInit(CurState* cs, int BL, int polSize, int nPol){
 	cs->unit2Cache = malloc(sizeof(uint)*cs->intsPerMono);
 	cs->coorCache  = malloc(sizeof(uint)*cs->nPol);
 	cs->allocated  = TRUE;
+	if(dir){
+		cs->dir        = malloc(sizeof(char)*(strlen(dir)+200));
+		sprintf(cs->dir, "%s/N=%i", dir, cs->polSize);
+		char exec[1000];
+		sprintf(exec, "mkdir -p %s\n", cs->dir);
+		system(exec);
+	}
 	CSClear(cs);
 }
 
@@ -131,7 +138,7 @@ void DoubleLattice(CurState* cs, CurState* cs_next){
 		
 		if(nUnit==2){
 // 			CSClear(cs_next);
-			///First find the unit vector.
+			int coorSave[5];
 			uint unit=0x0;
 			int coor=0;
 			for(int iMono=0; iMono<cs->polSize; iMono++){
@@ -141,37 +148,61 @@ void DoubleLattice(CurState* cs, CurState* cs_next){
 					break;
 				}
 			}
-			
+			int try=0;
 			t=TCoor(coor,&cs->con);u=UCoor(coor,&cs->con); v=VCoor(coor,&cs->con);
-			int newCoor = TUVtoCoor(2*t,2*u,2*v,&cs_next->con);
+			int baseCoor = TUVtoCoor(2*t,2*u,2*v,&cs_next->con);
 			int combo = (~unit)&0xf;
-			uint dst1= tab.transTable[combo*NOPT]&0xf;
-			uint dst2= combo;
-			uint dst3= (tab.transTable[combo*NOPT]>>4)&0xf;
-			
-			uint newUnits[5]={unit,unit, dst1, dst2, dst3};
-			
-			int iMono=0;
-// 			printf("newCoor=%x\n", newCoor);
-			for(int i=0; i<5; i++){
-// 				printf("unit=%x\n", newUnits[i]);
-				for(int j=0; j<cs_next->polSize/5+((i<cs_next->polSize%5)?1:0)-1; j++){
-					cs_next->coorPol[iPol+iMono*cs_next->nPol] = newCoor;
+			int fail=1;
+			for(try=0; try<4 && fail; try++){
+// 				if(try>0)
+// 					printf("Attempt no. %i (pol=%i)\n", try, iPol);
+				
+				///First find the unit vector.
+				uint dst1= tab.transTable[combo*NOPT+try]&0xf;
+				uint dst2= combo;
+				uint dst3= (tab.transTable[combo*NOPT+try]>>4)&0xf;
+				
+				uint newUnits[5]={unit,unit, dst1, dst2, dst3};
+				
+				int iMono=0;
+	// 			printf("newCoor=%x\n", newCoor);
+				int newCoor=baseCoor;
+				for(int i=0; i<5; i++){
+	// 				printf("unit=%x\n", newUnits[i]);
+					for(int j=0; j<cs_next->polSize/5+((i<cs_next->polSize%5)?1:0)-1; j++){
+						cs_next->coorPol[iPol+iMono*cs_next->nPol] = newCoor;
+						cs_next->unitPol[iPol/8+iMono*cs_next->intsPerMono] &= ~(0xf<<(4*(iPol%8)));
+						iMono++;
+					}
 					cs_next->unitPol[iPol/8+iMono*cs_next->intsPerMono] &= ~(0xf<<(4*(iPol%8)));
+					cs_next->unitPol[iPol/8+iMono*cs_next->intsPerMono] |= newUnits[i]<<(4*(iPol%8));
+					cs_next->coorPol[iPol+iMono*cs_next->nPol] = newCoor;
 					iMono++;
+					newCoor = AddUnitToCoor(newUnits[i], newCoor, &cs_next->con);
+					if(i>=2 && i<4 && OccupLattice(newCoor, cs_next)){
+// 						printf("\nRemoving: unit=%i, coor=%x, dst1=%x, dst2=%x, dst3=%x, i=%i, iPol=%i\n", unit, newCoor, dst1, dst2, dst3,i, iPol);
+
+						for(int j=2; j<i; j++){
+// 							printf("Unsetting coor: %i (pId=%i)\n", coorSave[j], iPol);
+							UnsetLattice(coorSave[j], cs_next);
+// 						}
+						}
+						break;
+					}
+// 						printf("\nUhoh: newCoor=%x!\n", newCoor);
+// 						exit(0);
+					SetLattice(newCoor, cs_next);
+					coorSave[i]=newCoor;
+					if(i==4) fail=0;
 				}
-				cs_next->unitPol[iPol/8+iMono*cs_next->intsPerMono] &= ~(0xf<<(4*(iPol%8)));
-				cs_next->unitPol[iPol/8+iMono*cs_next->intsPerMono] |= newUnits[i]<<(4*(iPol%8));
-				cs_next->coorPol[iPol+iMono*cs_next->nPol] = newCoor;
-				iMono++;
-				newCoor = AddUnitToCoor(newUnits[i], newCoor, &cs_next->con);
-				SetLattice(newCoor, cs_next);
 			}
-// 			PrintPol(iPol, cs);
-// 			PrintPol(iPol, cs_next);
-// 			exit(0);
+			if(fail){
+				printf("Failed to find an empty spot...\n");
+				exit(0);
+			}
 		}
 	}
+// 	PrintPol(95,cs);
 // 	PrintLattice(cs);
 }
 

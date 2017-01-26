@@ -119,10 +119,10 @@ uint OccupLattice(int coor, CurState* cs){
 	return (cs->lattice[word]& ((uint)1<<bit));
 }
 
-int DoMCStep(CurState* cs, int nTime){
-	int nSmall = nTime*cs->polSize*((cs->nPol-1)/BLOCK_SELECT+1);
-	int realStep=0;
-	for(int j=0; j<nSmall; j++){
+long DoMCStep(CurState* cs, long nTime){
+	long nSmall = nTime*cs->polSize*((cs->nPol-1)/BLOCK_SELECT+1);
+	long realStep=0;
+	for(long j=0; j<nSmall; j++){
 		realStep += DoStep(cs);
 	}
 	return realStep;
@@ -209,7 +209,7 @@ int DoStep(CurState* cs){
 
 void CopyState(CurState* srcCS, CurState* dstCS){
 	if(!dstCS->allocated)
-		CSInit(dstCS, srcCS->con.BL, srcCS->polSize, srcCS->nPol);
+		CSInit(dstCS, srcCS->con.BL, srcCS->polSize, srcCS->nPol, NULL);
 	for(int coor=0; coor<cs->con.LAT_ALLOC; coor++)
 		dstCS->lattice[coor] = srcCS->lattice[coor];
 	for(int i=0; i<cs->polSize*cs->nPol; i++)
