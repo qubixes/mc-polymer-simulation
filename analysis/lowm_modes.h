@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "timer.h"
+#include "file.h"
 
 #define MAX_LT 128 /* Maximum size of lattice in t-direction */
 #define MAX_LU 128 /* Maxumum size of lattice in u-direction */
@@ -32,10 +33,13 @@ char sampleDir[10000];
 char* baseDir;
 
 typedef struct LatPos{
-	int iMono[2];
+	int firstMono;
 	int nOcc;
 }LatPoint;
 
+// typedef struct MonoList{
+// 	int* next;
+// }MonoList;
 
 
 typedef struct Coor{
@@ -91,6 +95,7 @@ typedef struct PolyTimeLapse{
 	double** sinfac, **cosfac;
 	int* modeList;
 	LatPoint* lattice;
+	int* monoList;
 	int L;
 	DInt* genomList;
 	int nGenom;

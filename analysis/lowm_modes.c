@@ -73,10 +73,10 @@ int main(int argc, char** argv){
 	else{
 		printf("Thermalization: %li x %liM, tau=%lfM\n", ptl.nTherm, sp.dT/1000000, TRelaxStretched(sp.polSize, sp.polType,5)/1e6);
 	}
-	if(ptl.nTherm>=sp.nTime){
-		printf("Samples not thermalized, continuing...\n");
-		return 0;
-	}
+// 	if(ptl.nTherm>=sp.nTime){
+// 		printf("Samples not thermalized, continuing...\n");
+// 		return 0;
+// 	}
 	InitArrays(&sp, &ptl);
 	
 	for(int iDev=0; iDev<sp.nDev; iDev++){

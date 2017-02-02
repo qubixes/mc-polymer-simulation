@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
+#include <unistd.h>
 #include "rng.h"
 #include "timer.h"
 
@@ -14,9 +15,15 @@ typedef unsigned int uint;
 #define POL_RING 1
 #define POL_LIN 2
 
+#define SL_EQUAL 1
+#define SL_DOUBLE 2
+#define SL_QUAD 4
+
+
 #ifndef POL_TYPE 
 	#define POL_TYPE POL_LIN
 #endif
+
 
 #define MIN(X,Y) ((X<Y)?X:Y)
 #define MAX(X,Y) ((X>Y)?X:Y)
@@ -76,6 +83,7 @@ typedef struct Config{
 	unsigned int seed;
 	char* dir;
 	double density;
+	int polModel;
 	uint rngState[4];
 }Config;
 
@@ -136,7 +144,7 @@ void PCInit(CurState* cs, PolyConfig* pcfg);
 long DoMCStep(CurState* cs, long nTime);
 int DoStep(CurState* cs);
 
-void SetTransTable(Constants* con);
+void SetTransTable(Constants* con, int polModel);
 void CreatePolymers(Config* cfg, CurState* cs);
 void ResultInit(Config* cfg, CurState* cs, Result* res);
 void SetConstants(Constants* con, int BL);
@@ -155,6 +163,7 @@ void WriteGenom(Config* cfg, CurState* cs, Result* res);
 void WriteResults(Config* cfg, CurState* cs, Result* res);
 void PrintCoor(int coor, Constants* con);
 void PrintPol(int iPol, CurState* cs);
+void WriteSimulationSettings(Config* cfg, CurState* cs, int iStep);
 
 void LoadPolymer(PolyConfig* pcfg, CurState* cs, int iPol);
 void MeasVars(CurState* cs, Result* res);

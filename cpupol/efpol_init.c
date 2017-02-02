@@ -69,7 +69,7 @@ void CSInit(CurState* cs, int BL, int polSize, int nPol, char* dir){
 	cs->allocated  = TRUE;
 	if(dir){
 		cs->dir        = malloc(sizeof(char)*(strlen(dir)+200));
-		sprintf(cs->dir, "%s/N=%i", dir, cs->polSize);
+		sprintf(cs->dir, "%s/N_%i", dir, cs->polSize);
 		char exec[1000];
 		sprintf(exec, "mkdir -p %s\n", cs->dir);
 		system(exec);
@@ -311,7 +311,7 @@ void AddTrans(uint src1, uint src2, uint dst1, uint dst2){
 	tab.curNTrans[16*src1+src2]++;
 }
 
-void SetTransTable(Constants* con){
+void SetTransTable(Constants* con, int polModel){
 	unsigned int unit1, unit2, unitRes;
 	unsigned int valid;
 	
@@ -352,13 +352,23 @@ void SetTransTable(Constants* con){
 			if(!ValidateAddUnitVectors(unit1, (~unit2)&0xf, &res)) continue;
 			for(uint unit3=1; unit3<0xf; unit3++){
 				if(!IsValid(unit3)) continue;
-				if(ValidateAddUnitVectors(unit1, unit3, &res)) continue;
+				if(polModel == SL_QUAD){
+					if(ValidateAddUnitVectors(unit1, unit3, &res)) continue;
+				}
 				for(uint unit4=1; unit4<0xf; unit4++){
 					if(!IsValid(unit4)) continue;
 					uint addUnit = SmallToLargeUnit(unit1, con) + SmallToLargeUnit(unit3, con) + SmallToLargeUnit((~unit2)&0xf, con) + SmallToLargeUnit((~unit4)&0xf, con);
 					if(addUnit%con->LARGE_TUVW == 0){
 						AddTrans(unit1, unit3, unit2, unit4);
 						AddTrans(unit1, unit3, unit2, unit4);
+						if(polModel == SL_EQUAL){
+							if(ValidateAddUnitVectors(unit1, unit3, &res)){
+								for(int i=0; i<2; i++){
+									AddTrans(unit1, unit3, unit2, unit4);
+									AddTrans(unit1, unit3, unit2, unit4);
+								}
+							}
+						}
 					}
 				}
 			}
@@ -391,7 +401,12 @@ void SetTransTable(Constants* con){
 	
 	for(uint unit1=0; unit1<0xf; unit1++){
 		if(!IsValid(unit1)) continue;
-		for(int i=0; i<4; i++){
+// 		int nMove=-1;
+// 		if(polModel == SL_DOUBLE) nMove=4;
+// 		else if(polModel == SL_EQUAL) nMove=2;
+// 		else if(polModel == SL_HALF) nMove=1;
+// 		else {printf("polModel????\n"); exit(0);}
+		for(int i=0; i<polModel; i++){
 			AddTrans(unit1, 0xf, 0x0, 0xf);
 			AddTrans(0xf, unit1, 0xf, 0x0);
 		}
@@ -405,6 +420,7 @@ void SetTransTable(Constants* con){
 		}
 	}
 // 	PrintTrans(); 
+// 	exit(0);
 }
 
 void ConfigInit(){

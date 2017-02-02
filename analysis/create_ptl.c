@@ -1,4 +1,5 @@
 #include "lowm_modes.h"
+#include "file.h"
 #include <sys/resource.h>
 
 typedef struct FileHandles{
@@ -30,8 +31,9 @@ int main(int argc, char** argv){
 	sampleDir = argv[1];
 	
 	sprintf(exec, "mkdir -p %s/ptl", sampleDir); system(exec);
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/ptl/pol=0_dev=0.res", sampleDir, sampleDir);
-	int update = !system(exec); if(!update) return 0;
+	int update=NeedsUpdatePath("simulation_settings.txt", "ptl/pol=0_dev=0.res", sampleDir);
+	if(!update){return 0;}
+// 	update=!update;
 	SetSimProps(&sp, sampleDir);
 	for(int iDev=0; iDev<sp.nDev; iDev++){
 		ConvertData(&sp, iDev, nPolOpen);
@@ -193,9 +195,9 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	pclose(pFile);
 	
 	sprintf(filename, "%s/simulation_settings.txt", sampleDir);
-	sprintf(exec, "X=(`grep 'Polytype' %s`); echo ${X[2]};", filename);
+	sprintf(exec, "grep 'Polytype' %s", filename);
 	pFile = popen(exec, "r");
-	fscanf(pFile, "%s", polType);
+	fscanf(pFile, "%*s %*s %s", polType);
 	pclose(pFile);
 	if(!strcmp(polType, "ring")){
 		sp->polType = POL_TYPE_RING;

@@ -5,11 +5,11 @@ RING_EXECS=efpol_ring
 EXECS=$(LIN_EXECS) $(RING_EXECS)  
 BIN_DIR=../bin
 VPATH=../util
-CFLAGS= -Wall -O2 -std=c99
+CFLAGS= -Wall -O2 
 # CFLAGS=-g -std=c99 -Wall
 LDFLAGS=-lpthread -lm
 EXTRA_INC=../util
-$(EXECS): override CFLAGS+= -I$(EXTRA_INC)
+$(EXECS): override CFLAGS+= -I$(EXTRA_INC) -std=c99
 $(RING_EXECS): EXTRA_CFLAGS= -DPOL_TYPE=POL_RING
 $(LIN_EXECS): EXTRA_CFLAGS= -DPOL_TYPE=POL_LIN
 

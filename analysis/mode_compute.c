@@ -303,14 +303,15 @@ void AddShearMod(SimProperties* sp, PolyTimeLapse* ptl){
 }
 
 void AddRGyr(SimProperties* sp, PolyTimeLapse* ptl){
-	for(int t=ptl->nTherm; t<sp->nTime; t++){
-		ptl->avgRGyr += ptl->polys[t].rGyr;
+	for(int t=0; t<sp->nTime; t++){
 		ptl->rGyrT[t] += ptl->polys[t].rGyr;
+		if(t>ptl->nTherm)
+			ptl->avgRGyr += ptl->polys[t].rGyr;
 	}
 }
 
 void AddSL(SimProperties* sp, PolyTimeLapse* ptl){
-	for(int t=ptl->nTherm; t<sp->nTime; t++)
+	for(int t=0; t<sp->nTime; t++)
 		ptl->avgSL[t] += ptl->polys[t].slRat;
 }
 
@@ -492,9 +493,14 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 			
 			int pos = t+u*L+v*L*L;
 			
-			lattice[pos].iMono[lattice[pos].nOcc++]=iMono;
-			for(int j=0; j<lattice[pos].nOcc; j++)
-				ptl->pc[iMono][lattice[pos].iMono[j]]++;
+			if(lattice[pos].nOcc)
+				ptl->monoList[iMono]=lattice[pos].firstMono;
+			else
+				ptl->monoList[iMono]=-1;
+			lattice[pos].firstMono=iMono;
+			for(int curMono=ptl->monoList[iMono]; curMono >=0; curMono=ptl->monoList[curMono])
+				ptl->pc[iMono][curMono]++;
+			
 			for(int i=0; i<12; i++){
 				int dt = tuvRelPos[i][0];
 				int du = tuvRelPos[i][1];
@@ -511,8 +517,8 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 					}
 					exit(192);
 				}
-				for(int j=0; j<lattice[newPos].nOcc; j++)
-					ptl->pc[iMono][lattice[newPos].iMono[j]]++;
+				for(int curMono=ptl->lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono])
+					ptl->pc[iMono][curMono]++;
 			}
 		}
 		

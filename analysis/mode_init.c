@@ -111,7 +111,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
 		ptl->sqrtList[i] = sqrt(i/2.0);
 	
-	ptl->nEqd = sp->nTime-ptl->nTherm;
+	ptl->nEqd = MAX(0,sp->nTime-ptl->nTherm);
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->polSize);
 	ptl->avgGenom = malloc(sizeof(double)*sp->polSize);
@@ -122,11 +122,11 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	ptl->avgSL = malloc(sizeof(double)*sp->nTime);
 	ptl->avgRee = malloc(sizeof(double)*ptl->nEqd);
 	ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
-	ptl->polys = malloc(sizeof(PolyConfig)*ptl->nEqd);
+	ptl->polys = malloc(sizeof(PolyConfig)*sp->nTime);
 	ptl->avgRGyr = 0;
 	ptl->pc = malloc(sizeof(double*)*sp->polSize);
 	
-	
+	ptl->monoList= malloc(sizeof(int)*sp->polSize);
 	ptl->L = 400;
 	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L)+(ptl->L*ptl->L*ptl->L)/2;
 	for(int i=0; i<ptl->L*ptl->L*ptl->L; i++)
@@ -222,51 +222,49 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 
 int GetNUpdates(SimProperties* sp, char* sampleDir){
 	int nUpd=0;
-	char exec[10000];
 	
-	sp->updRouseDyn=0;
-	sp->updRouseStat=0;
+	sp->updGyr  = NeedsUpdatePath("simulation_settings.txt", "rgyr.dat", sampleDir);
+	sp->updGyr |= NeedsUpdatePath("simulation_settings.txt", "rgyr_time.dat", sampleDir);
+	if(sp->updGyr){ nUpd++; printf("Updating rgyr\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/rgyr.dat -o %s/simulation_settings.txt -nt %s/rgyr_time.dat", sampleDir, sampleDir, sampleDir, sampleDir);
-	sp->updGyr = !system(exec); if(sp->updGyr){ nUpd++; printf("Updating rgyr\n");}
+	sp->updRouseStat = NeedsUpdatePath("simulation_settings.txt", "rouse_stat.dat", sampleDir);
+	if(sp->updRouseStat){ nUpd++; printf("Updating static rouse modes\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/rouse_stat.dat", sampleDir, sampleDir);
-	sp->updRouseStat = !system(exec); if(sp->updRouseStat){ nUpd++; printf("Updating static rouse modes\n");}
+	sp->updRouseDyn = NeedsUpdatePath("simulation_settings.txt", "rouse_dyn.dat", sampleDir);
+	if(sp->updRouseDyn){ nUpd++; printf("Updating dynamic rouse modes\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/rouse_dyn.dat", sampleDir, sampleDir);
-	sp->updRouseDyn = !system(exec); if(sp->updRouseDyn){ nUpd++; printf("Updating dynamic rouse modes\n");}
+	sp->updGenom = NeedsUpdatePath("simulation_settings.txt", "genom.dat", sampleDir);
+	sp->updGenom |= NeedsUpdatePath("simulation_settings.txt", "pgenom.dat", sampleDir);
+	if(sp->updGenom){ nUpd++; printf("Updating gen dist\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/genom.dat -o %s/simulation_settings.txt -nt %s/pgenom.dat", sampleDir, sampleDir, sampleDir, sampleDir);
-	sp->updGenom = !system(exec); if(sp->updGenom){ nUpd++; printf("Updating gen dist\n");}
-	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/ucor.dat", sampleDir, sampleDir);
-	sp->updUnit = !system(exec); if(sp->updUnit){ nUpd++; printf("Updating unit correlation\n");}
+	sp->updUnit = NeedsUpdatePath("simulation_settings.txt", "ucor.dat", sampleDir);
+	if(sp->updUnit){ nUpd++; printf("Updating unit correlation\n");}
 	
 // 	sprintf(exec, "test %s/simulation_settings.txt -nt %s/spac_rouse.dat", sampleDir, sampleDir);
 // 	sp->updSPRouse = !system(exec); if(sp->updSPRouse){ nUpd++; printf("Updating spatial rouse modes\n");}
 	sp->updSPRouse = 0;
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/spac_dif.dat", sampleDir, sampleDir);
-	sp->updSpacDif = !system(exec); if(sp->updSpacDif){ nUpd++; printf("Updating spatial diffusion\n");}
+	sp->updSpacDif = NeedsUpdatePath("simulation_settings.txt", "spac_dif.dat", sampleDir);
+	if(sp->updSpacDif){ nUpd++; printf("Updating spatial diffusion\n");}
 // 	sp->updSpacDif=0;
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/slrat.dat", sampleDir, sampleDir);
-	sp->updSL = !system(exec); if(sp->updSL){ nUpd++; printf("Updating SL ratio\n");}
+	sp->updSL = NeedsUpdatePath("simulation_settings.txt", "slrat.dat", sampleDir);
+	if(sp->updSL){ nUpd++; printf("Updating SL ratio\n");}
 	
-	sprintf(exec, "test %s/cmsdif_raw.dat -nt %s/cmsdif.dat", sampleDir, sampleDir);
-	sp->updDif = !system(exec); if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM diffusion\n");}
+	sp->updDif = NeedsUpdatePath("cmsdif_raw.dat", "cmsdif.dat", sampleDir);
+	if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM diffusion\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/cmsdif_raw.dat", sampleDir, sampleDir);
-	sp->updAvgPos = !system(exec); if(sp->updAvgPos){sp->updDif=1; nUpd++; printf("Updating raw CMS/MM/EM/SM diffusion\n");}
+	sp->updAvgPos = NeedsUpdatePath("simulation_settings.txt", "cmsdif_raw.dat", sampleDir);
+	if(sp->updAvgPos){sp->updDif=1; nUpd++; printf("Updating raw CMS/MM/EM/SM diffusion\n");}
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/shearmod.dat", sampleDir, sampleDir);
-	sp->updShearMod = !system(exec); if(sp->updShearMod){ nUpd++; printf("Updating shear modulus\n");}	
+	sp->updShearMod = NeedsUpdatePath("simulation_settings.txt", "shearmod.dat", sampleDir);
+	if(sp->updShearMod){ nUpd++; printf("Updating shear modulus\n");}	
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/ree.dat", sampleDir, sampleDir);
-	sp->updRee = !system(exec); if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
+	sp->updRee = NeedsUpdatePath("simulation_settings.txt", "ree.dat", sampleDir);
+	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
 	
-	sprintf(exec, "test %s/simulation_settings.txt -nt %s/pc.dat", sampleDir, sampleDir);
-	sp->updPC = !system(exec); if(sp->updPC){ nUpd++; printf("Updating p_c\n");}	
+	sp->updPC = NeedsUpdatePath("simulation_settings.txt", "pc.dat", sampleDir);
+	if(sp->updPC){ nUpd++; printf("Updating p_c\n");}	
 
 	return nUpd;
 }
@@ -479,16 +477,26 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	printf("Number of devices detected: %i\n", sp->nDev);
 	pclose(pFile);
 	
-	sprintf(filename, "%s/simulation_settings.txt", sampleDir);
-	pFile = fopen(filename, "r");
-	char buf[400];
-	for(int i=0; i<4; i++) fgets(buf, 400, pFile);
+	sprintf(exec, "grep 'Polytype' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
 	fscanf(pFile, "%*s %*s %s", polType);
-	for(int i=0; i<7; i++){
-		fgets(buf, 400, pFile);
-	}
-	sp->equilibrated=0;
+	pclose(pFile);
+	
+	sprintf(exec, "grep 'Equilibrated' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
 	fscanf(pFile, "%*s %*s %i", &sp->equilibrated);
+	pclose(pFile);
+	
+// 	sprintf(filename, "%s/simulation_settings.txt", sampleDir);
+// 	pFile = fopen(filename, "r");
+// 	char buf[400];
+// 	for(int i=0; i<4; i++) fgets(buf, 400, pFile);
+// 	fscanf(pFile, "%*s %*s %s", polType);
+// 	for(int i=0; i<7; i++){
+// 		fgets(buf, 400, pFile);
+// 	}
+// 	sp->equilibrated=0;
+// 	fscanf(pFile, "%*s %*s %i", &sp->equilibrated);
 	if(!strcmp(polType, "ring")){
 		sp->polType = POL_TYPE_RING;
 	}

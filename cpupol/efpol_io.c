@@ -114,6 +114,36 @@ void PrintTrans(){
 	PrintUnits();
 }
 
+void WriteSimulationSettings(Config* cfg, CurState* cs, int iStep){
+	char file[2000];
+	
+	sprintf(file, "%s/simulation_settings.txt", cs->dir);
+	FILE* pFile = fopen(file, "w");
+	fprintf(pFile, "Start_seed = %u\n", cfg->seed);
+	fprintf(pFile, "Length = %i\n", cs->polSize);
+#if POL_TYPE == POL_TYPE_RING
+	fprintf(pFile, "Polytype = ring\n");
+#else
+	fprintf(pFile, "Polytype = lin\n");
+#endif
+	fprintf(pFile, "Density = %lf\n", cfg->density);
+	fprintf(pFile, "Latsize = %i\n", cs->con.L);
+	fprintf(pFile, "Start_polysize = %i\n", cfg->initPolSize);
+	fprintf(pFile, "Double_step = %i\n", iStep);
+	fprintf(pFile, "Interval = %li\n", cfg->interval);
+	fprintf(pFile, "Equilibrated = 0\n");
+	fprintf(pFile, "Npol = %i\n", cs->nPol);
+	if(cfg->polModel == SL_EQUAL)
+		fprintf(pFile, "Polymodel = sl_equal\n");
+	else if(cfg->polModel == SL_DOUBLE)
+		fprintf(pFile, "Polymodel = sl_double\n");
+	else if(cfg->polModel == SL_QUAD)
+		fprintf(pFile, "Polymodel = sl_quad\n");
+	else 
+		fprintf(pFile, "Polymodel = ??\n");
+	fclose(pFile);
+}
+
 // void WriteConfig(Config* cfg){
 // 	char file[1000];
 // 	FILE* pFile;

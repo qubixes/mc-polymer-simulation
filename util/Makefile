@@ -2,8 +2,9 @@
 
 EXECS=bench
 BIN_DIR=../bin
-CFLAGS= -Wall -O2 -std=c99
-# CFLAGS=-g -std=c99 -Wall
+CFLAGS= -Wall -O2 
+
+$(EXECS): override CFLAGS+= -std=c99
 all: $(EXECS)
 
 bench: bench.o timer.o

@@ -95,7 +95,7 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 		exit(192);
 	}
 	
-	for(int t=0; t<ptl->nEqd; t++){
+	for(int t=0; t<sp->nTime; t++){
 		fprintf(pFile, "%li %le\n", sp->dT*t, ptl->rGyrT[t]/(sp->nPol*sp->nDev));
 	}
 	fclose(pFile);
