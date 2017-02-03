@@ -23,9 +23,10 @@ for DIR in ${DIRS[*]}; do
 	
 	I=0
 	DENSITY=`get_attr 'Density' $DIR`
-	LINE=(`grep '^'"${DENSITY:0:3}" "ne_list.dat"`)
-	NE_FAC=${LINE[1]}
-	R_FAC=${LINE[2]}
+	EXEC=`get_attr 'Executable' $DIR`
+	LINE=(`grep '^'"$EXEC ${DENSITY:0:3}" "ne_list.dat"`)
+	NE_FAC=${LINE[2]}
+	R_FAC=${LINE[3]}
 # 	echo ${LINE[1]} ${LINE[*]} $DENSITY
 	printf "%i %f %f " $LENGTH $NE_FAC $R_FAC
 # 	echo $FILE

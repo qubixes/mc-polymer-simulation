@@ -10,6 +10,7 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 	if(sp->updSPRouse)   WriteSpaceRouse(sp, ptl);
 	if(sp->updSpacDif)   WriteSpacDif(sp,ptl);
 	if(sp->updDif) {
+// 		printf("nEqd=%li\n", ptl->nEqd);
 		WriteDiff(sp, ptl->cmsDif, "cms", ptl->nEqd);
 		WriteDiff(sp, ptl->smDif, "sm", ptl->nEqd);
 		WriteDiff(sp, ptl->emDif, "em", ptl->nEqd);
@@ -282,7 +283,7 @@ void WriteDiff(SimProperties* sp, double* dif, char* base, long nEqd){
 		sprintf(file, "%s/%sdif.dat", sp->sampleDir, base);
 	pFile = fopen(file, "w"); if(!pFile) return;
 
-	for(int dt=0; dt<nEqd; dt++){
+	for(int dt=1; dt<nEqd; dt++){
 		if(!dif[dt]) continue;
 		fprintf(pFile, "%li %le\n", dt*sp->dT,  dif[dt]/(double)(sp->nPol*sp->nDev));
 	}

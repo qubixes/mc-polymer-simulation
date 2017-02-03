@@ -6,7 +6,7 @@ if [ $# -gt 0 ]; then
 	NPROC=$1
 fi
 
-DIRS=(./data/*/N*);
+DIRS=(./data/*/*/);
 
 for DIR in ${DIRS[*]}; do 
 	./bin/create_ptl $DIR || exit $?

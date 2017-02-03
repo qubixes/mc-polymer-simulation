@@ -49,7 +49,6 @@ int ReadLatticeFile(CurState* cs, char* file){
 
 int WriteLatticeFile(CurState* cs, char* file){
 	int iPol;
-// 	printf("\nWriting to file %s\n", file);
 	FILE* pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -72,11 +71,6 @@ void WritePolymer(CurState* cs, int iPol, FILE* pFile){
 	fprintf(pFile, "len= %i\n", cs->polSize);
 	fprintf(pFile, "%u  %u  %u\t", TCoor(cs->coorPol[iPol], &cs->con), UCoor(cs->coorPol[iPol], &cs->con), VCoor(cs->coorPol[iPol], &cs->con));
 	
-// #if POL_TYPE == POL_LIN
-// 	int maxBond = cfg.polSize-1;
-// #elif POL_TYPE == POL_RING
-// 	int maxBond = cfg.polSize;
-// #endif
 	for(int iMono=0; iMono<cs->polSize; iMono++)
 		fprintf(pFile, "%x", (cs->unitPol[iPol/8+iMono*cs->intsPerMono] >> (4*(iPol%8)))&0xf);
 	fprintf(pFile, "\n");
@@ -121,7 +115,7 @@ void WriteSimulationSettings(Config* cfg, CurState* cs, int iStep){
 	FILE* pFile = fopen(file, "w");
 	fprintf(pFile, "Start_seed = %u\n", cfg->seed);
 	fprintf(pFile, "Length = %i\n", cs->polSize);
-#if POL_TYPE == POL_TYPE_RING
+#if POL_TYPE == POL_RING
 	fprintf(pFile, "Polytype = ring\n");
 #else
 	fprintf(pFile, "Polytype = lin\n");
@@ -141,24 +135,9 @@ void WriteSimulationSettings(Config* cfg, CurState* cs, int iStep){
 		fprintf(pFile, "Polymodel = sl_quad\n");
 	else 
 		fprintf(pFile, "Polymodel = ??\n");
+	fprintf(pFile, "Executable = efpol\n");
 	fclose(pFile);
 }
-
-// void WriteConfig(Config* cfg){
-// 	char file[1000];
-// 	FILE* pFile;
-// 	
-// 	sprintf(file, "%s/config", cfg->dir);
-// 	pFile = fopen(file, "w");
-// 	fprintf(pFile, "NAME N=%i_CPU\n", cfg->polSize);
-// 	fprintf(pFile, "N %i\n", cfg->polSize);
-// 	fprintf(pFile, "NP %i\n", cfg->nPol);
-// 	fprintf(pFile, "SEED %u\n", cfg->seed);
-// // 	fprintf(pFile, "T_MAX %li\n", cfg->nTime);
-// 	fprintf(pFile, "INTERVAL %li\n", cfg->interval);
-// 	fprintf(pFile, "T_EQ %li\n", cfg->nEq);
-// 	fclose(pFile);
-// }
 
 void PrintCoor(int coor, Constants* con){
 	printf("[%i %i %i]", TCoor(coor, con), UCoor(coor, con), VCoor(coor, con));

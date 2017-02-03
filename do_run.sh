@@ -1,5 +1,7 @@
 #!/bin/bash
-shopt -s extglob
+
+. $HOME/.bashrc
+# shopt -s extglob
 
 USAGE="usage: do_run.sh [OPTIONS]\nAvailable Options:\n\n-s/--seed   Seed\n-n/--nmono  Polymer length\n-t/--time   Simulation time\n-h/--help   Print usage of do_run.sh\n-o/--opencl Use openCL\n-c/--cpu    Use CPU\n-u/--cuda   Use CUDA\n"
 
@@ -61,9 +63,17 @@ NMONO="512"
 MODEL="sl_equal"
 L="32"
 DBL_STEP="2"
+B_EXEC="efpol"
 
 while (( "$#" )); do
 	case $1 in 
+		-x|--exec)
+			if [ $# -lt 2 ]; then 
+				echo "Need exec after -x/--exec option: $1"
+				exit 1
+			fi
+			B_EXEC=$2
+			shift;;
 		-b|--double)
 			if [ $# -lt 2 ]; then
 				echo "Need number after double option: $1"
@@ -159,12 +169,20 @@ if is_num $L ; then
 	exit 192
 fi
 
-EXEC="$BIN_DIR/efpol_$SIM_TYPE"
-DIR="$DATA_DIR/${SIM_TYPE}_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
+if [ $B_EXEC == "efpol" ]; then 
+	EXEC="$BIN_DIR/efpol_$SIM_TYPE"
+	DIR="$DATA_DIR/${SIM_TYPE}_efpol_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
+	BASE_DIR=$DIR
+	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
+elif [ $B_EXEC == "gpupol2" ]; then
+	EXEC="$BIN_DIR/gpupol2_cuda_$SIM_TYPE"
+	BASE_DIR="$DATA_DIR/${SIM_TYPE}_gpupol2_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
+	DIR="$BASE_DIR/long"
+	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
+fi
 
 DESTDIR=$DIR
 
-EXEC_LINE="$EXEC $SEED $DESTDIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 
 echo "Seed           : $SEED"
 echo "Dest dir       : $DESTDIR"
@@ -177,9 +195,10 @@ echo "Double count   : $DBL_STEP"
 echo "Interval       : $INTERVAL"
 echo "Command        : $EXEC_LINE"
 
+# exit 0
 $EXEC_LINE
 
-cat > $DESTDIR/simulation_settings.txt << EOFCAT
+cat > $BASE_DIR/simulation_settings.txt << EOFCAT
 `grep 'RELEASE=' $CUR_DIR/Makefile`
 Start_seed = $SEED
 Length = $NMONO

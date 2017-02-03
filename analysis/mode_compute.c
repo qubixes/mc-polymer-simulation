@@ -126,7 +126,7 @@ void ComputeModes(SimProperties* sp, PolyConfig* pcfg){
 			pcfg->czmode[p]+=pcfg->cosfac[p][k]*pcfg->z[k];
 		}
 // 		if(p==sp->polSize/2){
-// // 		printf("\n");
+// 		printf("\n");
 // 			double sqSum[3]={0,0,0};
 // 			double crossSum[3]={0,0,0};
 // 			for(int i=0; i<sp->polSize; i+=2){
@@ -276,7 +276,7 @@ void AddRee(SimProperties* sp, PolyTimeLapse* ptl){
 
 void AddAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
 	double invsqrt2 = 1/sqrt(2);
-	for(int t=ptl->nTherm; t<sp->nTime; t++){
+	for(int t=0; t<sp->nTime; t++){
 		PolyConfig* pcfg = ptl->polys+t;
 		ptl->avgPosition[t][0] += pcfg->cms.x*invsqrt2;
 		ptl->avgPosition[t][1] += pcfg->cms.y*invsqrt2;

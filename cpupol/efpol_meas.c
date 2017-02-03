@@ -61,7 +61,7 @@ void AddGenom(Result* res){
 	int dx, dr;
 	int gMax;
 	PolyConfig* pcfg = &res->pcfg;
-#if POL_TYPE == POL_TYPE_LIN
+#if POL_TYPE == POL_LIN
 	gMax=pcfg->polSize-1;
 #else
 	gMax = pcfg->polSize/2;
@@ -69,7 +69,7 @@ void AddGenom(Result* res){
 	for(int g=1, dg=1; g<=gMax; g+=dg){
 		di = MAX(1,MAX(pcfg->polSize/100, dg/10));
 		for(int i=0; i<pcfg->polSize; i+=di){
-#if POL_TYPE == POL_TYPE_LIN
+#if POL_TYPE == POL_LIN
 			if(i+g >= pcfg->polSize) continue;
 #endif
 			int j = (i+g)%pcfg->polSize;

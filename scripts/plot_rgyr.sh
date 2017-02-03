@@ -12,7 +12,7 @@ I=0
 
 for DIR in ${DIRS[*]}; do
 	RGYR=(`cat $DIR/rgyr.dat`)
-	N=`get_attr $DIR 'Length'`
+	N=`get_attr 'Length' $DIR`
 	NP=`ls $DIR/ptl | wc -w`
 	echo "$N $RGYR" >> $RGYR_FILE
 done
