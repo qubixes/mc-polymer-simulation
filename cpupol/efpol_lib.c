@@ -132,7 +132,7 @@ long DoMCStep(CurState* cs, long nTime){
 int DoStep(CurState* cs){
 	int mono, prevMono;
 	unsigned int src1, src2, dst1, dst2, move;
-	uint option, randOpt;
+	uint option, randOpt=0;
 	int newCoor=-1;
 	int polStart, polEnd, nPol;
 	

@@ -2,7 +2,7 @@
 
 VPATH=../util
 
-EXECS=lowm_modes create_ptl
+EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff
 EXTRA_INC=../util
 BIN_DIR=../bin
 CFLAGS= -Wall -O2

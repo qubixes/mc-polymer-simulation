@@ -239,7 +239,7 @@ void ResultInit(Config* cfg, CurState* cs, Result* res){
 void CreatePolymers(Config* cfg, CurState* cs){
 	int startCoor, endCoor;
 	int curT, curU, curV, delta, nTot;
-	int nTPol, nUPol, nVPol;
+	int nTPol, nVPol; // nUPol,
 	
 	int LT=cs->con.L, LU=cs->con.L, LV=cs->con.L;
 	
@@ -255,7 +255,7 @@ void CreatePolymers(Config* cfg, CurState* cs){
 	}
 // 	printf("delta = %i\n", delta);
 	nTPol = LT/delta;
-	nUPol = LU/delta;
+// 	nUPol = LU/delta;
 	nVPol = LV/(delta+1);
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		curT = delta*(iPol%nTPol);

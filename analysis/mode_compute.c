@@ -517,8 +517,10 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 					}
 					exit(192);
 				}
-				for(int curMono=ptl->lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono])
-					ptl->pc[iMono][curMono]++;
+				if(lattice[newPos].nOcc){
+					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono])
+						ptl->pc[iMono][curMono]++;
+				}
 			}
 		}
 		

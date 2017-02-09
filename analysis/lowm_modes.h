@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

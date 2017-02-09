@@ -86,7 +86,10 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 			fsetpos(timePFile, &(fh.timeFPos[iTime]));
 			for(int jPol=0; jPol<nPolRead; jPol++){
 				fscanf(timePFile, "%*s %*s");
-				fscanf(timePFile, "%i %i %i %s", &t, &u, &v, tString);
+				if(fscanf(timePFile, "%i %i %i %s", &t, &u, &v, tString)<=0){
+					printf("\nError reading file at file id %i\n", iTime);
+					exit(192);
+				}
 				fprintf(fh.pFilePol[jPol], "%i %i %i %s\n", t,u,v,tString);
 			}
 			fgetpos(timePFile, &(fh.timeFPos[iTime]));

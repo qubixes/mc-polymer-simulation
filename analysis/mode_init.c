@@ -215,55 +215,58 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		ReadAvgPos(sp,ptl);
 	else{
 		ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
-		for(int t=0; t<sp->nTime; t++)
+		for(int t=0; t<sp->nTime; t++){
 			ptl->avgPosition[t] = malloc(sizeof(double)*3);
+			for(int i=0; i<3; i++)
+				ptl->avgPosition[t][i] = 0;
+		}
 	}
 }
 
 int GetNUpdates(SimProperties* sp, char* sampleDir){
 	int nUpd=0;
 	
-	sp->updGyr  = NeedsUpdatePath("simulation_settings.txt", "rgyr.dat", sampleDir);
-	sp->updGyr |= NeedsUpdatePath("simulation_settings.txt", "rgyr_time.dat", sampleDir);
+	sp->updGyr  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rgyr.dat", sampleDir);
+	sp->updGyr |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "rgyr_time.dat", sampleDir);
 	if(sp->updGyr){ nUpd++; printf("Updating rgyr\n");}
 	
-	sp->updRouseStat = NeedsUpdatePath("simulation_settings.txt", "rouse_stat.dat", sampleDir);
+	sp->updRouseStat = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rouse_stat.dat", sampleDir);
 	if(sp->updRouseStat){ nUpd++; printf("Updating static rouse modes\n");}
 	
-	sp->updRouseDyn = NeedsUpdatePath("simulation_settings.txt", "rouse_dyn.dat", sampleDir);
+	sp->updRouseDyn = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rouse_dyn.dat", sampleDir);
 	if(sp->updRouseDyn){ nUpd++; printf("Updating dynamic rouse modes\n");}
 	
-	sp->updGenom = NeedsUpdatePath("simulation_settings.txt", "genom.dat", sampleDir);
-	sp->updGenom |= NeedsUpdatePath("simulation_settings.txt", "pgenom.dat", sampleDir);
+	sp->updGenom = NeedsUpdatePath("ptl/pol=0_dev=0.res", "genom.dat", sampleDir);
+	sp->updGenom |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pgenom.dat", sampleDir);
 	if(sp->updGenom){ nUpd++; printf("Updating gen dist\n");}
 	
-	sp->updUnit = NeedsUpdatePath("simulation_settings.txt", "ucor.dat", sampleDir);
+	sp->updUnit = NeedsUpdatePath("ptl/pol=0_dev=0.res", "ucor.dat", sampleDir);
 	if(sp->updUnit){ nUpd++; printf("Updating unit correlation\n");}
 	
-// 	sprintf(exec, "test %s/simulation_settings.txt -nt %s/spac_rouse.dat", sampleDir, sampleDir);
+// 	sprintf(exec, "test %s/ptl/pol=0_dev=0.res -nt %s/spac_rouse.dat", sampleDir, sampleDir);
 // 	sp->updSPRouse = !system(exec); if(sp->updSPRouse){ nUpd++; printf("Updating spatial rouse modes\n");}
 	sp->updSPRouse = 0;
 	
-	sp->updSpacDif = NeedsUpdatePath("simulation_settings.txt", "spac_dif.dat", sampleDir);
+	sp->updSpacDif = NeedsUpdatePath("ptl/pol=0_dev=0.res", "spac_dif.dat", sampleDir);
 	if(sp->updSpacDif){ nUpd++; printf("Updating spatial diffusion\n");}
 // 	sp->updSpacDif=0;
 	
-	sp->updSL = NeedsUpdatePath("simulation_settings.txt", "slrat.dat", sampleDir);
+	sp->updSL = NeedsUpdatePath("ptl/pol=0_dev=0.res", "slrat.dat", sampleDir);
 	if(sp->updSL){ nUpd++; printf("Updating SL ratio\n");}
 	
 	sp->updDif = NeedsUpdatePath("cmsdif_raw.dat", "cmsdif.dat", sampleDir);
 	if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM diffusion\n");}
 	
-	sp->updAvgPos = NeedsUpdatePath("simulation_settings.txt", "cmsdif_raw.dat", sampleDir);
+	sp->updAvgPos = NeedsUpdatePath("ptl/pol=0_dev=0.res", "cmsdif_raw.dat", sampleDir);
 	if(sp->updAvgPos){sp->updDif=1; nUpd++; printf("Updating raw CMS/MM/EM/SM diffusion\n");}
 	
-	sp->updShearMod = NeedsUpdatePath("simulation_settings.txt", "shearmod.dat", sampleDir);
+	sp->updShearMod = NeedsUpdatePath("ptl/pol=0_dev=0.res", "shearmod.dat", sampleDir);
 	if(sp->updShearMod){ nUpd++; printf("Updating shear modulus\n");}	
 	
-	sp->updRee = NeedsUpdatePath("simulation_settings.txt", "ree.dat", sampleDir);
+	sp->updRee = NeedsUpdatePath("ptl/pol=0_dev=0.res", "ree.dat", sampleDir);
 	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
 	
-	sp->updPC = NeedsUpdatePath("simulation_settings.txt", "pc.dat", sampleDir);
+	sp->updPC = NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc.dat", sampleDir);
 	if(sp->updPC){ nUpd++; printf("Updating p_c\n");}	
 
 	return nUpd;
@@ -487,16 +490,6 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %*s %i", &sp->equilibrated);
 	pclose(pFile);
 	
-// 	sprintf(filename, "%s/simulation_settings.txt", sampleDir);
-// 	pFile = fopen(filename, "r");
-// 	char buf[400];
-// 	for(int i=0; i<4; i++) fgets(buf, 400, pFile);
-// 	fscanf(pFile, "%*s %*s %s", polType);
-// 	for(int i=0; i<7; i++){
-// 		fgets(buf, 400, pFile);
-// 	}
-// 	sp->equilibrated=0;
-// 	fscanf(pFile, "%*s %*s %i", &sp->equilibrated);
 	if(!strcmp(polType, "ring")){
 		sp->polType = POL_TYPE_RING;
 	}

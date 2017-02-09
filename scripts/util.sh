@@ -12,7 +12,7 @@ function contains () {
 function get_dirs {
 
 SUBDIR=(ring)
-TDIRS=(`ls -d ../data/${SUBDIR}*/*/`)
+TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_gpupol*/)
 N_LIST="-1"
 N_COUNT="0"
 DENS_LIST="-1"

@@ -57,13 +57,14 @@ START_TIME=`date`
 SEED="12396143"
 TIME="1e4"
 SIM_TYPE="ring"
-DENSITY="1.0"
+DENSITY="1.2"
 INTERVAL="1e2"
-NMONO="512"
+NMONO="345"
 MODEL="sl_equal"
-L="32"
-DBL_STEP="2"
-B_EXEC="efpol"
+L="96"
+DBL_STEP="0"
+SHORT="0"
+B_EXEC="gpupol2"
 
 while (( "$#" )); do
 	case $1 in 
@@ -74,6 +75,14 @@ while (( "$#" )); do
 			fi
 			B_EXEC=$2
 			shift;;
+		-r|--dir)
+			if [ $# -lt 2 ]; then
+				echo "need directory after -r/--dir option"
+				exit 2
+			fi
+			echo "Set alternative dir: $2"
+			DATA_DIR=$2
+			shift ;;
 		-b|--double)
 			if [ $# -lt 2 ]; then
 				echo "Need number after double option: $1"
@@ -147,6 +156,9 @@ while (( "$#" )); do
 			echo "Using \"$2\" simulation model"
 			MODEL=$2
 			shift;;
+		--short)
+			echo "Doing short time simulations"
+			SHORT="1" ;;
 		*)
 			echo "Unknown option: $1"
 			exit 3
@@ -173,19 +185,42 @@ if [ $B_EXEC == "efpol" ]; then
 	EXEC="$BIN_DIR/efpol_$SIM_TYPE"
 	DIR="$DATA_DIR/${SIM_TYPE}_efpol_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
 	BASE_DIR=$DIR
+elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
+	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
+	BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
+# 	DIR="$BASE_DIR/long"
+# 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
+fi
+
+if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
+	if [ ! -d $BASE_DIR ]; then echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; fi
+	
+	DIR=$BASE_DIR/short_$INTERVAL
+	if [ -d $DIR ]; then
+		echo "Directory $DIR is already there, remove it first."
+		exit 192;
+	fi
+	mkdir -p $DIR
+	ls -t $BASE_DIR/long/ | grep '.res' | head -1
+	IN_FILE=$BASE_DIR/long/`ls -t $BASE_DIR/long/ | grep '.res' | head -1` || { echo "Error finding file\n"; exit $?; }
+	cp "$IN_FILE" $DIR/t=0_dev=0.res || exit $?
+	echo "Using file:  $IN_FILE"
+else
+	DIR=$DIR/long
+fi
+
+
+if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
-elif [ $B_EXEC == "gpupol2" ]; then
-	EXEC="$BIN_DIR/gpupol2_cuda_$SIM_TYPE"
-	BASE_DIR="$DATA_DIR/${SIM_TYPE}_gpupol2_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
-	DIR="$BASE_DIR/long"
+elif [ $B_EXEC == "gpupol3" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
 fi
 
-DESTDIR=$DIR
+# DESTDIR=$DIR
 
 
 echo "Seed           : $SEED"
-echo "Dest dir       : $DESTDIR"
+echo "Dest dir       : $DIR"
 echo "Max time       : $TIME"
 echo "Polymer type   : $SIM_TYPE"
 echo "Density        : $DENSITY"
