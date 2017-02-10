@@ -6,7 +6,13 @@ if [ $# -gt 0 ]; then
 	NPROC=$1
 fi
 
-DIRS=(./data/*/*/);
+if [ $# -gt 1 ]; then
+	BDIR=$2
+else
+	BDIR="./data"
+fi
+
+DIRS=($BDIR/*/*/);
 
 for DIR in ${DIRS[*]}; do 
 	./bin/create_ptl $DIR || exit $?
@@ -31,10 +37,10 @@ for DIR in ${DIRS[*]}; do
 	fi
 done
 
-BASE_DIRS=(`echo ./data/*gpupol*`);
+BASE_DIRS=(`echo $BDIR/*gpupol*`);
 
 MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat")
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" )
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "spac_dif.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 

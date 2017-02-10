@@ -149,7 +149,7 @@ typedef struct SpacDif{
 	SpacDifPoint* sDPoints;
 	int nSDPoints;
 	
-	LList* ballList[MAX_LSIZE]; //Given a set of tuv coordinates, which SD balls correspond to them?
+	LList** ballList; //Given a set of tuv coordinates, which SD balls correspond to them?
 // 	int nBalls[LT*LU*LV]; //Given a set of tuv coordinates, how many SD balls does it lie within?
 }SpacDif;
 

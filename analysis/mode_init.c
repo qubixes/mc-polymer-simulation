@@ -1,7 +1,9 @@
 #include "lowm_modes.h"
 
 void InitArrays(SimProperties* sp, PolyTimeLapse* ptl){
+	printf("SD init:\n");
 	SpacDifInit(&sd);
+	printf("ptl init:\n");
 	PTLInit(sp, ptl, &sd);
 	allFiles = malloc(sizeof(char*)*sp->nTime);
 	filePos = malloc(sizeof(fpos_t*)*sp->nTime);
@@ -538,9 +540,10 @@ void SpacDifInit(SpacDif* sd){
 		sd->nSDPoints += multi*multi*multi;
 	}
 	
+	sd->sDPoints = malloc(sizeof(SpacDifPoint)*sd->nSDPoints);
+	sd->ballList = malloc(sizeof(LList*)*LT*LU*LV);
 	for(int i=0; i<LSIZE; i++) sd->ballList[i]=NULL;
 	
-	sd->sDPoints = malloc(sizeof(SpacDifPoint)*sd->nSDPoints);
 	
 	int sdId=0;
 	long memUsed=0;
@@ -555,6 +558,10 @@ void SpacDifInit(SpacDif* sd){
 				for(int v=tuvStart; v<LT; v += LV/multi){
 					coor1[0]=t; coor1[1]=u; coor1[2]=v;
 					int nInside = GetNClosestNeigh(occLat, distArray,coor1, balVol);
+// 					if(nInside != balVol && nInside != LSIZE){
+// 						printf("Error: didn't find the correct ball size (%i vs %i)\n", nInside, balVol);
+// 						exit(123);
+// 					}
 					sd->sDPoints[sdId].nCoorInside = nInside;
 					for(int i=0; i<nInside; i++){
 						LList* tLink = malloc(sizeof(LList));
@@ -563,15 +570,16 @@ void SpacDifInit(SpacDif* sd){
 						tLink->sdId = sdId;
 						sd->ballList[distArray[i]] = tLink;
 					}
+// 					printf("id=%i, n=%i\n", sdId, nInside);
 					sdId++;
 				}
 			}
 		}
-// 		printf("multi=%i, memUsed=%li, sdIDUsed=%i\n", multi, memUsed, sdId);
+// 		printf("multi=%i, memUsed=%li, sdIDUsed=%i, nCoor=%i\n", multi, memUsed, sdId, sd->sDPoints[sdId].nCoorInside);
 	}
 // 	printf("%i spatial diffusion measure points\n", sd->nSDPoints);
 // 	exit(0);
-	printf("Warning: this function [SpacDifInit] only works when all lattices have the same size.\n");
+// 	printf("Warning: this function [SpacDifInit] only works when all lattices have the same size.\n");
 	free(occLat); free(distArray);
 }
 

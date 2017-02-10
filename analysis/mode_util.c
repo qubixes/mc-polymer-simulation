@@ -33,7 +33,7 @@ double ShortestDistanceSQ(int coor1[3], int coor2[3]){
 	
 	int xyz1[3], xyz2[3];
 	int newCoor[3];
-	int minRSq=LT*LT*100;
+	int minRSq=2*MAX_LT*MAX_LU*MAX_LV;
 	
 	for(int i=0; i<3; i++){
 		while(coor1[i]<0)   coor1[i] += LT;
@@ -57,6 +57,11 @@ double ShortestDistanceSQ(int coor1[3], int coor2[3]){
 			}
 		}
 	}
+	if(minRSq == 2*MAX_LT*MAX_LU*MAX_LV){
+		printf("Error, no shortest distance found\n");
+		exit(192);
+	}
+	
 	return minRSq/(double)2;
 }
 

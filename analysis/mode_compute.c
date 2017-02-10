@@ -109,15 +109,7 @@ void ComputeModes(SimProperties* sp, PolyConfig* pcfg){
 		int p = pcfg->modeList[ip];
 		pcfg->sxmode[p]=0; pcfg->symode[p]=0; pcfg->szmode[p]=0; 
 		pcfg->cxmode[p]=0; pcfg->cymode[p]=0; pcfg->czmode[p]=0;
-// 		if(p==sp->polSize/2){ printf("\n");
-// 			for(int i=0; i<sp->polSize; i++){
-// 				printf("%i ", pcfg->x[i]);
-// 			}
-// 			printf("\n");
-// 		}
 		for(int k=0;k<sp->polSize;k++){
-// 			if(p==sp->polSize/2 && (k%2==0))
-// 				printf("(%i, %i-%i) ",pcfg->x[k]-pcfg->x[k+1],pcfg->x[k],pcfg->x[k+1]);//, pcfg->sinfac[p][k], pcfg->sinfac[p][k]*pcfg->x[k]);
 			pcfg->sxmode[p]+=pcfg->sinfac[p][k]*pcfg->x[k];
 			pcfg->symode[p]+=pcfg->sinfac[p][k]*pcfg->y[k];
 			pcfg->szmode[p]+=pcfg->sinfac[p][k]*pcfg->z[k];
@@ -125,45 +117,6 @@ void ComputeModes(SimProperties* sp, PolyConfig* pcfg){
 			pcfg->cymode[p]+=pcfg->cosfac[p][k]*pcfg->y[k];
 			pcfg->czmode[p]+=pcfg->cosfac[p][k]*pcfg->z[k];
 		}
-// 		if(p==sp->polSize/2){
-// 		printf("\n");
-// 			double sqSum[3]={0,0,0};
-// 			double crossSum[3]={0,0,0};
-// 			for(int i=0; i<sp->polSize; i+=2){
-// 				int dxi=pcfg->x[i]-pcfg->x[i+1];
-// 				int dyi=pcfg->y[i]-pcfg->y[i+1];
-// 				int dzi=pcfg->z[i]-pcfg->z[i+1];
-// 				for(int j=0; j<sp->polSize; j+=2){
-// 					int dxj=pcfg->x[j]-pcfg->x[j+1];
-// 					int dyj=pcfg->y[j]-pcfg->y[j+1];
-// 					int dzj=pcfg->z[j]-pcfg->z[j+1];
-// 					
-// 					
-// 					if(i==j){
-// // 						printf("(%i, %i-%i) ", dxi, pcfg->x[i], pcfg->x[i+1]);
-// 						sqSum[0] += dxi*dxj;
-// 						sqSum[1] += dyi*dyj;
-// 						sqSum[2] += dzi*dzj;
-// 					}
-// 					else{
-// 						crossSum[0] += dxi*dxj;
-// 						crossSum[1] += dyi*dyj;
-// 						crossSum[2] += dzi*dzj;
-// 					}
-// 				}
-// 			}
-// 			for(int k=0; k<3; k++){
-// 				sqSum[k]    /= 2*sp->polSize;
-// 				crossSum[k] /= 2*sp->polSize;
-// 			}
-// 			
-// // 			printf("\n(%lf,%lf,%lf) <-> (%lf,%lf,%lf)\n", pcfg->sxmode[p]*pcfg->sxmode[p],pcfg->symode[p]*pcfg->symode[p],pcfg->szmode[p]*pcfg->szmode[p], sqSum[0]+crossSum[0], sqSum[1]+crossSum[1], sqSum[2]+crossSum[2]);
-// // 			exit(0);
-// 			sqContrib += sqSum[0]+sqSum[1]+sqSum[2];
-// 			crossContrib += crossSum[0]+crossSum[1]+crossSum[2];
-// 			nContrib++;
-// 		}
-		
 	}
 }
 
@@ -631,13 +584,21 @@ void AddSpacDif(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			dr[1] = ptl->polys[t2].y[iMono]-ptl->polys[t1].y[iMono];
 			dr[2] = ptl->polys[t2].z[iMono]-ptl->polys[t1].z[iMono];
 			
-// 			if(dt==1 && t1==0) printf("dr=%lf\n", dr[1]);
+// 			if(dr[0] > 500 || dr[0]<-500 || dr[1] > 500 || dr[1]<-500 || dr[2] > 500 || dr[2]<-500)
+// 				printf("Uh? (%lf %lf %lf)\n", dr[0], dr[1], dr[2]);
+// 			if(dt==1 && t1==11) printf("dr=%lf\n", dr[1]);
+// 			if(tuv>=LT*LU*LV || tuv<0)
+// 				printf("Uh oh..\n");
 			
 			for(LList* tLink=sd->ballList[tuv]; tLink != NULL; tLink = tLink->next){
 // 				printf("hi!\n");
 				int sdId = tLink->sdId;
 				for(int i=0; i<3; i++){
 					ptl->avgSpacDif[sdId][ptl->devId][itdt][i] += dr[i];
+					if(iMono==0 && itdt==1 && sdId==0){
+						printf("%lf ", ptl->avgSpacDif[sdId][ptl->devId][itdt][i]);
+						if(i==2) printf("\n");
+					}
 				}
 			}
 		}

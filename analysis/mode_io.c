@@ -461,7 +461,6 @@ void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl){
 								difBox=0;
 							else
 								difBox=ptl->avgSpacDif[0][devId][itdt][i]/(double)(sd.sDPoints[0].nCoorInside);
-								
 							sumDif += pow(difFac-difBox, 2);
 // 							if(ptl->tTable.dt[itdt]==1)printf("sumdif=%lf\n", sumDif);
 						}

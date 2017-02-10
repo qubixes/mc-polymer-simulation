@@ -206,14 +206,14 @@ if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
 	cp "$IN_FILE" $DIR/t=0_dev=0.res || exit $?
 	echo "Using file:  $IN_FILE"
 else
-	DIR=$DIR/long
+	DIR=$BASE_DIR/long
 fi
 
 
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "gpupol3" ]; then
-	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
+	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L $SHORT"
 fi
 
 # DESTDIR=$DIR
