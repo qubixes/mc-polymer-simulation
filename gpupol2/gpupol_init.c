@@ -73,7 +73,7 @@ int SimPropDefaultInit(SimProperties* sp){
 	sp->seed = 239864012;
 	sp->dirOut = (char*) malloc(sizeof(char)*1000);
 	sp->trans = (uint*) malloc(4*sizeof(uint));
-	sp->nSteps = (int)(5*CELL_SIZE/8.0);
+	sp->nSteps = (int)(0.8*CELL_SIZE);
 	sp->equilibrated=0;
 	SetGPUTrans(sp->trans);
 	return 0;
@@ -119,6 +119,7 @@ void LoadPolymers(SimProperties* sp, SimState* ss){
 		printf("Starting from t=%li\n", highestT);
 		sp->curT = highestT;
 		sp->tMax += highestT;
+		sp->seed += highestT/sp->writeInterval;
 		///Simstate is initialized after reading the dimensions of the box.
 		for(int i=0; i<sp->nDevices; i++){
 			sprintf(buf, "%s/%s", sp->dirOut, highTFiles[i]);

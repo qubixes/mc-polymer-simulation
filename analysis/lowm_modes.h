@@ -54,7 +54,7 @@ typedef struct DInt{
 
 typedef struct SimProperties{
 	int polSize;
-	int nTime;
+	int nTime, nEqd, nTherm;
 	long dT, tStart;
 	int nPol;
 	int nDev;
@@ -85,10 +85,16 @@ typedef struct PolyConfig{
 	double ree[3];
 }PolyConfig;
 
+typedef struct TDT{
+	int t;
+	int dt;
+	int idt;
+}TDT;
+
 typedef struct TDTTable{
 	int nTDT;
-	int* dt;
-	int* t;
+	TDT* tdt;
+	int nDt;
 }TDTTable;
 	
 
@@ -169,6 +175,9 @@ int IsValid(int a);
 int TUV2Coor(int tuv[3]);
 void Coor2TUV(int coor, int tuv[3]);
 int AddCoor2TUV(int coor1, int tuv[3]);
+void DTUV2XYZ(double tuv[3], double xyz[3]);
+double DRXYZ(double xyz[3], double xyz2[3]);
+
 
 int GetNUpdates(SimProperties* sp, char* sampleDir);
 void InitArrays(SimProperties* sp, PolyTimeLapse* ptl);
@@ -178,13 +187,14 @@ void DestrArrays(SimProperties* sp, PolyTimeLapse* ptl);
 void PTLDestr(SimProperties* sp, PolyTimeLapse* ptl);
 void PCDestr(SimProperties* sp, PolyConfig* pc);
 void InitFilePos(SimProperties* sp, int devId);
-void TTableInit(SimProperties* sp, PolyTimeLapse* ptl);
+TDTTable* TTableNew(SimProperties* sp, int tFirst);
 void TTableDestr(SimProperties* sp, PolyTimeLapse* ptl);
 void SpacDifInit(SpacDif* sd);
 void SpacDifDestr(SpacDif* sd);
 void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId);
 void InitRelPos();
 int GetNClosestNeigh(int* occLat, int* retList, int tuv[3], int volume);
+double TRelaxStretched(int polSize, int polType, double nTau);
 
 void AddAverages(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);
@@ -237,5 +247,5 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 int CharToHex(char c);
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 void LoadPol(SimProperties* sp, PolyTimeLapse* pt);
-void ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
+double** ReadAvgPos(SimProperties* sp);
 

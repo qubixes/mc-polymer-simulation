@@ -1,44 +1,26 @@
 #include "lowm_modes.h"
 
-double TRelax(int polSize, int polType){
-	double tRouse, tInter, tRept, tau;
-	
-	if(polType == POL_TYPE_RING){
-		tRouse = 0.24  *pow(polSize, 2.2);
-		tInter = 0.042 *pow(polSize, 2.5);
-		tRept  = 1.5e-3*pow(polSize, 2.97);
-	}
-	else{
-		tRouse = 1.1    *pow(polSize, 2.2);
-		tInter = 0.3    *pow(polSize, 2.5);
-		tRept  = 1.26e-2*pow(polSize, 3.1);
-	}
-	
-	tau = MAX(15e3, tRouse);
-	tau = MAX(tau, tInter);
-	tau = MAX(tau, tRept);
-	return tau;
-}
+// double TRelax(int polSize, int polType){
+// 	double tRouse, tInter, tRept, tau;
+// 	
+// 	if(polType == POL_TYPE_RING){
+// 		tRouse = 0.24  *pow(polSize, 2.2);
+// 		tInter = 0.042 *pow(polSize, 2.5);
+// 		tRept  = 1.5e-3*pow(polSize, 2.97);
+// 	}
+// 	else{
+// 		tRouse = 1.1    *pow(polSize, 2.2);
+// 		tInter = 0.3    *pow(polSize, 2.5);
+// 		tRept  = 1.26e-2*pow(polSize, 3.1);
+// 	}
+// 	
+// 	tau = MAX(15e3, tRouse);
+// 	tau = MAX(tau, tInter);
+// 	tau = MAX(tau, tRept);
+// 	return tau;
+// }
 
-double TRelaxStretched(int polSize, int polType, double nTau){
-	double tRouse, tInter, tRept, tau;
-	
-	if(polType == POL_TYPE_RING){
-		tRouse = pow(nTau,1./0.85)*exp(-1.40/0.85)*pow(polSize, 1.88/0.85);
-		tInter = tRouse;
-		tRept  = pow(nTau,1./0.61)*exp(-5.02/0.61)*pow(polSize, 1.88/0.61);
-	}
-	else{
-		tRouse = 1.1    *pow(polSize, 2.2);
-		tInter = 0.3    *pow(polSize, 2.5);
-		tRept  = 1.26e-2*pow(polSize, 3.1);
-	}
-	
-	tau = MAX(15e3, tRouse);
-	tau = MAX(tau, tInter);
-	tau = MAX(tau, tRept);
-	return tau;
-}
+
 
 int main(int argc, char** argv){
 	SimProperties sp;

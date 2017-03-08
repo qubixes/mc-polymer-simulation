@@ -4,10 +4,24 @@ double RSQ(Coor c){
 	return (c.x*c.x+c.y*c.y+c.z*c.z);
 }
 
+double DRXYZ(double xyz[3], double xyz2[3]){
+	double dr=0;
+	for(int k=0; k<3; k++)
+		dr += (xyz[k]-xyz2[k])*(xyz[k]-xyz2[k]);
+	return dr;
+}
+
 void TUV2XYZ(int tuv[3], int xyz[3]){
-	xyz[0] = -tuv[0]       +tuv[2];
-	xyz[1] =  tuv[0]-tuv[1]+tuv[2];
-	xyz[2] =         tuv[1]       ;
+	xyz[0] = tuv[0]+tuv[1]-tuv[2];
+	xyz[1] = tuv[0]-tuv[1]       ;
+	xyz[2] =               tuv[2];
+}
+
+void DTUV2XYZ(double tuv[3], double xyz[3]){
+	double invSqrt2=1./sqrt(2);
+	xyz[0] = (tuv[0]+tuv[1]-tuv[2])*invSqrt2;
+	xyz[1] = (tuv[0]-tuv[1]       )*invSqrt2;
+	xyz[2] = (              tuv[2])*invSqrt2;
 }
 
 int TUV2Coor(int tuv[3]){

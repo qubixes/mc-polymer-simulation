@@ -177,10 +177,11 @@ void ComputeUnitCor(SimProperties* sp, PolyConfig* pcfg){
 void ComputeGyration(SimProperties* sp, PolyConfig* pcfg){
 	double dx, dy, dz;
 	double rg=0;
+	double invSqrt2=1/sqrt(2.0);
 	for(int i=0; i<sp->polSize; i++){
-		dx = pcfg->x[i]-pcfg->cms.x;
-		dy = pcfg->y[i]-pcfg->cms.y;
-		dz = pcfg->z[i]-pcfg->cms.z;
+		dx = pcfg->x[i]*invSqrt2-pcfg->cms.x;
+		dy = pcfg->y[i]*invSqrt2-pcfg->cms.y;
+		dz = pcfg->z[i]*invSqrt2-pcfg->cms.z;
 		rg += (dx*dx+dy*dy+dz*dz)/2;
 	}
 	rg /= sp->polSize;
@@ -196,9 +197,9 @@ void ComputeCMS(SimProperties* sp, PolyConfig* pcfg){
 		pcfg->cms.y += pcfg->y[i];
 		pcfg->cms.z += pcfg->z[i];
 	}
-	pcfg->cms.x /= sp->polSize;
-	pcfg->cms.y /= sp->polSize;
-	pcfg->cms.z /= sp->polSize;
+	pcfg->cms.x /= sp->polSize*sqrt(2);
+	pcfg->cms.y /= sp->polSize*sqrt(2);
+	pcfg->cms.z /= sp->polSize*sqrt(2);
 // 	printf("%lf %lf %lf\n", pcfg->cms.x, pcfg->cms.y, pcfg->cms.z);
 }
 
@@ -451,8 +452,15 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 			else
 				ptl->monoList[iMono]=-1;
 			lattice[pos].firstMono=iMono;
-			for(int curMono=ptl->monoList[iMono]; curMono >=0; curMono=ptl->monoList[curMono])
+			lattice[pos].nOcc++;
+			
+			for(int curMono=ptl->monoList[iMono]; curMono >=0; curMono=ptl->monoList[curMono]){
+				if(iMono == curMono){
+					printf("????????????\n");
+					exit(192);
+				}
 				ptl->pc[iMono][curMono]++;
+			}
 			
 			for(int i=0; i<12; i++){
 				int dt = tuvRelPos[i][0];
@@ -471,12 +479,18 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 					exit(192);
 				}
 				if(lattice[newPos].nOcc){
-					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono])
+					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono]){
+// 						printf("%i %i %i\n", iMono, pos, newPos);
 						ptl->pc[iMono][curMono]++;
+						if(iMono == curMono){
+							printf("?????\n");
+							exit(192);
+						}
+					}
 				}
 			}
 		}
-		
+// 		exit(0);
 		for(int iMono=0; iMono<sp->polSize; iMono++){
 			t = pcfg->t[iMono]-ts;
 			u = pcfg->u[iMono]-us;
@@ -508,7 +522,7 @@ void AddMono(SimProperties* sp, PolyTimeLapse* ptl, int mono, double* res){
 			mAdd += pow((ptl->polys[t].z[mono]-ptl->polys[t2].z[mono]-dz),2);
 			num++;
 		}
-		res[dt] += mAdd/num;
+		res[dt] += mAdd/(double)(2*num);
 		dtStep = MAX(1, dt/10);
 	}
 }
@@ -545,8 +559,8 @@ void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 	double tuv[3];
 	
 	for(int i=0; i<ptl->tTable.nTDT; i++){
-		int dt = ptl->tTable.dt[i];
-		int t1 = ptl->tTable.t[i];
+		int dt = ptl->tTable.tdt[i].dt;
+		int t1 = ptl->tTable.tdt[i].t;
 		int t2 = dt+t1;
 		
 		dr[0] = ptl->polys[t1].cms.x-ptl->polys[t2].cms.x;
@@ -568,11 +582,12 @@ void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 void AddSpacDif(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	int coor[3];
 	double dr[3];
+	double invSqrt2 = 1/sqrt(2.0);
 	
 	for(int iMono=0; iMono<sp->polSize; iMono++){
 		for(int itdt=0; itdt<ptl->tTable.nTDT; itdt++){
-			int dt = ptl->tTable.dt[itdt];
-			int t1 = ptl->tTable.t[itdt];
+			int dt = ptl->tTable.tdt[itdt].dt;
+			int t1 = ptl->tTable.tdt[itdt].t;
 			int t2 = t1+dt;
 			coor[0] = ptl->polys[t1].t[iMono]; 
 			coor[1] = ptl->polys[t1].u[iMono];
@@ -594,11 +609,11 @@ void AddSpacDif(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 // 				printf("hi!\n");
 				int sdId = tLink->sdId;
 				for(int i=0; i<3; i++){
-					ptl->avgSpacDif[sdId][ptl->devId][itdt][i] += dr[i];
-					if(iMono==0 && itdt==1 && sdId==0){
-						printf("%lf ", ptl->avgSpacDif[sdId][ptl->devId][itdt][i]);
-						if(i==2) printf("\n");
-					}
+					ptl->avgSpacDif[sdId][ptl->devId][itdt][i] += dr[i]*invSqrt2;
+// 					if(iMono==0 && itdt==1 && sdId==0){
+// 						printf("%lf ", ptl->avgSpacDif[sdId][ptl->devId][itdt][i]);
+// 						if(i==2) printf("\n");
+// 					}
 				}
 			}
 		}

@@ -1,9 +1,9 @@
 #include "lowm_modes.h"
 
 void InitArrays(SimProperties* sp, PolyTimeLapse* ptl){
-	printf("SD init:\n");
-	SpacDifInit(&sd);
-	printf("ptl init:\n");
+// 	printf("SD init:\n");
+// 	SpacDifInit(&sd);
+// 	printf("ptl init:\n");
 	PTLInit(sp, ptl, &sd);
 	allFiles = malloc(sizeof(char*)*sp->nTime);
 	filePos = malloc(sizeof(fpos_t*)*sp->nTime);
@@ -174,9 +174,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	for(int i=0; i<sp->nTime; i++) 
 		PCInit(sp, &(ptl->polys[i]), ptl->sinfac, ptl->cosfac, ptl->modeList, ptl->nModes);
 	
-	TTableInit(sp, ptl);
-	
-// 	printf("Need an approximate %.2lf GB of memory\n", (double)sd->nSDPoints*sp->nDev*ptl->tTable.nTDT*3*sizeof(double)*1e-9); 
+	ptl->tTable = *(TTableNew(sp, 0));
+	/*
+	printf("Need an approximate %.2lf GB of memory\n", (double)sd->nSDPoints*sp->nDev*ptl->tTable.nTDT*3*sizeof(double)*1e-9); 
 	long nAlloc=0;
 	ptl->avgSpacDif = malloc(sizeof(double***)*sd->nSDPoints);
 	for(int i=0; i<sd->nSDPoints; i++){
@@ -192,8 +192,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		}
 // 		printf("%i/%i: %.1lf MB allocated vs %.1lf MB\n", i, sd->nSDPoints, 1e-6*nAlloc, sp->nDev*ptl->tTable.nTDT*3*sizeof(double)*1e-6);
 	}
-	
-	
+	*/
+// 	exit(0);
+	/*
 	ptl->sAvgSpacMode = malloc(sizeof(double***)*SPAC_MODES);
 	ptl->cAvgSpacMode = malloc(sizeof(double***)*SPAC_MODES);
 	for(int p=0; p<SPAC_MODES; p++){
@@ -212,9 +213,10 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			}
 		}
 	}
+	*/
 	
 	if(!sp->updAvgPos)
-		ReadAvgPos(sp,ptl);
+		ptl->avgPosition = ReadAvgPos(sp);
 	else{
 		ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
 		for(int t=0; t<sp->nTime; t++){
@@ -249,9 +251,10 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 // 	sp->updSPRouse = !system(exec); if(sp->updSPRouse){ nUpd++; printf("Updating spatial rouse modes\n");}
 	sp->updSPRouse = 0;
 	
-	sp->updSpacDif = NeedsUpdatePath("ptl/pol=0_dev=0.res", "spac_dif.dat", sampleDir);
-	if(sp->updSpacDif){ nUpd++; printf("Updating spatial diffusion\n");}
+// 	sp->updSpacDif = NeedsUpdatePath("ptl/pol=0_dev=0.res", "spac_dif.dat", sampleDir);
+// 	if(sp->updSpacDif){ nUpd++; printf("Updating spatial diffusion\n");}
 // 	sp->updSpacDif=0;
+	sp->updSpacDif=0;
 	
 	sp->updSL = NeedsUpdatePath("ptl/pol=0_dev=0.res", "slrat.dat", sampleDir);
 	if(sp->updSL){ nUpd++; printf("Updating SL ratio\n");}
@@ -274,36 +277,54 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	return nUpd;
 }
 
-void TTableInit(SimProperties* sp, PolyTimeLapse* ptl){
+int CompareTDT_T(const void* tv1, const void* tv2){
+	TDT *t1 = (TDT*)tv1;
+	TDT *t2 = (TDT*)tv2;
+	if(t1->t < t2->t) return -1;
+	if(t1->t > t2->t) return 1;
+	if(t1->dt < t2->dt) return -1;
+	if(t1->dt > t2->dt) return 1;
+	return 0;
+}
+
+TDTTable* TTableNew(SimProperties* sp, int tFirst){
 	int i=0;
 	int allocStep=10000;
 	int nMaxStep=200;
 	int nAlloc = allocStep;
-	TDTTable* tTable = &(ptl->tTable);
-	tTable->dt = malloc(nAlloc*sizeof(int));
-	tTable->t = malloc(nAlloc*sizeof(int));
-	
-	for(int dt=1, dtStep=1; dt<ptl->nEqd; dt += dtStep){
-		int tStep = MAX(MAX(1,dt/10), ptl->nEqd/(double)nMaxStep);
-		for(int t=ptl->nTherm; t+dt<sp->nTime; t+=tStep ){
-			tTable->dt[i] = dt;
-			tTable->t[i] = t;
+	TDTTable* tTable = malloc(sizeof(TDTTable));
+	tTable->tdt = malloc(nAlloc*sizeof(TDT));
+	tTable->nDt=0;
+	for(int dt=1, dtStep=1; dt<sp->nEqd; dt += dtStep, tTable->nDt++){
+		int tStep = MAX(MAX(1,dt/10), sp->nEqd/(double)nMaxStep);
+		for(int t=sp->nTherm; t+dt<sp->nTime; t+=tStep){
+			tTable->tdt[i].dt = dt;
+			tTable->tdt[i].t  = t;
+			tTable->tdt[i].idt= tTable->nDt;
 			i++;
 			if(i>=nAlloc){
 				nAlloc += allocStep;
-				tTable->dt = realloc(tTable->dt, nAlloc*sizeof(int));
-				tTable->t = realloc(tTable->t, nAlloc*sizeof(int));
+				tTable->tdt = realloc(tTable->tdt, nAlloc*sizeof(TDT));
 			}
 		}
 		dtStep = MAX(1, dt/10);
 	}
 	tTable->nTDT = i;
+	if(tFirst)
+		qsort(tTable->tdt, tTable->nTDT, sizeof(TDT), &CompareTDT_T);
+	
+// 	for(int i=0; i<tTable->nTDT; i++){
+// 		printf("%i %i %i\n", tTable->tdt[i].t, tTable->tdt[i].dt, tTable->tdt[i].idt);
+// 	}
+// 	exit(0);
+	
 	printf("Using %i measuring points\n", tTable->nTDT);
+	return tTable;
 }
 
 void TTableDestr(SimProperties* sp, PolyTimeLapse* ptl){
 	TDTTable* tTable = &(ptl->tTable);
-	free(tTable->t); free(tTable->dt);
+	free(tTable->tdt);
 }
 
 void PCInit(SimProperties* sp,  PolyConfig* pc, double** sinfac, double** cosfac, int* modeList, int nModes){
@@ -502,6 +523,16 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 		printf("Error: unknown polymer type %s\n", polType);
 		exit(192);
 	}
+	
+	if(!sp->equilibrated){
+		double tau = TRelaxStretched(sp->polSize, sp->polType, 5);
+		sp->nTherm = (int)(tau/sp->dT)+1;
+		sp->nEqd = sp->nTime-sp->nTherm;
+	}
+	else{
+		sp->nTherm=0;
+		sp->nEqd = sp->nTime;
+	}
 }
 
 void InitFilePos(SimProperties* sp, int devId){
@@ -526,7 +557,7 @@ void SpacDifInit(SpacDif* sd){
 	int balVol;
 // 	IDouble* distArray = malloc(sizeof(IDouble)*LT*LU*LV);
 	int coor1[3];
-	int maxMult=8;
+	int maxMult=LT;
 	int LSIZE=LT*LU*LV;
 	int *distArray = malloc(sizeof(int)*LSIZE);
 	int *occLat = malloc(sizeof(int)*LSIZE);
@@ -535,8 +566,7 @@ void SpacDifInit(SpacDif* sd){
 	}
 	
 	sd->nSDPoints = 0;
-	for(int multi=1; multi<=maxMult; multi++){
-		if(LT%multi) continue;
+	for(int multi=1; multi<=maxMult; multi*=2){
 		sd->nSDPoints += multi*multi*multi;
 	}
 	
@@ -547,8 +577,8 @@ void SpacDifInit(SpacDif* sd){
 	
 	int sdId=0;
 	long memUsed=0;
-	for(int multi=1; multi<=maxMult; multi++){
-		if(LT%multi) continue;
+	for(int multi=1; multi<=maxMult; multi*=2){
+// 		if(LT%multi) continue;
 		balVol = pow(LT/multi, 3);
 		
 		int tuvStart = (LT/multi)/2;
@@ -575,9 +605,9 @@ void SpacDifInit(SpacDif* sd){
 				}
 			}
 		}
-// 		printf("multi=%i, memUsed=%li, sdIDUsed=%i, nCoor=%i\n", multi, memUsed, sdId, sd->sDPoints[sdId].nCoorInside);
+		printf("multi=%i, memUsed=%.2lf GB, sdIDUsed=%i, nCoor=%i\n", multi, memUsed*1e-9, sdId, sd->sDPoints[sdId].nCoorInside);
 	}
-// 	printf("%i spatial diffusion measure points\n", sd->nSDPoints);
+	printf("%i spatial diffusion measure points at %.2lf GB\n", sd->nSDPoints, 1e-9*sizeof(SpacDifPoint)*sd->nSDPoints);
 // 	exit(0);
 // 	printf("Warning: this function [SpacDifInit] only works when all lattices have the same size.\n");
 	free(occLat); free(distArray);
@@ -623,4 +653,24 @@ int GetNClosestNeigh(int* occLat, int* retList, int tuv[3], int volume){
 	
 	for(int i=0; i<nRet; i++) occLat[retList[i]]=0;
 	return nRet;
+}
+
+double TRelaxStretched(int polSize, int polType, double nTau){
+	double tRouse, tInter, tRept, tau;
+	
+	if(polType == POL_TYPE_RING){
+		tRouse = pow(nTau,1./0.85)*exp(-1.40/0.85)*pow(polSize, 1.88/0.85);
+		tInter = tRouse;
+		tRept  = pow(nTau,1./0.61)*exp(-5.02/0.61)*pow(polSize, 1.88/0.61);
+	}
+	else{
+		tRouse = 1.1    *pow(polSize, 2.2);
+		tInter = 0.3    *pow(polSize, 2.5);
+		tRept  = 1.26e-2*pow(polSize, 3.1);
+	}
+	
+	tau = MAX(15e3, tRouse);
+	tau = MAX(tau, tInter);
+	tau = MAX(tau, tRept);
+	return tau;
 }

@@ -164,7 +164,7 @@ void WriteSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 	for(int p=1; p<SPAC_MODES; p++) sqModes[p]=0;
 	
 	for(int i=0; i<=ptl->tTable.nTDT; i++){
-		if(i<ptl->tTable.nTDT) dt = ptl->tTable.dt[i];
+		if(i<ptl->tTable.nTDT) dt = ptl->tTable.tdt[i].dt;
 		else dt = -1;
 // 		printf("[%i, %i]\n", dt, ptl->tTable.t[i]);
 		if(dt != prevDT){
@@ -335,7 +335,7 @@ int CharToHex(char c){
 void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 	char file[1000];
 	int tLast, uLast, vLast, step;
-
+	
 	ptl->polId = polId; ptl->devId = devId;
 	sprintf(file, "%s/ptl/pol=%i_dev=%i.res", sp->sampleDir, polId, devId);
 	FILE* pFile = fopen(file, "r");
@@ -389,19 +389,19 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 	fclose(pFile);
 }
 
-void ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
+double** ReadAvgPos(SimProperties* sp){
 	char file[1000];
 	
 	sprintf(file, "%s/avg_pos.dat", sp->sampleDir);
 	FILE* pFile = fopen(file, "r");
-	ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
+	double** avgPosition = malloc(sizeof(double*)*sp->nTime);
 	double x,y,z;
 	int t=0;
 	while( fscanf(pFile, "%le %le %le",  &x, &y, &z) == 3 ){
-		ptl->avgPosition[t] = malloc(sizeof(double)*3);
-		ptl->avgPosition[t][0] = x;
-		ptl->avgPosition[t][1] = y;
-		ptl->avgPosition[t][2] = z;
+		avgPosition[t] = malloc(sizeof(double)*3);
+		avgPosition[t][0] = x;
+		avgPosition[t][1] = y;
+		avgPosition[t][2] = z;
 		t++;
 	}
 	if(t!= sp->nTime){
@@ -409,6 +409,7 @@ void ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
 		exit(195);
 	}
 	fclose(pFile);
+	return avgPosition;
 }
 
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
@@ -443,8 +444,8 @@ void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	for(int tBlockS=0; tBlockS<ptl->tTable.nTDT; ){
 		int tBlockE=tBlockS+1;
-		while(tBlockE<ptl->tTable.nTDT && ptl->tTable.dt[tBlockS] == ptl->tTable.dt[tBlockE]) tBlockE++;
-		fprintf(pFile, "%li ", ptl->tTable.dt[tBlockS]*sp->dT);
+		while(tBlockE<ptl->tTable.nTDT && ptl->tTable.tdt[tBlockS].dt == ptl->tTable.tdt[tBlockE].dt) tBlockE++;
+		fprintf(pFile, "%li ", ptl->tTable.tdt[tBlockS].dt*sp->dT);
 		for(int sBlockS=0; sBlockS<sd.nSDPoints; ){
 			int sBlockE=sBlockS+1;
 			while(sBlockE<sd.nSDPoints && sd.sDPoints[sBlockS].nCoorInside == sd.sDPoints[sBlockE].nCoorInside) 

@@ -66,7 +66,7 @@ gnuplot -persist <<EOFGNU
 set log x
 set log y
 set title "N=${L}"
-$PLOT
+$PLOT, "$DIR/mmdif.dat" u 1:(\$2/\$1*((3*1/(4*pi))**(1./3.)+$SCHIL)**3) w l title 'r=1', d=$SCHIL'
 EOFGNU
 
 

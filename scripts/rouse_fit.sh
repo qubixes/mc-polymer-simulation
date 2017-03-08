@@ -82,7 +82,10 @@ set grid
 beta=-1.88
 delta=-0.0
 # plot [Ne**2/100:Ne**2*100] time_tild(x, 500), f(x, 500), g(x, 500)
-$PLOT, 5.02+log((x)**0.61) lw 2 notitle, 1.4+log((0.45*x)**0.91) notitle
+h(x) = exp(5.02)*x**0.61
+i(x) = exp(1.32)*x**0.85
+hi(x) = (h(x)**-4+i(x)**-4)**(-1./4.)
+$PLOT, log(h(x)) lw 2 notitle, log(i(x)) lw 2 notitle, log(hi(x)) lw 2
 EOF
 
 # gnuplot << EOFGNU

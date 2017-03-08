@@ -37,10 +37,16 @@ for DIR in ${DIRS[*]}; do
 	fi
 done
 
+for DIR in ${DIRS[*]}; do 
+	./bin/create_cms $DIR || exit $?
+done
+
+parallel -j $NPROC ./bin/cms_cor ::: ${DIRS[*]}
+
 BASE_DIRS=(`echo $BDIR/*gpupol*`);
 
-MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat")
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "spac_dif.dat")
+MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 
@@ -55,7 +61,7 @@ done
 for DIR in ${BASE_DIRS[*]}; do
 	SH_DIR=($DIR/short*)
 	LN_DIR=($DIR/long*)
-	echo $SH_DIR $LN_DIR
+# 	echo $SH_DIR $LN_DIR
 	if [ ! -d $SH_DIR -o ! -d $LN_DIR ]; then continue; fi
 	
 	for FILE in ${MERGE_FILES[*]}; do

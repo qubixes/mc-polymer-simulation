@@ -64,7 +64,7 @@ MODEL="sl_equal"
 L="96"
 DBL_STEP="0"
 SHORT="0"
-B_EXEC="gpupol2"
+B_EXEC="gpupol3"
 
 while (( "$#" )); do
 	case $1 in 

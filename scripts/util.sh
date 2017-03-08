@@ -9,6 +9,13 @@ function contains () {
 	[[ "$1" =~ (^|[[:space:]])"$2"($|[[:space:]]) ]]; 
 }
 
+function get_title {
+	DIR=$1
+	STR=$2
+	LENGTH=`get_attr 'Length' $DIR`
+	echo "$STR" | sed 's/%n/'$LENGTH'/g'
+}
+
 function get_dirs {
 
 SUBDIR=(ring)
