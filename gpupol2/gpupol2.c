@@ -34,8 +34,9 @@ int main(int argc, char** argv){
 	if(argc>9)  sp.LU = atoi(argv[9]);
 	if(argc>10) sp.LV = atoi(argv[10]);
 	if(argc>11) sp.equilibrated = atoi(argv[11]);
+	if(argc>12) sp.double_step = atoi(argv[12]);
 	
-	printf("Box: %ix%ix%i\n", sp.LT, sp.LU, sp.LV);
+// 	printf("Box: %ix%ix%i\n", sp.LT, sp.LU, sp.LV);
 // 	GPULibInit(&sp, ss, devices, &gpuContext);
 	
 	LoadPolymers(&sp, ss);

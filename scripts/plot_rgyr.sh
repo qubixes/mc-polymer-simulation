@@ -13,7 +13,7 @@ I=0
 for DIR in ${DIRS[*]}; do
 	RGYR=(`cat $DIR/rgyr.dat`)
 	N=`get_attr 'Length' $DIR`
-	NP=`ls $DIR/ptl | wc -w`
+# 	NP=`ls $DIR/ptl | wc -w`
 	echo "$N $RGYR" >> $RGYR_FILE
 done
 
@@ -22,7 +22,7 @@ set term aqua enhanced font 'Helvetica, 22'
 set log x
 set log y
 set xlabel "N"
-set ylabel "r^2"
+set ylabel "r_g^2"
 set key bottom right
-plot "$RGYR_FILE" u 1:(\$2/\$1) w l lt 1 lw 2
+plot "$RGYR_FILE" u 1:(\$2/\$1) w l lt 1 lw 2, 0.042, 0.3*x**-(1./3.), 0.183*x**-0.27
 EOF

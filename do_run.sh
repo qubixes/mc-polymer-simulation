@@ -52,6 +52,9 @@ function remove_schar {
 CUR_DIR=`abs_path $0`
 DATA_DIR="$CUR_DIR/data"
 BIN_DIR="$CUR_DIR/bin"
+SCRIPT_DIR="$CUR_DIR/scripts"
+
+. $SCRIPT_DIR/util.sh
 
 START_TIME=`date`
 SEED="12396143"
@@ -193,7 +196,9 @@ elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 fi
 
 if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
-	if [ ! -d $BASE_DIR ]; then echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; fi
+	if [ ! -d $BASE_DIR/long ]; then 
+		echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; 
+	fi
 	
 	DIR=$BASE_DIR/short_$INTERVAL
 	if [ -d $DIR ]; then
@@ -201,10 +206,30 @@ if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
 		exit 192;
 	fi
 	mkdir -p $DIR
-	ls -t $BASE_DIR/long/ | grep '.res' | head -1
-	IN_FILE=$BASE_DIR/long/`ls -t $BASE_DIR/long/ | grep '.res' | head -1` || { echo "Error finding file\n"; exit $?; }
+	IN_FILE=`get_last_tfile $BASE_DIR/long/` || { echo "Error finding file\n"; exit $?; }
 	cp "$IN_FILE" $DIR/t=0_dev=0.res || exit $?
 	echo "Using file:  $IN_FILE"
+elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
+	if [ ! -d $BASE_DIR/long ]; then 
+		echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; 
+	fi
+	
+	DBL_DIRS=(`echo $BASE_DIR/double_*`)
+	if [ ! -d $DBL_DIRS ]; then
+		DBL_STEP=1
+		SRC_DIR=$BASE_DIR/long
+	else
+		let "DBL_STEP=${#DBL_DIRS[*]}+1"
+		SRC_DIR=$BASE_DIR/double_${#DBL_DIRS[*]}
+	fi
+	
+	for i in `seq $DBL_STEP`; do
+		let "L=L*2"
+	done
+	
+	DIR=$BASE_DIR/double_${DBL_STEP}
+	mkdir -p $DIR
+	$BIN_DIR/scaleup $SRC_DIR/`get_last_tfile $SRC_DIR` $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
 else
 	DIR=$BASE_DIR/long
 fi
@@ -213,7 +238,7 @@ fi
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "gpupol3" ]; then
-	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L $SHORT"
+	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi
 
 # DESTDIR=$DIR
@@ -234,7 +259,7 @@ echo "Command        : $EXEC_LINE"
 $EXEC_LINE
 
 cat > $BASE_DIR/simulation_settings.txt << EOFCAT
-`grep 'RELEASE=' $CUR_DIR/Makefile`
+`grep 'RELEASE=' $CUR_DIR/Makefile | sed 's/=/ = /'`
 Start_seed = $SEED
 Length = $NMONO
 Time = $TIME

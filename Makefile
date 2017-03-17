@@ -1,11 +1,11 @@
 .PHONY: clean tar all gpupol analysis cpupol util gpupol2
 
-RELEASE=0.6.0
+RELEASE=0.6.1
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"
 DIRS=cpupol util analysis gpupol2
-
+export RELEASE
 all: $(DIRS)
 
 cpupol:

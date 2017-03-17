@@ -75,6 +75,7 @@ int SimPropDefaultInit(SimProperties* sp){
 	sp->trans = (uint*) malloc(4*sizeof(uint));
 	sp->nSteps = (int)(0.8*CELL_SIZE);
 	sp->equilibrated=0;
+	sp->double_step=0;
 	SetGPUTrans(sp->trans);
 	return 0;
 }
@@ -485,8 +486,9 @@ void AddPolymerToSim(SimState* ss, SimProperties *sp, uint t, uint u, uint v, in
 // 		pol->label[i] = polId&0x1;
 // 		polId >>= 1;
 // 	}
-	
+// 	printf("iPol=%i\n", ss->nPol);
 	SetBondVecs(ss->lattice, t, u, v, bonds, length, pol->label, sp);
+	
 	memcpy(pol->bonds, bonds, sizeof(uint)*length);
 	pol->length = length;
 	ss->polNumTranslate[ss->nPol-1] = ss->nPol-1;

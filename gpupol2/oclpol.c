@@ -156,7 +156,7 @@ void SetBondVecs(char* lattice, uint t, uint u, uint v, uint* bonds, uint polSiz
 		}
 		else{
 			if(GetBondSite(lattice, site)){
-				printf("Error setting bond vec: site already occupied\n");
+				printf("Error setting bond vector %i: site already occupied\n", i);
 				printf("(%i %i %i)\n",t,u,v);
 				exit(0);
 			}

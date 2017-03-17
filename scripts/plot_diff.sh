@@ -20,7 +20,7 @@ if [ $TYPE == "lin" ]; then
 	LINES="0.06*x**-1.2 title \"\$0.06 N^{-1.2}\$\" lw 2, 58*x**-2.5 title \"\$32 N^{-2.4}\$\" lw 2"
 	XSTART=50
 else
-	LINES='0.0328*x**-1.2 title "\$0.072 N^{-1.2}\$" lw 2, 100*x**-2.4 title "\$55 N^{-2.2}\$" lw 2'
+	LINES='0.0328*x**-1.2 title "\$0.072 N^{-1.2}\$" lw 2, 88*x**-2.4 title "\$55 N^{-2.2}\$" lw 2'
 	XSTART=30
 fi
 

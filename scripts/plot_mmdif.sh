@@ -9,7 +9,7 @@ if [ $TYPE == "ring" ]; then
 else
 	EX_PLOT="0.6*x**-0.16 title '\$0.6 t^{-0.16}\$' lc 2 lw 2"
 fi
-PLOT="plot [:][1e-5:1]"
+PLOT="plot [:][1e-6:1]"
 
 I=0
 for DIR in ${DIRS[*]}; do

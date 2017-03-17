@@ -324,14 +324,6 @@ void WriteSL(SimProperties* sp, PolyTimeLapse* ptl){
 	fclose(pFile);
 }
 
-int CharToHex(char c){
-	int hex;
-	
-	hex = c-'0';
-	if(hex>=10) hex = 10+(int)(c-'a');
-	return hex;
-}
-
 void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 	char file[1000];
 	int tLast, uLast, vLast, step;

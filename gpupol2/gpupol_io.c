@@ -43,14 +43,14 @@ void WriteSimulationSettings(SimProperties* sp, SimState* ss){
 	fprintf(pFile, "Density = %lf\n", sp->density);
 	fprintf(pFile, "Latsize = %i\n", sp->LT);
 	fprintf(pFile, "Start_polysize = %i\n", sp->polLength);
-	fprintf(pFile, "Double_step = %i\n", 0);
+	fprintf(pFile, "Double_step = %i\n", sp->double_step);
 	fprintf(pFile, "Interval = %li\n", sp->writeInterval);
 	fprintf(pFile, "Equilibrated = %i\n", sp->equilibrated);
 	fprintf(pFile, "Npol = %i\n", ss->nPol);
 // 	if(cfg->polModel == SL_EQUAL)
 // 		fprintf(pFile, "Polymodel = sl_equal\n");
 // 	else if(cfg->polModel == SL_DOUBLE)
-		fprintf(pFile, "Polymodel = sl_equal\n");
+	fprintf(pFile, "Polymodel = sl_equal\n");
 // 	else if(cfg->polModel == SL_QUAD)
 // 		fprintf(pFile, "Polymodel = sl_quad\n");
 // 	else 
@@ -61,6 +61,17 @@ void WriteSimulationSettings(SimProperties* sp, SimState* ss){
 	fprintf(pFile, "Executable = gpupol3\n");
 #else
 	THIS_ERROR_MEANS_LCELL_IS_NOT_DEFINED_AND_IT_SHOULD_BE
+#endif
+#ifdef RELEASE
+#define TOSTR2(x) #x
+#define TOSTR(x) TOSTR2(x)
+// #define STRINGIZE2(s) #s
+// #define STRINGIZE(s) STRINGIZE2(s)
+#define RELEASE_STR TOSTR(RELEASE)
+// 	char rel[]= RELEASE_STR;
+	fprintf(pFile, "Release = %s\n", RELEASE_STR);
+#else
+	fprintf(pFile, "Release = unknown\n");
 #endif
 	fclose(pFile);
 }

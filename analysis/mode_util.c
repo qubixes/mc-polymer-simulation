@@ -101,3 +101,11 @@ int IsValid(int a){
 	return (a!=0 && a!=0x3 && a!=0xc && a!=0xf);
 }
 
+int CharToHex(char c){
+	int hex;
+	
+	hex = c-'0';
+	if(hex>=10) hex = 10+(int)(c-'a');
+	return hex;
+}
+

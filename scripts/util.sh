@@ -16,6 +16,62 @@ function get_title {
 	echo "$STR" | sed 's/%n/'$LENGTH'/g'
 }
 
+function cross_sect_files {
+	F1=$1
+	F2=$2
+	
+	if [ ! -f "$F1" -o ! -f "$F2" ]; then return; fi
+	
+	exec 3<$F2
+	exec 4<$F1
+	
+# 	head $F1
+	read T1 R1 <&3
+	read T2 R2 <&4
+	while true; do
+# 		echo "$T1 $T2"
+		if [ "$T1" == "$T2" ]; then 
+			echo "$T2 $R1 $R2"
+			read T1 R1 <&3;
+		elif [ "$T1" == "" -o "$T2" == "" ]; then break;
+		fi
+		while [ "$T1" != "" ] && [ $T1 -lt $T2 ]; do
+			read T1 R1 <&3;
+		done
+# 		echo "$T1 $T2"
+		if [ "$T1" == "$T2" ]; then 
+			echo "$T2 $R1 $R2"
+			read T2 R2 <&4;
+		elif [ "$T1" == "" -o "$T2" == "" ]; then break;
+		fi
+		
+		while [ "$T2" != "" ] && [ $T2 -lt $T1 ]; do
+			read T2 R2 <&4;
+		done
+	done
+	exec 3<&-
+	exec 4<&-
+}
+
+function get_last_tfile {
+DIR=$1
+FILES=(`echo $1/t*.res`)
+MAX_T=0
+MAX_FILE="NOT_FOUND"
+for FILE in ${FILES[*]}; do
+	if [ ! -f $FILE ]; then continue; fi
+	TSTR=${FILE%_dev*}
+	T=${TSTR#*t=}
+	if [ $T -gt $MAX_T ]; then
+		MAX_T=$T
+		MAX_FILE=$FILE
+	fi
+done
+echo ${MAX_FILE##*/}
+return 192
+}
+
+
 function get_dirs {
 
 SUBDIR=(ring)

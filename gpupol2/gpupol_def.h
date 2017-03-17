@@ -51,6 +51,7 @@ typedef struct SimProperties{
 	size_t nwg;
 	size_t ws;
 	
+	int double_step;
 	long tMax;
 	long curT;
 	uint R; //Number of 32 bit values that represent state of the RNG.
