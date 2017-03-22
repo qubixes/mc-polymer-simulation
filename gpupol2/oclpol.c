@@ -143,6 +143,17 @@ void AddUnitTUV(uint unit, uint* t, uint* u, uint* v){
 	*v %= sp.LV;
 }
 
+void SetLatticeFromSS(SimState* ss, SimProperties* sp){
+	for(int iDev=0; iDev<sp->nDevices; iDev++){
+		memset(ss[iDev].lattice, 0, sizeof(char)*sp->latSize);
+		for(int iPol=0; iPol<ss[iDev].nPol; iPol++){
+			Polymer* pol = ss[iDev].pol+iPol;
+			SetBondVecs(ss[iDev].lattice, pol->startTUV.t, pol->startTUV.u, pol->startTUV.v, pol->bonds, pol->length, pol->label, sp);
+		}
+	}
+}
+
+
 void SetBondVecs(char* lattice, uint t, uint u, uint v, uint* bonds, uint polSize, uint* labels, SimProperties* sp){
 	uint site = GetGpuSite(t,u,v,sp);
 	for(int i=0; i<polSize; i++){

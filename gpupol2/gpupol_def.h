@@ -66,7 +66,7 @@ typedef struct SimProperties{
 	
 	uint seed;
 	int polLength;
-	int fastEq;
+	long fastEq;
 	int equilibrated;
 	char* dirOut;
 	int nDevices;

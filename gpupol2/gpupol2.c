@@ -28,7 +28,7 @@ int main(int argc, char** argv){
 	}
 	else sp.dirOut = NULL;
 	if(argc>5)  sp.density = atof(argv[5]);
-	if(argc>6)  sp.fastEq = atoi(argv[6]);
+	if(argc>6)  sp.fastEq = (long)atof(argv[6]);
 	if(argc>7)  sp.writeInterval = (long)atof(argv[7]);
 	if(argc>8)  sp.LT = atoi(argv[8]);
 	if(argc>9)  sp.LU = atoi(argv[9]);
@@ -49,8 +49,10 @@ int main(int argc, char** argv){
 	double totStep = sp.tMax-sp.curT;
 	for(;sp.curT < sp.tMax; sp.curT += sp.writeInterval){
 		gettimeofday(&sTime, NULL);
-		if(sp.fastEq) RedistribSL(ss, &sp);
-		GPULibRun(&sp, ss, devices, &gpuContext, sp.writeInterval);
+		if(sp.fastEq)
+			GPULibEqRun(&sp, ss, devices, &gpuContext, sp.writeInterval);
+		else
+			GPULibRun(&sp, ss, devices, &gpuContext, sp.writeInterval);
 		gettimeofday(&eTime, NULL);
 		double totT = eTime.tv_sec-sTime.tv_sec + (eTime.tv_usec-sTime.tv_usec)/1000000.0;
 		fprintf(pFile, "%s[%.1lf%%] Time elapsed = %.2f s at %.2f MF/s", cleanStr, 100*(1-(sp.tMax-sp.curT-sp.writeInterval)/totStep), totT, sp.writeInterval*sp.L*sp.nDevices/totT/1000000.0);

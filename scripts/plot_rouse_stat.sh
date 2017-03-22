@@ -6,7 +6,7 @@ OFILE="rouse_stat_trans"
 TYPE="ring"
 SELF_FILE="self_modes.dat"
 TRANS_FILE="trans_modes.dat"
-
+DIV=(5./3.)
 
 PVAL=(`head -1 $SELF_FILE`)
 
@@ -17,7 +17,7 @@ if [ $TYPE == "lin" ]; then
 	PLOT="plot [2:1e4][0.3:2]"
 	B=0.7095350
 else
-	PLOT="plot [2:1e4][0.01:0.1]"
+	PLOT="plot [2:1e4][0.02:0.2]"
 	B=0.7120154
 # 	PLOT="plot [2:5][0.1:0.5]"
 fi
@@ -39,19 +39,20 @@ while [ $IP -lt $NP ]; do
 		TITLE="notitle"
 		LINE=""
 	fi
-	PLOT="${PLOT} \"$SELF_FILE\" u (\$2*\$1/$P):((\$3*\$$RCOL*$P**2/\$1**2)) $TITLE $LINE,"
+	PLOT="${PLOT} \"$SELF_FILE\" u (\$2*\$1/$P):((\$3*\$$RCOL*($P/\$1)**($DIV))) w l $TITLE $LINE,"
 	let "IP=IP+1"
 done
 if [ $TYPE == "lin" ]; then
 	PLOT="$PLOT 0.08*x**0.067, 0.097*x**0.022, gauss(x)"
 else
-	PLOT="$PLOT  h(x), f(x), g(x), fg(x), fgh(x), m(x), k(x), km(x), gauss(x)"
+	PLOT="$PLOT  0.16, 0.0975*x**0.07"
 fi
 
 
 # PLOT="$PLOT (f(x)**(-a)+g(x)**(-a))**(-1.0/a) title 'fit', f(x), g(x)"
 gnuplot -persist << EOF
-set term aqua enhanced font 'Helvetica, 22'
+set term aqua enhanced font 'Helvetica, 20'
+set key top left
 set log x
 set log y
 a1=2.25

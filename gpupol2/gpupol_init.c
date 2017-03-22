@@ -498,7 +498,7 @@ void AddPolymerToSim(SimState* ss, SimProperties *sp, uint t, uint u, uint v, in
 }
 
 void RedistribSL(SimState* ss, SimProperties* sp){
-	printf("Redistributing stored length distribution\n");
+// 	printf("Redistributing stored length distribution\n");
 	uint* bonds = (uint*) malloc(sizeof(uint)*sp->maxPolLength);
 	uint* slDist = (uint*) malloc(sizeof(uint)*sp->maxPolLength);
 	int nBond, nSl;
@@ -534,17 +534,18 @@ void RedistribSL(SimState* ss, SimProperties* sp){
 			}
 			
 			memcpy(pol->bonds, bonds, sizeof(uint)*(nBond+nSl));
-			uint t = pol->startTUV.t;
-			uint u = pol->startTUV.u;
-			uint v = pol->startTUV.v;
+// 			uint t = pol->startTUV.t;
+// 			uint u = pol->startTUV.u;
+// 			uint v = pol->startTUV.v;
 // 			PrintBonds(pol->bonds, pol->length);
 // 			printf("(%u %u %u)\n", t,u,v);
 // 			printf("iPol = %i\n", iPol);
-			SetBondVecs(ss[iDev].lattice, t,u,v,pol->bonds,pol->length,pol->label, sp);
+// 			SetBondVecs(ss[iDev].lattice, t,u,v,pol->bonds,pol->length,pol->label, sp);
 // 			exit(0);
 		}
+		SetLatticeFromSS(ss+iDev, sp);
 	}
-	printf("Finished redistributing stored length\n");
+// 	printf("Finished redistributing stored length\n");
 }
 
 int SetGPUTrans(uint* trans){

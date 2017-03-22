@@ -62,6 +62,8 @@ void WriteSimulationSettings(SimProperties* sp, SimState* ss){
 #else
 	THIS_ERROR_MEANS_LCELL_IS_NOT_DEFINED_AND_IT_SHOULD_BE
 #endif
+	fprintf(pFile, "Fast_equilibration = %i\n", ((sp->fastEq)?1:0));
+	fprintf(pFile, "FEQ_timestep = %li\n", sp->fastEq);
 #ifdef RELEASE
 #define TOSTR2(x) #x
 #define TOSTR(x) TOSTR2(x)

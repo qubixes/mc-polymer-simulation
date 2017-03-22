@@ -12,10 +12,11 @@ PLOT_LIN="plot [:1e1][]"
 
 J=0
 SET_LABEL=0
-USE_PCORR=0;
+USE_PCORR=1;
+PFAC=2.15;
 
 if [ $USE_PCORR == "1" ]; then
-	PLOT="plot [12:][]"
+	PLOT="plot [12:2e8][]"
 else
 	PLOT="plot [][]"
 fi
@@ -23,14 +24,43 @@ for DIR in ${DIRS[*]}; do
 	FILE="$DIR/rouse_dyn.dat"
 	LENGTH=`get_attr 'Length' "$DIR"`
 	TFILE="./rtemp_${LENGTH}.txt"
-
-	awk '{
+	
+	VAR=(`awk '{
+		if( $1 !~ /#/ ){
+			for(i=2; i<=NF; i++){
+				if(zero[i]>0 && zero[i]<12){
+					var[i] += $(i)*$(i);
+					zero[i]++;
+				}
+				else if($(i) <= 0 && !zero[i]){
+					zero[i]=1;
+					var[i] += $(i)*$(i);
+				}
+			}
+		}
+		}
+		END{
+		for(i=0; i<=NF; i++){
+			if(!zero[i])
+				printf "0 ";
+			else
+				print sqrt(var[i]/zero[i]);
+		}
+		}
+		' $FILE`)
+# 	echo $DIR
+# 	echo ${VAR[*]}
+# 	exit 0
+	awk -v str="${VAR[*]}" 'BEGIN{
+	split(str, var, " ");
+	}
+	{
 		if( $1 !~ /#/ ){
 			printf "%i ", $1;
 			for(i=2; i<=NF; i++){
 				if(zero[i])
 					printf "0 ";
-				else if($(i) <= 0){
+				else if($(i) <= var[i] ){
 					zero[i]=1;
 					printf "0 ";
 				}
@@ -42,7 +72,14 @@ for DIR in ${DIRS[*]}; do
 		else
 			print $0;
 		}
+# 	END{ for(i=0; i<=NF; i++) printf "%s ", var[i]
+# 		printf "\n"
+# 		print str
+# 		}
 		' $FILE > $TFILE
+# 	cat $TFILE
+# 	exit 0
+	
 	#tau ~ p^beta
 	PNORM=(`head -2 $TFILE | tail -1`)
 	PVAL=(`head -1 $TFILE`)
@@ -55,7 +92,7 @@ for DIR in ${DIRS[*]}; do
 		else
 			TITLE="notitle"
 		fi
-		PLOT="$PLOT '$TFILE'  u (\$1):(log(-log(\$$COL/${PNORM[COL-1]})) + beta*log($P/(1.0*${LENGTH})) + delta*log(\$1)/log(1+$P) + $USE_PCORR*0.6*log($P)) w l $TITLE lt $P, "
+		PLOT="$PLOT '$TFILE'  u (\$1*($USE_PCORR?$P**$PFAC:1)):(log(-log(\$$COL/${PNORM[COL-1]})) + beta*log($P/(1.0*${LENGTH})) + delta*log(\$1)/log(1+$P) + $USE_PCORR*0.85*$PFAC*log($P)) w l $TITLE lt $P, "
 		PLOT_LIN="$PLOT_LIN '$TFILE' u (\$1*10**-6):( log(\$$COL/${PNORM[COL-1]})*($P/(1.0*${LENGTH}))**beta) w l $TITLE lc $IP, "
 	done
 	SET_LABEL=0
@@ -65,7 +102,7 @@ done
 # PLOT="$PLOT x**0.7*25, x*25"
 PLOT=${PLOT:0:${#PLOT}-2}
 PLOT_LIN=${PLOT_LIN:0:${#PLOT_LIN}-2}
-
+# echo $PLOT
 gnuplot -persist << EOF
 set term aqua enhanced font 'Helvetica, 22'
 set log x
@@ -85,7 +122,7 @@ delta=-0.0
 h(x) = exp(5.02)*x**0.61
 i(x) = exp(1.32)*x**0.85
 hi(x) = (h(x)**-4+i(x)**-4)**(-1./4.)
-$PLOT, log(h(x)) lw 2 notitle, log(i(x)) lw 2 notitle, log(hi(x)) lw 2
+$PLOT, log(h(x)) lw 1.5 notitle, log(i(x)) lw 1.5 notitle
 EOF
 
 # gnuplot << EOFGNU

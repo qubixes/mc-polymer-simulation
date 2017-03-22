@@ -62,6 +62,7 @@ TIME="1e4"
 SIM_TYPE="ring"
 DENSITY="1.2"
 INTERVAL="1e2"
+FAST_EQ="0"
 NMONO="345"
 MODEL="sl_equal"
 L="96"
@@ -159,6 +160,14 @@ while (( "$#" )); do
 			echo "Using \"$2\" simulation model"
 			MODEL=$2
 			shift;;
+		-f|--fast-eq)
+			if [ $# -lt 2 ]; then
+				echo "Need interval after -f/--fast-eq option. It must be smaller than the given interval."
+				exit 3
+			fi
+			echo "Using fast equilibration, using redistribution of stored length."
+			FAST_EQ=$2
+			shift ;;
 		--short)
 			echo "Doing short time simulations"
 			SHORT="1" ;;
@@ -190,7 +199,7 @@ if [ $B_EXEC == "efpol" ]; then
 	BASE_DIR=$DIR
 elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
-	BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
+	BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_f${FAST_EQ}"
 # 	DIR="$BASE_DIR/long"
 # 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
 fi
@@ -206,8 +215,8 @@ if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
 		exit 192;
 	fi
 	mkdir -p $DIR
-	IN_FILE=`get_last_tfile $BASE_DIR/long/` || { echo "Error finding file\n"; exit $?; }
-	cp "$IN_FILE" $DIR/t=0_dev=0.res || exit $?
+	IN_FILE=`get_last_tfile $BASE_DIR/long/` || { echo "Error finding file in $BASE_DIR/long"; exit $?; }
+	cp "$BASE_DIR/long/$IN_FILE" $DIR/t=0_dev=0.res || exit $?
 	echo "Using file:  $IN_FILE"
 elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
 	if [ ! -d $BASE_DIR/long ]; then 
@@ -238,7 +247,7 @@ fi
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "gpupol3" ]; then
-	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L $SHORT $DBL_STEP"
+	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi
 
 # DESTDIR=$DIR

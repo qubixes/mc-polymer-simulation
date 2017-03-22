@@ -28,3 +28,4 @@ uint GetLabelSite(char* lattice, uint site);
 void SetLabel(char* lattice, uint t, uint u, uint v, uint label, uint left, SimProperties* sp);
 void SetLabelSite(char* lattice, uint site, uint label, uint left);
 void CopyGPUToCPULattice(char* gpuLattice, char* cpuLattice, int tOff, int uOff, int vOff, int dt, int du, int dv, SimProperties* sp);
+void SetLatticeFromSS(SimState* ss, SimProperties* sp);

@@ -68,7 +68,11 @@ for FILE in ${FILES[*]}; do
 	fi
 done
 echo ${MAX_FILE##*/}
-return 192
+if [ $MAX_FILE == "NOT_FOUND" ]; then
+	return 192
+else 
+	return 0
+fi
 }
 
 
