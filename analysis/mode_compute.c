@@ -24,15 +24,15 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	printf("[Compute: %.2lf ms] ", 1e3*TimerElapsed(&time)); fflush(NULL);
 	TimerStart(&time);
 	if(sp->updRouseStat) AddModesStat(sp,ptl);
-	if(sp->updRouseDyn) AddModesDyn(sp,ptl);
-	if(sp->updPC)      AddContactProbability(sp,ptl);
+	if(sp->updRouseDyn ) AddModesDyn(sp,ptl);
+	if(sp->updPC)        AddContactProbability(sp,ptl);
 // 	if(sp->updGenom)   AddGenom(sp,ptl);
-	if(sp->updGenom)   AddGenomNew2(sp,ptl);
-	if(sp->updUnit)    AddUnit(sp,ptl);
-	if(sp->updSPRouse) AddSpaceRouse(sp, ptl);
-	if(sp->updSpacDif) AddSpacDif(sp,ptl,&sd);
-	if(sp->updSL)      AddSL(sp,ptl);
-	if(sp->updGyr)     AddRGyr(sp,ptl);
+	if(sp->updGenom)     AddGenomNew2(sp,ptl);
+	if(sp->updUnit)      AddUnit(sp,ptl);
+	if(sp->updSPRouse)   AddSpaceRouse(sp, ptl);
+	if(sp->updSpacDif)   AddSpacDif(sp,ptl,&sd);
+	if(sp->updSL)        AddSL(sp,ptl);
+	if(sp->updGyr)       AddRGyr(sp,ptl);
 	if(sp->updDif){
 		AddEM(sp,ptl); AddCMS(sp,ptl); AddSM(sp,ptl); 
 		AddMM(sp,ptl); AddEM(sp,ptl);
@@ -221,8 +221,8 @@ void AddRee(SimProperties* sp, PolyTimeLapse* ptl){
 			int t2 = t+dt;
 			for(int i=0; i<3; i++){
 				addRee += ptl->polys[t].ree[i]*ptl->polys[t2].ree[i];
-				num++;
 			}
+			num++;
 		}
 		ptl->avgRee[dt] += addRee/num;
 	}
@@ -276,6 +276,7 @@ void AddGenom(SimProperties* sp, PolyTimeLapse* ptl){
 		}
 	}
 }
+
 /*
 void AddGenomNew(SimProperties* sp, PolyTimeLapse* ptl){
 	int dx, dy, dz;

@@ -199,7 +199,12 @@ if [ $B_EXEC == "efpol" ]; then
 	BASE_DIR=$DIR
 elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
+	
+	if [ $FAST_EQ != "0" ]; then
 	BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_f${FAST_EQ}"
+	else 
+		BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
+	fi
 # 	DIR="$BASE_DIR/long"
 # 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
 fi

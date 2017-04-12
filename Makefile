@@ -1,10 +1,10 @@
 .PHONY: clean tar all gpupol analysis cpupol util gpupol2
 
-RELEASE=0.6.2
+RELEASE=0.6.3
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"
-DIRS=cpupol util analysis gpupol2
+DIRS=cpupol util analysis gpupol2 denspol
 export RELEASE
 all: $(DIRS)
 
@@ -19,6 +19,9 @@ util:
 
 gpupol2: 
 	$(MAKE) -C gpupol2
+
+denspol: 
+	$(MAKE) -C denspol
 
 tar: clean
 	if [ ! -d $(TAR_DIR) ]; then mkdir -p $(TAR_DIR); fi

@@ -45,7 +45,7 @@ done
 if [ $TYPE == "lin" ]; then
 	PLOT="$PLOT 0.08*x**0.067, 0.097*x**0.022, gauss(x)"
 else
-	PLOT="$PLOT  0.16, 0.0975*x**0.07"
+	PLOT="$PLOT  0.165, 0.12*x**0.05"
 fi
 
 
