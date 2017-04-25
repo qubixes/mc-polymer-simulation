@@ -57,7 +57,7 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 	fh.timeFNames = malloc(sizeof(char*)*sp->nTime);
 	fh.pFilePol = malloc(sizeof(FILE*)*nPolOpen);
 	int t,u,v;
-	
+
 	for(int i=0; i<sp->nTime; i++){
 		sprintf(file, "%s/t=%li_dev=%i.res", sp->sampleDir, i*sp->dT, devId);
 		fh.timeFNames[i] = malloc(sizeof(char)*strlen(file)+1);
@@ -70,7 +70,6 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 		fgetpos(pFile, &(fh.timeFPos[i]));
 		fclose(pFile);
 	}
-	
 	while(startPol<sp->nPol){
 		int nPolRead = MIN(nPolOpen, sp->nPol-startPol);
 		for(int iPol=startPol; iPol<sp->nPol && iPol-startPol<nPolOpen; iPol++){
@@ -168,10 +167,10 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %i", &sp->LU);
 	fscanf(pFile, "%*s %i", &sp->LV);
 	
-	if(sp->LT > MAX_LT || sp->LU > MAX_LU || sp->LV > MAX_LV){
-		printf("Box is too large: (%i, %i, %i) vs (%i,%i,%i)\n", sp->LT, sp->LU, sp->LV, MAX_LT, MAX_LU, MAX_LV);
-		exit(0);
-	}
+// 	if(sp->LT > MAX_LT || sp->LU > MAX_LU || sp->LV > MAX_LV){
+// 		printf("Box is too large: (%i, %i, %i) vs (%i,%i,%i)\n", sp->LT, sp->LU, sp->LV, MAX_LT, MAX_LU, MAX_LV);
+// 		exit(0);
+// 	}
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");

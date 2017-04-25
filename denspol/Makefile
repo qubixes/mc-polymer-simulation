@@ -1,6 +1,6 @@
 .PHONY: clean install
 
-EXECS= ee
+EXECS= ee denspol
 BIN_DIR=../bin
 VPATH=../util
 CFLAGS= -Wall -O2 
@@ -13,6 +13,7 @@ all: $(EXECS)
 
 ee: ee.o lattice.o
 
+denspol: denspol.o denspol_init.o denspol_mc.o  denspol_lib.o denspol_io.o timer.o denspol_dbg.o
 
 clean:
 	rm -f $(EXECS) *.o *~ 

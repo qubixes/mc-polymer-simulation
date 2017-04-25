@@ -3,9 +3,9 @@
 . util.sh
 
 DIRS=`get_dirs $*`
-BETA=1.17
-PLOT="plot [][0.5:3]"
-PLOT2="plot [][1:2]"
+BETA=1
+PLOT="plot [][]"
+PLOT2="plot [][]"
 FNAME="pc_vs_genom.dat"
 
 for DIR in ${DIRS[*]}; do
@@ -20,6 +20,7 @@ PLOT2=${PLOT2:0:${#PLOT2}-2}
 
 # echo $PLOT
 gnuplot -persist <<EOFGNU
+set grid
 set log x
 set log y
 set ylabel 'p_c'

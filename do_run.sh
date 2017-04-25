@@ -197,6 +197,9 @@ if [ $B_EXEC == "efpol" ]; then
 	EXEC="$BIN_DIR/efpol_$SIM_TYPE"
 	DIR="$DATA_DIR/${SIM_TYPE}_efpol_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
 	BASE_DIR=$DIR
+elif [ $B_EXEC == "denspol" ]; then
+	EXEC="$BIN_DIR/denspol"
+	BASE_DIR="$DATA_DIR/ring_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_t${TIME}"
 elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
 	
@@ -207,6 +210,9 @@ elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 	fi
 # 	DIR="$BASE_DIR/long"
 # 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
+else 
+	echo "Not a valid algorithm: $B_EXEC"
+	exit 192
 fi
 
 if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
@@ -219,7 +225,7 @@ if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
 		echo "Directory $DIR is already there, remove it first."
 		exit 192;
 	fi
-	mkdir -p $DIR
+	mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
 	IN_FILE=`get_last_tfile $BASE_DIR/long/` || { echo "Error finding file in $BASE_DIR/long"; exit $?; }
 	cp "$BASE_DIR/long/$IN_FILE" $DIR/t=0_dev=0.res || exit $?
 	echo "Using file:  $IN_FILE"
@@ -242,7 +248,7 @@ elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
 	done
 	
 	DIR=$BASE_DIR/double_${DBL_STEP}
-	mkdir -p $DIR
+	mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
 	$BIN_DIR/scaleup $SRC_DIR/`get_last_tfile $SRC_DIR` $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
 else
 	DIR=$BASE_DIR/long
@@ -251,6 +257,8 @@ fi
 
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
+elif [ $B_EXEC == "denspol" ]; then
+	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo.dat"
 elif [ $B_EXEC == "gpupol3" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi
@@ -270,7 +278,7 @@ echo "Interval       : $INTERVAL"
 echo "Command        : $EXEC_LINE"
 
 # exit 0
-$EXEC_LINE
+$EXEC_LINE || { echo "Error during polymer simulation execution"; exit 192; }
 
 cat > $BASE_DIR/simulation_settings.txt << EOFCAT
 `grep 'RELEASE=' $CUR_DIR/Makefile | sed 's/=/ = /'`

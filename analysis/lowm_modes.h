@@ -9,10 +9,10 @@
 #include "timer.h"
 #include "file.h"
 
-#define MAX_LT 128 /* Maximum size of lattice in t-direction */
-#define MAX_LU 128 /* Maxumum size of lattice in u-direction */
-#define MAX_LV 128 /* Maximum size of lattice in v-direction */
-#define MAX_LSIZE (MAX_LT*MAX_LU*MAX_LV)
+// #define MAX_LT 256 /* Maximum size of lattice in t-direction */
+// #define MAX_LU 256 /* Maxumum size of lattice in u-direction */
+// #define MAX_LV 256 /* Maximum size of lattice in v-direction */
+// #define MAX_LSIZE (MAX_LT*MAX_LU*MAX_LV)
 #define PI (3.14159265359)
 // #define NMODES 10
 #define SPAC_MODES 25

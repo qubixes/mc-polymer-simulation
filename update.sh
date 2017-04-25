@@ -1,5 +1,7 @@
 #!/bin/bash
 
+. ./scripts/util.sh
+
 NPROC=4
 
 if [ $# -gt 0 ]; then
@@ -24,6 +26,10 @@ for DIR in ${DIRS[*]}; do
 	if [ -f $DIR/shearmod.dat -a ! $DIR/shearmod_avg.dat -nt $DIR/shearmod.dat ]; then
 		./bin/avg_data $DIR/shearmod.dat > $DIR/shearmod_avg.dat || echo "Failed: $DIR"
 	fi
+	if needs_update $DIR/ucor.dat $DIR/ucor_avg.dat; then
+		./bin/avg_data $DIR/ucor.dat 0 > $DIR/ucor_avg.dat || echo "Failed: $DIR"
+	fi
+	
 	if [ -f $DIR/pc.dat -a ! $DIR/pc_point.dat -nt $DIR/pc.dat ]; then
 		./scripts/plot_2d_pc.sh $DIR/pc.dat || echo "Failed: $DIR"
 	fi
@@ -43,10 +49,10 @@ done
 
 parallel -j $NPROC ./bin/cms_cor ::: ${DIRS[*]}
 
-BASE_DIRS=(`echo $BDIR/*gpupol*`);
+BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 
 MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat")
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 

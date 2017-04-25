@@ -16,6 +16,16 @@ function get_title {
 	echo "$STR" | sed 's/%n/'$LENGTH'/g'
 }
 
+function needs_update {
+	SRC=$1
+	DST=$2
+	
+	if [ ! -f $SRC ]; then return 1; fi
+	if [ ! -f $DST ]; then return 0; fi 
+	if [ $SRC -nt $DST ]; then return 0; fi
+	return 1;
+}
+
 function cross_sect_files {
 	F1=$1
 	F2=$2
@@ -79,7 +89,7 @@ fi
 function get_dirs {
 
 SUBDIR=(ring)
-TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_gpupol*/)
+TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_gpupol*/ ../data/${SUBDIR}_denspol*/)
 N_LIST="-1"
 N_COUNT="0"
 DENS_LIST="-1"
@@ -132,6 +142,8 @@ while (( "$#" )); do
 	esac
 	shift
 done
+
+# echo "${EXEC_LIST[*]}"
 
 I=0
 for DIR in ${TDIRS[*]}; do

@@ -11,6 +11,7 @@ typedef struct Data{
 typedef struct SimProperties{
 	Data datIn;
 	Data datOut;
+	int onlyPositive;
 	double tFac;
 	char* file;
 }SimProperties;
@@ -19,12 +20,16 @@ SimProperties sp;
 
 void ReadData(Data* dat, char* file);
 void SmoothData(SimProperties* sp);
-void PrintData(Data* dat);
+void PrintData(Data* dat, int onlyPositive);
 
 int main(int argc, char** argv){
+	sp.onlyPositive = 1;
 	if(argc<2){
 		printf("Need file!\n");
 		exit(0);
+	}
+	if(argc>=3){
+		sp.onlyPositive = atoi(argv[2]);
 	}
 	
 	sp.file = argv[1];
@@ -32,7 +37,7 @@ int main(int argc, char** argv){
 	
 	ReadData(&(sp.datIn), sp.file);
 	SmoothData(&sp);
-	PrintData(&(sp.datOut));
+	PrintData(&(sp.datOut), sp.onlyPositive);
 	return 0;
 }
 
@@ -58,9 +63,9 @@ void ReadData(Data* dat, char* file){
 	fclose(pFile);
 }
 
-void PrintData(Data* dat){
+void PrintData(Data* dat, int onlyPositive){
 	for(int i=0; i<dat->nTime; i++){
-		if(dat->val[i] < 0) return;
+		if(dat->val[i] < 0 && onlyPositive) return;
 		printf("%li %lf\n", (long) dat->t[i], dat->val[i]);
 	}
 }

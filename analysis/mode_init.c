@@ -474,10 +474,10 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %i", &LV);
 	sp->LT = LT; sp->LU=LU; sp->LV=LV;
 	sp->LSIZE=sp->LT*sp->LU*sp->LV;
-	if(sp->LT > MAX_LT || sp->LU > MAX_LU || sp->LV > MAX_LV){
-		printf("Box is too large: (%i, %i, %i) vs (%i,%i,%i)\n", sp->LT, sp->LU, sp->LV, MAX_LT, MAX_LU, MAX_LV);
-		exit(0);
-	}
+// 	if(sp->LT > MAX_LT || sp->LU > MAX_LU || sp->LV > MAX_LV){
+// 		printf("Box is too large: (%i, %i, %i) vs (%i,%i,%i)\n", sp->LT, sp->LU, sp->LV, MAX_LT, MAX_LU, MAX_LV);
+// 		exit(0);
+// 	}
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");
