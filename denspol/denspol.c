@@ -7,14 +7,15 @@ int main(int argc, char** argv){
 	Timer timer;
 	char outFile[10000];
 	
-	cs.ss.L=100;
+	cs.ss.L=10;
 	cs.ss.polSize=100;
 
-	cs.ss.density=cs.ss.polSize/(double)(cs.ss.L*cs.ss.L*cs.ss.L);
+// 	cs.ss.density=cs.ss.polSize/(double)(cs.ss.L*cs.ss.L*cs.ss.L);
+	cs.ss.density=8.8;
 	cs.ss.seed=12846102;
-	cs.ss.tMax=30000000;
-	cs.ss.interval=100000;
-	
+	cs.ss.tMax=30000;
+	cs.ss.interval=10000;
+
 	if(argc==9){
 		cs.ss.seed=      (unsigned int)(atol(argv[1]));
 		cs.ss.dir=       argv[2];

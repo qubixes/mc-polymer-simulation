@@ -1,6 +1,6 @@
 .PHONY: clean tar all gpupol analysis cpupol util gpupol2 denspol
 
-RELEASE=0.7.0
+RELEASE=0.7.1
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"
@@ -28,7 +28,7 @@ tar: clean
 	if [ ! -d $(TAR_DIR) ]; then mkdir -p $(TAR_DIR); fi
 	if [ ! -d $(TAR_DIR)/.old ]; then mkdir -p $(TAR_DIR)/.old; fi
 	if [ -f $(TAR_DIR)/*.tar.gz ]; then mv $(TAR_DIR)/*.tar.gz $(TAR_DIR)/.old; fi
-	tar --exclude data --exclude raw_data --exclude denspol/ee_topo.dat -czf $(TAR_FILE) .
+	tar --exclude data --exclude raw_data --exclude denspol/ee_topo.dat --exclude denspol/ee_topo.dat6 -czf $(TAR_FILE) .
 
 install: all
 	for dir in $(DIRS); do $(MAKE) -C $$dir install; done

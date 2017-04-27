@@ -23,7 +23,7 @@ done
 parallel -j $NPROC ./bin/lowm_modes ::: ${DIRS[*]}
 
 for DIR in ${DIRS[*]}; do 
-	if [ -f $DIR/shearmod.dat -a ! $DIR/shearmod_avg.dat -nt $DIR/shearmod.dat ]; then
+	if needs_update $DIR/shearmod.dat $DIR/shearmod_avg.dat; then
 		./bin/avg_data $DIR/shearmod.dat > $DIR/shearmod_avg.dat || echo "Failed: $DIR"
 	fi
 	if needs_update $DIR/ucor.dat $DIR/ucor_avg.dat; then

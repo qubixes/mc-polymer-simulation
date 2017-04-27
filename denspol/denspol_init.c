@@ -165,21 +165,21 @@ void GenerateMutators(LookupTables* lt, char* file){
 		}
 	}
 	
-	for(int unitA=1; unitA<0xf; unitA++){
-		if(!IsValid(unitA)) continue;
-		for(int unitB=1; unitB<0xf; unitB++){
-			if(!IsValid(unitB)) continue;
-			if(nMoves[unitA][unitB] == 2){
-				for(int k=0; k<2; k++){
-					for(int i=0; i<3; i++)
-						lt->mutator[unitA][unitB][2+k][i] = lt->mutator[unitA][unitB][k][i];
-					for(int i=0; i<2; i++)
-						lt->newUnits[unitA][unitB][2+k][i] = lt->newUnits[unitA][unitB][k][i];
-				}
-			}
-		}
-	}
-	
+// 	for(int unitA=1; unitA<0xf; unitA++){
+// 		if(!IsValid(unitA)) continue;
+// 		for(int unitB=1; unitB<0xf; unitB++){
+// 			if(!IsValid(unitB)) continue;
+// 			if(nMoves[unitA][unitB] == 2){
+// 				for(int k=0; k<2; k++){
+// 					for(int i=0; i<3; i++)
+// 						lt->mutator[unitA][unitB][2+k][i] = lt->mutator[unitA][unitB][k][i];
+// 					for(int i=0; i<2; i++)
+// 						lt->newUnits[unitA][unitB][2+k][i] = lt->newUnits[unitA][unitB][k][i];
+// 				}
+// 			}
+// 		}
+// 	}
+// 	
 	TopoMapFromFile(lt,file);
 	
 }
