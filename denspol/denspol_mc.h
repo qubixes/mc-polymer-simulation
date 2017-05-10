@@ -2,6 +2,8 @@
 #include "rng.h"
 #include "denspol.h"
 
+
+
 int CheckMutation(int mutation, int coor, int* topoState, LookupTables* lt);
 void PerformMutation(int mutation, int coor, int* topoState, LookupTables* lt);
 int TransStep(CurState* cs, LookupTables* lt);

@@ -513,6 +513,46 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %*s %i", &sp->equilibrated);
 	pclose(pFile);
 	
+	sprintf(exec, "grep 'Executable' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
+	fscanf(pFile, "%*s %*s %s", sp->exec);
+	pclose(pFile);
+
+	sprintf(exec, "grep 'Density' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
+	fscanf(pFile, "%*s %*s %lf", &sp->density);
+	pclose(pFile);
+	
+	sp->Ne=0;
+	if(sp->neFile){
+		sprintf(exec, "grep '^'\"%s %.1lf\" %s", sp->exec, sp->density, sp->neFile);
+// 		printf("Exec: %s\n", exec);
+		pFile = popen(exec, "r");
+		fscanf(pFile, "%*s %*s %lf %lf %*s %*s", &sp->Ne, &sp->tFac);
+		pclose(pFile);
+	}
+	if(sp->Ne==0){
+		printf("Didn't find the values for Ne/t in the table, guessing...\n");
+		
+		if(!strcmp(sp->exec, "gpupol3")){
+			sp->Ne = 125;
+			sp->tFac = 1.1;
+		}
+		else if(!strcmp(sp->exec, "efpol")){
+			sp->Ne = 260;
+			sp->tFac = 0.35;
+		}
+		else if(!strcmp(sp->exec, "denspol")){
+			sp->Ne = 40;
+			sp->tFac = 0.72;
+		}
+		else{
+			sp->Ne= 250;
+			sp->tFac= 1;
+		}
+// 		printf("NE=%lf\n", sp->Ne);
+	}
+	
 	if(!strcmp(polType, "ring")){
 		sp->polType = POL_TYPE_RING;
 	}
@@ -672,5 +712,24 @@ double TRelaxStretched(int polSize, int polType, double nTau){
 	tau = MAX(15e3, tRouse);
 	tau = MAX(tau, tInter);
 	tau = MAX(tau, tRept);
+	return tau;
+}
+
+double TRelax(SimProperties* sp){
+	double Ne = sp->Ne;
+	double tFac = sp->tFac;
+	
+	double Z = sp->polSize/Ne;
+	
+	double tConst = sp->LT*sp->LT*2;
+	double tRouseZ = 1.4*pow(Z, 2.2);
+	double tReptZ = 0.0933*pow(Z, 3.08);
+	
+	double tRouse = tRouseZ*tFac*pow(sp->Ne,2.2);
+	double tRept = tReptZ*tFac*pow(sp->Ne, 2.2);
+	
+	double tau = MAX(tConst, tRouse);
+	tau = MAX(tau, tRept);
+// 	printf("Ne=%.1lf, tRouse=%lf, tRep=%lf\n", Ne, tRouse, tRept);
 	return tau;
 }

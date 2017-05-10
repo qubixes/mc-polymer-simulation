@@ -46,3 +46,32 @@ int AddUnitToCoor(int unit, int coor, int L){
 	
 	return TUV2Coor((t+dt+L)%L, (u+du+L)%L, (v+dv+L)%L, L);
 }
+
+void TUV2XYZ(int tuv[3], int xyz[3]){
+	xyz[0] = tuv[0]+tuv[1]-tuv[2];
+	xyz[1] = tuv[0]-tuv[1]       ;
+	xyz[2] =               tuv[2];
+}
+
+void UnitToXYZ(int unit, int xyz[3]){
+	int w = unit>>3;
+	int t = (unit&0x1)      - w;
+	int u = ((unit>>1)&0x1) - w;
+	int v = ((unit>>2)&0x1) - w;
+	
+	int tuv[3] = {t,u,v};
+	
+	TUV2XYZ(tuv, xyz);
+}
+
+int UnitInProd(int unit1, int unit2){
+	int xyz1[3];
+	int xyz2[3];
+	
+	UnitToXYZ(unit1, xyz1);
+	UnitToXYZ(unit2, xyz2);
+	
+	int dot=0;
+	for(int k=0; k<3; k++) dot += xyz1[k]*xyz2[k];
+	return dot;
+}

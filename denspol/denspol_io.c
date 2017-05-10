@@ -60,6 +60,7 @@ void WriteSimulationSettings(CurState* cs){
 // 	else 
 // 		fprintf(pFile, "Polymodel = ??\n");
 	fprintf(pFile, "Executable = denspol\n");
+	fprintf(pFile, "Bend_energy = %lf\n", ss->bendEnergy);
 	fclose(pFile);
 }
 
@@ -89,6 +90,7 @@ void TopoMapFromFile(LookupTables* lt, char* file){
 	}
 	
 	lt->nTopo = max+1;
+	printf("Found %i topo states\n", lt->nTopo);
 	for(int i=lt->nTopo; i<MAX_TOPO_STATES; i++){
 		free(lt->mutTopo[i]);
 	}

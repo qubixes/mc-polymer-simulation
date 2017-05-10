@@ -165,21 +165,134 @@ void GenerateMutators(LookupTables* lt, char* file){
 		}
 	}
 	
-// 	for(int unitA=1; unitA<0xf; unitA++){
-// 		if(!IsValid(unitA)) continue;
-// 		for(int unitB=1; unitB<0xf; unitB++){
-// 			if(!IsValid(unitB)) continue;
-// 			if(nMoves[unitA][unitB] == 2){
-// 				for(int k=0; k<2; k++){
-// 					for(int i=0; i<3; i++)
-// 						lt->mutator[unitA][unitB][2+k][i] = lt->mutator[unitA][unitB][k][i];
-// 					for(int i=0; i<2; i++)
-// 						lt->newUnits[unitA][unitB][2+k][i] = lt->newUnits[unitA][unitB][k][i];
-// 				}
-// 			}
-// 		}
-// 	}
-// 	
+	for(int unitA=1; unitA<0xf; unitA++){
+		if(!IsValid(unitA)) continue;
+		for(int unitB=1; unitB<0xf; unitB++){
+			if(!IsValid(unitB)) continue;
+			if(nMoves[unitA][unitB] == 2){
+				for(int k=0; k<2; k++){
+					for(int i=0; i<3; i++)
+						lt->mutator [unitA][unitB][2+k][i] = lt->mutator [unitA][unitB][k][i];
+					for(int i=0; i<2; i++)
+						lt->newUnits[unitA][unitB][2+k][i] = lt->newUnits[unitA][unitB][k][i];
+				}
+			}
+		}
+	}
+	
 	TopoMapFromFile(lt,file);
+}
+
+void UnitDotInit(LookupTables* lt, double bendEnergy){
+	
+	int nValid=0;
+	for(int i=0; i<16; i++){
+		if(IsValid(i)){
+			lt->validUnits[nValid++]=i;
+		}
+	}
+	
+	for(int i=0; i<16; i++){
+		for(int j=0; j<16; j++){
+			if(IsValid(i) && IsValid(j)){
+				lt->unitDot[i][j] = UnitInProd(i,j);
+			}
+			else
+				lt->unitDot[i][j] = -100;
+		}
+	}
+	for(int dBend=-BEND_LVL; dBend<BEND_LVL; dBend++){
+		if(dBend < 0)
+			lt->bendProb[dBend+BEND_LVL] = exp(bendEnergy*dBend);
+		else
+			lt->bendProb[dBend+BEND_LVL] = 1;
+	}
+}
+
+SuperTopo* NewSuperTopo(Topo* topo){
+	SuperTopo* sTopo = malloc(sizeof(SuperTopo));
+	sTopo->topo = topo;
+	return sTopo;
+}
+
+void ClearTopo(Topo* topo){
+	topo->nBonds=0;
+	for(int i=0; i<NMUTATOR; i++) topo->mutTopo[i]=NULL;
+	topo->next = NULL;
+	topo->supTopo = NewSuperTopo(topo);
+}
+
+Topo* NewTopo(){
+	Topo* topo = malloc(sizeof(Topo));
+	topo->nBonds=0;
+	for(int i=0; i<NMUTATOR; i++) topo->mutTopo[i]=NULL;
+	topo->next = NULL;
+	topo->supTopo = NewSuperTopo(topo);
+	return topo;
+}
+
+void CopyTopo(Topo* src, Topo* dst){
+	
+	dst->nBonds=src->nBonds;
+	for(int i=0; i<src->nBonds; i++){
+		for(int k=0; k<2; k++){
+			dst->bonds[i][k] = src->bonds[i][k];
+		}
+		dst->bondFree[i] = src->bondFree[i];
+	}
 	
 }
+
+void MergeTopo(Topo* topoA, Topo* topoB){
+	if(!(topoA && topoB)) return;
+	
+	SuperTopo *sTopoA = topoA->supTopo;
+	SuperTopo *sTopoB = topoB->supTopo;
+	
+	if(sTopoA == sTopoB) return;
+	
+	Topo* curTopo=sTopoA->topo;
+	
+	while(curTopo->next){
+		curTopo->supTopo = sTopoB;
+		curTopo = curTopo->next;
+	}
+	
+	curTopo->supTopo = sTopoB;
+	curTopo->next = sTopoB->topo;
+	
+	sTopoB->topo = sTopoA->topo;
+	
+	free(sTopoA);
+	nSupTopo--;
+}
+
+void SuperTopoInit(LookupTables* lt){
+	nSupTopo = lt->nTopo;
+	printf("nTopo = %i\nnSupTopo = %i\n", lt->nTopo, nSupTopo);
+
+	Topo* allTopo = malloc(sizeof(Topo)*lt->nTopo);
+	
+	for(int i=0; i<lt->nTopo; i++) ClearTopo(allTopo+i);
+	
+	for(int iTopo=0; iTopo<lt->nTopo; iTopo++){
+		for(int iMut=0; iMut<NMUTATOR; iMut++){
+			if(lt->mutTopo[iTopo][iMut] == -1) continue;
+			allTopo[iTopo].mutTopo[iMut] = allTopo + lt->mutTopo[iTopo][iMut];
+		}
+	}
+	
+	for(int iTopo=0; iTopo<lt->nTopo; iTopo++){
+		for(int iMut=0; iMut<NMUTATOR; iMut++){
+			if(iMut%2 == 1){
+				MergeTopo(allTopo+iTopo, allTopo[iTopo].mutTopo[iMut]);
+			}
+		}
+	}
+	printf("nTopo = %i\nnSupTopo = %i\n", lt->nTopo, nSupTopo);
+	exit(0);
+}
+
+
+
+

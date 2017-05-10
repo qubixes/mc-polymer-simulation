@@ -60,6 +60,11 @@ typedef struct SimProperties{
 	int nDev;
 	int polType;
 	char* sampleDir;
+	char* neFile;
+	char exec[100];
+	double density;
+	double Ne;
+	double tFac;
 	int equilibrated;
 	int LT, LU, LV, LSIZE;
 	int updRouseStat, updRouseDyn, updGenom, updUnit, updSPRouse, updSL, updDif, updGyr;
@@ -195,6 +200,7 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId);
 void InitRelPos();
 int GetNClosestNeigh(int* occLat, int* retList, int tuv[3], int volume);
 double TRelaxStretched(int polSize, int polType, double nTau);
+double TRelax(SimProperties* sp);
 
 void AddAverages(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);

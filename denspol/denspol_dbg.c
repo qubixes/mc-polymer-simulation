@@ -63,6 +63,60 @@ void PrintMoveCounts(LookupTables* lt){
 	}
 }
 
+void PrintUnit(int unit){
+	char ret[5];
+	int len=0;
+	
+	if(unit&0x1) ret[len++]='t';
+	if(unit&0x2) ret[len++]='u';
+	if(unit&0x4) ret[len++]='v';
+	if(unit&0x8) ret[len++]='w';
+	if(!unit) sprintf(ret, "0");
+	else ret[len++] = '\0';
+	printf("%s", ret);
+}
+
+void PrintUnitDot(LookupTables* lt){
+	for(int i=0; i<16; i++){
+		if(!IsValid(i)) continue;
+		for(int j=0; j<16; j++){
+			if(!IsValid(j)) continue;
+			PrintUnit(i); printf(" * "); PrintUnit(j); 
+			printf(" = %i\n", lt->unitDot[i][j]);
+		}
+	}
+	printf("\n");
+}
+
+
+
+void ComputeSymmetry(int table[12], int depth, LookupTables* lt){
+	
+	if(depth == 12){
+		for(int i=0; i<12; i++){
+			PrintUnit(lt->validUnits[i]); printf(" -> "); PrintUnit(lt->validUnits[table[i]]);
+			printf("\n");
+		}
+		printf("\n");
+		return;
+	}
+	
+	int oldUnit = lt->validUnits[depth];
+	for(int i=0; i<12; i++){
+		int newUnit = lt->validUnits[i];
+		int valid=1;
+		for(int j=0; j<depth && valid; j++){
+			int oldCor = lt->unitDot[oldUnit][lt->validUnits[j]];
+			int newCor = lt->unitDot[newUnit][lt->validUnits[table[j]]];
+			if(newCor != oldCor) valid=0;
+		}
+		if(valid){
+			table[depth] = i;
+			ComputeSymmetry(table, depth+1, lt);
+		}
+	}
+}
+
 void StatTopo(LookupTables* lt){
 	int depth=0, nextDepthStart=0, maxNext=-1;
 // 	int maxDepth=6;
@@ -120,3 +174,5 @@ void CheckTopo(LookupTables* lt){
 		}
 	}
 }
+
+

@@ -7,8 +7,8 @@ PLOT2="plot "
 for EXEC in ${EXECS[*]}; do
 	FILE=${EXEC}_ne_list.dat
 	grep "$EXEC" ne_list.dat > $FILE
-	PLOT="$PLOT \"$FILE\" u 2:(\$3**3.0/\$5) title \"$EXEC\", "
-	PLOT2="$PLOT2 \"$FILE\" u 2:(\$3**3.0/\$5*\$6) title \"$EXEC\", "
+	PLOT="$PLOT \"$FILE\" u 2:(\$3**-3.2/\$5) title \"$EXEC\", "
+	PLOT2="$PLOT2 \"$FILE\" u 2:(\$3**-3.2/\$5*\$6) title \"$EXEC\", "
 done
 
 PLOT=${PLOT:0:${#PLOT}-2}

@@ -3,6 +3,7 @@
 . ./scripts/util.sh
 
 NPROC=4
+NE_FILE="./scripts/ne_list.dat"
 
 if [ $# -gt 0 ]; then
 	NPROC=$1
@@ -20,7 +21,7 @@ for DIR in ${DIRS[*]}; do
 	./bin/create_ptl $DIR || exit $?
 done
 
-parallel -j $NPROC ./bin/lowm_modes ::: ${DIRS[*]}
+parallel -j $NPROC ./bin/lowm_modes ::: ${DIRS[*]} ::: $NE_FILE
 
 for DIR in ${DIRS[*]}; do 
 	if needs_update $DIR/shearmod.dat $DIR/shearmod_avg.dat; then

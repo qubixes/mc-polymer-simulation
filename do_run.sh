@@ -69,6 +69,7 @@ L="96"
 DBL_STEP="0"
 SHORT="0"
 B_EXEC="gpupol3"
+BEND_ENERGY="0.0"
 
 while (( "$#" )); do
 	case $1 in 
@@ -87,7 +88,15 @@ while (( "$#" )); do
 			echo "Set alternative dir: $2"
 			DATA_DIR=$2
 			shift ;;
-		-b|--double)
+		-b|--bend)
+			if [ $# -lt 2 ]; then
+				echo "Need an energy after -b/--bend option: $1"
+				exit 1
+			fi
+			echo "Set bending energy: $2"
+			BEND_ENERGY=$2
+			shift;;
+		-u|--double)
 			if [ $# -lt 2 ]; then
 				echo "Need number after double option: $1"
 				exit 1
@@ -199,7 +208,7 @@ if [ $B_EXEC == "efpol" ]; then
 	BASE_DIR=$DIR
 elif [ $B_EXEC == "denspol" ]; then
 	EXEC="$BIN_DIR/denspol"
-	BASE_DIR="$DATA_DIR/ring_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_t${TIME}"
+	BASE_DIR="$DATA_DIR/ring_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_t${TIME}_b${BEND_ENERGY}"
 elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
 	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
 	
@@ -258,7 +267,7 @@ fi
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "denspol" ]; then
-	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo.dat"
+	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo.dat $BEND_ENERGY"
 elif [ $B_EXEC == "gpupol3" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi

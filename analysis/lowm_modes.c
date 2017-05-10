@@ -34,8 +34,13 @@ int main(int argc, char** argv){
 		printf("Need basedir\n");
 		exit(0);
 	}
-	
 	dir = argv[1];
+	
+	if(argc>=3){
+		sp.neFile = argv[2];
+	}
+	else
+		sp.neFile = NULL;
 	
 	pStdout = fopen("/dev/stdout", "w");
 	InitRelPos();
@@ -43,17 +48,18 @@ int main(int argc, char** argv){
 	if(GetNUpdates(&sp, sampleDir)==0) return 0;
 	SetSimProps(&sp, sampleDir);
 	if(!sp.equilibrated)
-		ptl.nTherm = (TRelaxStretched(sp.polSize, sp.polType,5))/sp.dT;
+// 		ptl.nTherm = (TRelaxStretched(sp.polSize, sp.polType,5))/sp.dT;
+		ptl.nTherm = TRelax(&sp)/sp.dT;
 	else
 		ptl.nTherm = 0;
 	if(sp.dT < 1000){
 		printf("Thermalization: %li x %li, tau=%lf\n", ptl.nTherm, sp.dT, TRelaxStretched(sp.polSize, sp.polType,5));
 	}
 	else if(sp.dT <1000000){
-		printf("Thermalization: %li x %liK, tau=%lfK\n", ptl.nTherm, sp.dT/1000, TRelaxStretched(sp.polSize, sp.polType,5)/1e3);
+		printf("Thermalization: %li x %liK, tau=%lfK\n", ptl.nTherm, sp.dT/1000, TRelax(&sp)/1e3);
 	}
 	else{
-		printf("Thermalization: %li x %liM, tau=%lfM\n", ptl.nTherm, sp.dT/1000000, TRelaxStretched(sp.polSize, sp.polType,5)/1e6);
+		printf("Thermalization: %li x %liM, tau=%lfM\n", ptl.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
 	}
 // 	if(ptl.nTherm>=sp.nTime){
 // 		printf("Samples not thermalized, continuing...\n");

@@ -17,7 +17,7 @@ if [ $TYPE == "lin" ]; then
 	PLOT="plot [2:1e4][0.3:2]"
 	B=0.7095350
 else
-	PLOT="plot [2:1e4][0.02:0.2]"
+	PLOT="plot [0.1:50][0.02:0.2]"
 	B=0.7120154
 # 	PLOT="plot [2:5][0.1:0.5]"
 # 	PLOT="plot [][] "
@@ -40,7 +40,7 @@ while [ $IP -lt $NP ]; do
 		TITLE="notitle"
 		LINE=""
 	fi
-	PLOT="${PLOT} \"$SELF_FILE\" u (\$2*\$1/$P):((\$3*\$$RCOL*($P/\$1)**($DIV))) w l $TITLE $LINE,"
+	PLOT="${PLOT} \"$SELF_FILE\" u (\$1/(\$2*$P)):((\$3*\$$RCOL*($P/\$1)**($DIV))) w l $TITLE $LINE,"
 	let "IP=IP+1"
 done
 if [ $TYPE == "lin" ]; then
@@ -66,8 +66,10 @@ gauss(x) = 2**0.5*0.25*b**2/sin(pi/x)**2/x**2;
 # f(x) = 0.175*x**(-1.8)
 # g(x) = 0.0126*x**(0.26)
 # h(x) = 0.19*x**(-1./3.)
-f(x) = 0.015*x**0.45
-g(x) = 0.037*x**0.23333
+# f(x) = 0.015*x**0.45
+# g(x) = 0.037*x**0.23333
+f(x) = 0.145*x**0.45
+g(x) = 0.12*x**0.23333
 h(x) = 0.17
 fg(x) = (f(x)**a1+g(x)**a1)**(1/a1)
 fgh(x) = (fg(x)**-a2+h(x)**-a2)**(-1/a2)

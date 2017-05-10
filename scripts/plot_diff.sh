@@ -61,14 +61,14 @@ for DIR in ${DIRS[*]}; do
 	let "I=I+1"
 done
 
-PLOT="plot [$XSTART:][:0.01]"
-PLOT2="plot [$XSTART:]"
+PLOT="plot [:][:0.01]"
+PLOT2="plot [1:50]"
 
 I=0
 for FILE in ${FILES[*]}; do
 	BTITLE="{/Symbol r}=${DENSITIES[I]}, exec=${EXECS[I]}"
-	PLOT="$PLOT \"$FILE\" u (\$1*\$7):(\$3*\$9*\$7**-1.2) w l title \"$BTITLE\" lw 2, "
-	PLOT2="$PLOT2 \"$FILE\" u 1:(7.8*\$6/\$3/6.0/\$9) w l title \"$BTITLE (Diffuse RG)\" lw 2, "
+	PLOT="$PLOT \"$FILE\" u (\$1/\$7):(\$3*\$9*\$7**1.2) w l title \"$BTITLE\" lw 2, "
+	PLOT2="$PLOT2 \"$FILE\" u (\$1/\$7):(7.8*\$6/\$3/6.0/\$9/\$7**2.2) w l title \"$BTITLE (Diffuse RG)\" lw 2, "
 # 	PLOT2="$PLOT2 \"$FILE\" u 1:4 w l title \"$BTITLE (CMS Decay)\" lw 2, "
 	let "I++"
 done
@@ -85,23 +85,23 @@ set xlabel "N"
 $PLOT $LINES
 EOF
 
-# gnuplot << EOF
-# set term aqua enhanced font 'Helvetica, 18'
-# set log x
-# set log y
-# set format y "10^{%T}"
-# set ylabel "t"
-# set xlabel "N"
-# set key bottom right
-# alpha=5
-# max(x,y) = (x>y)?x:y;
-# f(x) = (alpha/exp(1.32))**(1./0.85)*x**2.21
-# g(x) = (alpha/exp(5.02))**(1./0.61)*x**3.08 
-# h(x) = 0.042*x**2.5
-# i(x) = 1.5e-3*x**2.97
-# # print g(3000)
-# $PLOT2 max(f(x),g(x)) w l lw 2
-# EOF
+gnuplot << EOF
+set term aqua enhanced font 'Helvetica, 18'
+set log x
+set log y
+set format y "10^{%T}"
+set ylabel "t"
+set xlabel "N"
+set key bottom right
+alpha=5
+max(x,y) = (x>y)?x:y;
+f(x) = (alpha/exp(1.32))**(1./0.85)*(x)**2.21
+g(x) = (alpha/exp(5.02))**(1./0.61)*(x)**3.08*70
+h(x) = 0.042*x**2.5
+i(x) = 1.5e-3*x**2.97
+# print g(3000)
+$PLOT2 max(f(x),g(x)) w l lw 2
+EOF
 # cat $OUT_FILE
 
 fi

@@ -11,12 +11,13 @@ int main(int argc, char** argv){
 	cs.ss.polSize=100;
 
 // 	cs.ss.density=cs.ss.polSize/(double)(cs.ss.L*cs.ss.L*cs.ss.L);
-	cs.ss.density=8.8;
+	cs.ss.density=7.0;
 	cs.ss.seed=12846102;
-	cs.ss.tMax=30000;
+	cs.ss.tMax=100000;
 	cs.ss.interval=10000;
+	cs.ss.bendEnergy=0.3;
 
-	if(argc==9){
+	if(argc==10){
 		cs.ss.seed=      (unsigned int)(atol(argv[1]));
 		cs.ss.dir=       argv[2];
 		cs.ss.density=   atof(argv[3]);
@@ -25,6 +26,7 @@ int main(int argc, char** argv){
 		cs.ss.polSize=   atoi(argv[6]);
 		cs.ss.L=         atoi(argv[7]);
 		cs.ss.eeFile=    argv[8];
+		cs.ss.bendEnergy=atof(argv[9]);
 	}
 	else{
 		cs.ss.dir = malloc(sizeof(char)*100);
@@ -35,10 +37,18 @@ int main(int argc, char** argv){
 	}
 	
 	CSInit(&cs, cs.ss.seed, cs.ss.density, cs.ss.polSize, cs.ss.L, cs.ss.dir);
+	UnitDotInit(&lt, cs.ss.bendEnergy);
+	int table[12];
+	ComputeSymmetry(table, 0, &lt);
+// 	PrintUnitDot(&lt); exit(0);
+	printf("Uhi!\n");
 	GenerateMutators(&lt, cs.ss.eeFile);
+	printf("hi\n");
+	SuperTopoInit(&lt);
 // 	CheckTopo(&lt);
 // 	PrintMutators(&lt); //exit(192);
-// 	StatTopo(&lt); //exit(0);
+	printf("nTopo = %i\n", lt.nTopo);
+	StatTopo(&lt); //exit(0);
 	GeneratePolymers(&cs, &lt);
 	
 // 	DoMCStep(748300, &cs, &lt);
