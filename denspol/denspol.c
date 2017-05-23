@@ -39,18 +39,18 @@ int main(int argc, char** argv){
 	CSInit(&cs, cs.ss.seed, cs.ss.density, cs.ss.polSize, cs.ss.L, cs.ss.dir);
 	UnitDotInit(&lt, cs.ss.bendEnergy);
 	int table[12];
-	ComputeSymmetry(table, 0, &lt);
+// 	ComputeSymmetry(table, 0, &lt);
 // 	PrintUnitDot(&lt); exit(0);
-	printf("Uhi!\n");
+// 	printf("Uhi!\n");
 	GenerateMutators(&lt, cs.ss.eeFile);
-	printf("hi\n");
+// 	printf("hi\n");
+// 	PrintMutators(&lt); //exit(192);
 	SuperTopoInit(&lt);
 // 	CheckTopo(&lt);
-// 	PrintMutators(&lt); //exit(192);
-	printf("nTopo = %i\n", lt.nTopo);
-	StatTopo(&lt); //exit(0);
+// 	printf("nTopo = %i\n", lt.nTopo);
+// 	StatTopo(&lt); //exit(0);
 	GeneratePolymers(&cs, &lt);
-	
+	CheckIntegrity(&cs, "After construction");
 // 	DoMCStep(748300, &cs, &lt);
 
 	long curStep=0, totStep=cs.ss.tMax*cs.polSize*cs.nPol;
@@ -68,6 +68,7 @@ int main(int argc, char** argv){
 	sprintf(outFile, "%s/t=%li_dev=%i.res", cs.ss.dir, ((cs.ss.tMax-1)/cs.ss.interval+1)*cs.ss.interval, 0);
 	WriteLatticeFile(&cs, outFile);
 	WriteSimulationSettings(&cs);
+	CheckIntegrity(&cs, "After simulation");
 // 	PrintMoveCounts(&lt);
 	return 0;
 }

@@ -1,5 +1,5 @@
 #include "denspol_dbg.h"
-void CheckIntegrity(CurState* cs, char* msg){
+int CheckIntegrity(CurState* cs, char* msg){
 	int L = cs->L;
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		int coor = cs->coorPol[iPol][0];
@@ -14,8 +14,69 @@ void CheckIntegrity(CurState* cs, char* msg){
 				printf("At: %s\n", msg);
 				exit(192);
 			}
+			
+#if TOPO_DENSE == TRUE
+			if(cs->unitPol[iPol][(iMono+1)%cs->polSize]){
+				int jMono=(iMono+2)%cs->polSize;
+				while(!cs->unitPol[iPol][jMono]){
+					jMono = (jMono+1)%cs->polSize;
+				}
+				if(!(cs->bondOcc[coor]&(1<<(cs->unitPol[iPol][(iMono+1)%cs->polSize]^0xf)))){
+					printf("Bond not stored!\n");
+					printf("At: %s\n", msg);
+					printf("bondOcc: %x, units[%x,%i]\n", cs->bondOcc[coor], cs->unitPol[iPol][(iMono+1)%cs->polSize], cs->unitPol[iPol][jMono]);
+					printf("iMono = %i, iPol = %i, coor = (%i, %i, %i, %i)\n", (iMono+1)%cs->polSize, iPol, cs->coorPol[iPol][(iMono-1+cs->polSize)%cs->polSize], cs->coorPol[iPol][iMono], coor, cs->coorPol[iPol][(iMono+2)%cs->polSize]);
+					return 1;
+				}
+				if(!(cs->bondOcc[cs->coorPol[iPol][jMono]]&(1<<cs->unitPol[iPol][(iMono+1)%cs->polSize]))){
+					printf("Bond not stored 2\n");
+					printf("iPol = %i, iMono = %i, jMono = %i, coor = %i\n", iPol, iMono, jMono, cs->coorPol[iPol][jMono]);
+					printf("At: %s\n", msg);
+					exit(192);
+				}
+			}
+#endif
 		}
 	}
+#if TOPO_DENSE == TRUE
+	int nTrueBonds=0;
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		for(int iMono=0; iMono<cs->polSize; iMono++){
+			int iCoor1= cs->coorPol[iPol][iMono];
+			int iCoor2= cs->coorPol[iPol][(iMono+1)%cs->polSize];
+			if(iCoor1 == iCoor2) continue;
+			nTrueBonds++;
+			for(int jPol=0; jPol<cs->nPol; jPol++){
+				for(int jMono=0; jMono<cs->polSize; jMono++){
+					if(iPol == jPol && iMono == jMono) continue;
+					int jCoor1 = cs->coorPol[jPol][jMono];
+					int jCoor2 = cs->coorPol[jPol][(jMono+1)%cs->polSize];
+					if(jCoor1 == jCoor2) continue;
+					if((iCoor1 == jCoor1 && iCoor2 == jCoor2) || (iCoor1 == jCoor2 && iCoor2 == jCoor1)){
+						printf("Error: bond occupied!\n");
+						printf("coor: (%i %i) vs (%i %i)\n", iCoor1, iCoor2, jCoor1, jCoor2);
+						printf("At: %s\n", msg);
+						return 1;
+					}
+				}
+			}
+		}
+	}
+	
+	int nBondOcc=0;
+	for(int i=0; i<cs->LSize; i++){
+		for(int j=0; j<16; j++){
+			if(cs->bondOcc[i]&(1<<j)) nBondOcc++;
+		}
+	}
+	
+	if(nBondOcc != 2*nTrueBonds){
+		printf("Error: Number of bonds is not equal to the true number of bonds: %i vs %i\n", nBondOcc, nTrueBonds);
+		printf("At: %s\n", msg);
+		exit(192);
+	}
+#endif
+	return 0;
 }
 
 void PrintSystem(CurState* cs){

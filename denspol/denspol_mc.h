@@ -10,4 +10,4 @@ int TransStep(CurState* cs, LookupTables* lt);
 int DiffuseStep(CurState* cs);
 double DoMCStep(long nStep, CurState* cs, LookupTables* lt);
 void PrintSystem(CurState* cs);
-void CheckIntegrity(CurState* cs, char* msg);
+// void CheckIntegrity(CurState* cs, char* msg);

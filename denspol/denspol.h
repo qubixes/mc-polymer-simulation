@@ -5,9 +5,17 @@
 #include <stdio.h>
 // #define N_TOPO_STATES 1950237
 // #define N_TOPO_STATES 824062
+
+#define TRUE 1
+#define FALSE 0
+#define TOPO_DENSE TRUE
+
 #define MAX_TOPO_STATES 1950238
 #define NMUTATOR 96
 #define BEND_LVL 10
+
+#define NON_EXISTING -1
+#define SAME_TOPO -2
 
 typedef struct SimulationSettings{
 	double density;
@@ -23,6 +31,7 @@ typedef struct SimulationSettings{
 
 typedef struct CurState{
 	int* topoState;
+	int* bondOcc;
 	
 	int** unitPol;
 	int** coorPol;
@@ -40,6 +49,7 @@ typedef struct Topo{
 	int bonds[6][2];
 	int bondFree[6];
 	int nBonds;
+	int set;
 	
 	struct Topo* mutTopo[NMUTATOR];
 	struct Topo* next;
@@ -49,18 +59,32 @@ typedef struct Topo{
 
 typedef struct SuperTopo{
 	struct Topo* topo;
+	struct Topo* mutTopo[NMUTATOR];
+	int permBond;
+	int id;
 }SuperTopo;
+
+typedef struct TopoCompact{
+	int mutators[NMUTATOR];
+	int permBond;
+}TopoCompact;
 
 typedef struct LookupTables{
 	int** mutTopo;
-	SuperTopo* sTopo;
-	int nTopo;
+	TopoCompact* topComp;
+	int nTopoComp;
+ 	int nTopo;
 	int unitDot[16][16];
 	double bendProb[2*BEND_LVL];
 	int mutator[16][16][4][3];
 	int newUnits[16][16][4][2];
 	int counts[16][16][4][4];
 	int validUnits[12];
+	
+	int mutIdTableDouble[16][16];
+	int revMutTable[48][2];
+	int revMutTableTriple[96][3];
+	int mutIdTableTriple[16][16][16];
 }LookupTables;
 
 int nSupTopo;

@@ -10,7 +10,7 @@ DIRS=(`get_dirs $*`) || { echo ${DIRS[*]}; exit $?; }
 # 	PLOT="$PLOT \"$DIR/rgyr_time.dat\" w l, "
 # done
 
-PLOT2="plot [][-1:1]"
+PLOT2="plot [][-2:2]"
 for DIR in ${DIRS[*]}; do
 	N=`get_attr 'Length' $DIR`
 	PLOT2="$PLOT2 \"$DIR/ucor_avg.dat\" u 1:(\$2*$N) w l notitle, " 

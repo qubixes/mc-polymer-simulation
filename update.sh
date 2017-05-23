@@ -70,6 +70,7 @@ for DIR in ${BASE_DIRS[*]}; do
 	LN_DIR=($DIR/long*)
 # 	echo $SH_DIR $LN_DIR
 	if [ ! -d $SH_DIR -o ! -d $LN_DIR ]; then continue; fi
+	if [ ! -f $LN_DIR/simulation_settings.txt ]; then continue; fi
 	
 	for FILE in ${MERGE_FILES[*]}; do
 		./bin/merge_tseries {$SH_DIR,$LN_DIR}/$FILE > $DIR/$FILE || echo "Failed $FILE"
