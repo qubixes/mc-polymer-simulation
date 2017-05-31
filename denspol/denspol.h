@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-// #define N_TOPO_STATES 1950237
-// #define N_TOPO_STATES 824062
 
 #define TRUE 1
 #define FALSE 0
@@ -41,6 +39,7 @@ typedef struct CurState{
 	
 	int L;
 	int LSize;
+	long curT;
 	unsigned int rngState[4];
 	SimulationSettings ss;
 }CurState;
@@ -89,6 +88,7 @@ typedef struct LookupTables{
 
 int nSupTopo;
 
+#include "file.h"
 #include "denspol_init.h"
 #include "denspol_lib.h"
 #include "denspol_mc.h"

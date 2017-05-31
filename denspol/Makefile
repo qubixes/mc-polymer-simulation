@@ -13,7 +13,7 @@ all: $(EXECS)
 
 ee: ee.o lattice.o
 
-denspol: denspol.o denspol_init.o denspol_mc.o  denspol_lib.o denspol_io.o timer.o denspol_dbg.o
+denspol: denspol.o denspol_init.o denspol_mc.o  denspol_lib.o denspol_io.o timer.o denspol_dbg.o file.o
 
 clean:
 	rm -f $(EXECS) *.o *~ 

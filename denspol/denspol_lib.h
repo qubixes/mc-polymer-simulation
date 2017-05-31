@@ -8,3 +8,4 @@ int TCoor(int coor, int L);
 int UCoor(int coor, int L);
 int VCoor(int coor, int L);
 int UnitInProd(int unit1, int unit2);
+int CharToHex(char c);

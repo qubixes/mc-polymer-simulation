@@ -8,4 +8,5 @@
 
 int NeedsUpdate(char* src, char* dst);
 int NeedsUpdatePath(char* src, char* dst, char* path);
+int GetLastT(char* dir);
 #endif

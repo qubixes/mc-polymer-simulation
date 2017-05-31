@@ -313,9 +313,9 @@ void FindPolymerStart(SimState* ss, uint *t, uint *u, uint *v, Polymer* pol, cha
 		AddUnitTUV(unit, t,u,v);
 		site = GetGpuSite(*t,*u,*v, &sp);
 // 		printf("unit=%x, (%i,%i,%i), lattice: %hhx\n", unit, *t,*u,*v, lattice[site]);
-	}while(i<10000);
+	}while(i<2*sp.maxPolLength);
 // 	printf("\n\n");
-	if(i==10000) {
+	if(i==2*sp.maxPolLength) {
 		printf("Error: Did not find label head\n");
 		for(int v=0; v<sp.LV; v++){
 			for(int u=0; u<sp.LU; u++){

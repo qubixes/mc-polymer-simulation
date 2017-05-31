@@ -22,5 +22,9 @@ EOFGNU
 
 gnuplot -persist <<EOFGNU
 set log y
+set key bottom right
+set term aqua enhanced font 'Times Roman, 20'
+set xlabel '{/Symbol r}'
+set ylabel 'Efficiency= N_e^{-3.2} t_{fac}^{-1} M/s 
 $PLOT2
 EOFGNU

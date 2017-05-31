@@ -1,15 +1,35 @@
 #include "denspol.h"
 
-void CSInit(CurState* cs, unsigned int seed, double density, int polSize, int L, char* dir){
+
+void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double density, int polSize, int L, char* dir){
+	long lastT = GetLastT(dir);
+	
+	UnitDotInit(lt, cs->ss.bendEnergy);
+	GenerateMutators(lt, cs->ss.eeFile);
+	SuperTopoInit(lt);
+	
+	if(lastT<0){
+		cs->curT=0;
+		int nPol = (int)(L*L*L*density/(double)polSize+0.5);
+		CSInit(cs, seed, nPol, polSize, L, dir);
+		GeneratePolymers(cs, lt);
+	}
+	else{
+		printf("Starting from t=%li\n", lastT);
+		cs->curT=lastT;
+		CSFromFile(cs, dir, lastT);
+	}
+	CheckIntegrity(cs, "After construction");
+}
+
+void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char* dir){
 	char exec[1000];
-	int nPol = (int)(L*L*L*density/(double)polSize+0.5);
 	
 	cs->ss.dir = dir;
 	cs->L = L;
 	cs->LSize = L*L*L;
 	cs->nPol = nPol;
 	cs->polSize = polSize;
-	cs->ss.density = density;
 	
 	cs->topoState = malloc(sizeof(int)*cs->LSize);
 	cs->bondOcc = malloc(sizeof(int)*cs->LSize);

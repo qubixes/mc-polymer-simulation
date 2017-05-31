@@ -75,3 +75,11 @@ int UnitInProd(int unit1, int unit2){
 	for(int k=0; k<3; k++) dot += xyz1[k]*xyz2[k];
 	return dot;
 }
+
+int CharToHex(char c){
+	int hex;
+	
+	hex = c-'0';
+	if(hex>=10) hex = 10+(int)(c-'a');
+	return hex;
+}

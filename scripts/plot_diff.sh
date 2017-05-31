@@ -95,8 +95,8 @@ set xlabel "N"
 set key bottom right
 alpha=5
 max(x,y) = (x>y)?x:y;
-f(x) = (alpha/exp(1.32))**(1./0.85)*(x)**2.21
-g(x) = (alpha/exp(5.02))**(1./0.61)*(x)**3.08*70
+f(x) = 1.4*x**2.21
+g(x) = 0.261*x**3.08
 h(x) = 0.042*x**2.5
 i(x) = 1.5e-3*x**2.97
 # print g(3000)

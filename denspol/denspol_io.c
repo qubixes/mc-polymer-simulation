@@ -1,5 +1,16 @@
 #include "denspol_io.h"
 
+void WriteCS(CurState* cs, long t){
+	char filePol[10000];
+	char fileLat[10000];
+	
+	sprintf(filePol, "%s/t=%li_dev=%i.res", cs->ss.dir, t, 0);
+	sprintf(fileLat, "%s/sav_t%li_dev=%i.res", cs->ss.dir, t, 0);
+	
+	WriteLatticeFile(cs, filePol);
+	WriteMetaData(cs, fileLat);
+}
+
 int WriteLatticeFile(CurState* cs, char* file){
 	int iPol;
 	FILE* pFile = fopen(file, "w");
@@ -20,6 +31,71 @@ int WriteLatticeFile(CurState* cs, char* file){
 	return 0;
 }
 
+int CSFromFile(CurState* cs, char* dir, long lastT){
+	
+	char file[3000];
+	sprintf(file, "%s/t=%li_dev=0.res", dir, lastT);
+	
+	FILE* pFile  = fopen(file, "r");
+	if(!pFile){
+		printf("Error opening file %s for reading\n", file);
+		exit(192);
+	}
+	
+	int LX[3];
+	for(int i=0; i<3; i++){
+		fscanf(pFile, "%*s %i", LX+i);
+		if(i>0 && LX[i] != LX[i-1]){
+			printf("Only square lattices are supported: %i vs %i\n", LX[i], LX[i-1]);
+			exit(192);
+		}
+	}
+	int nPol, maxLength;
+	fscanf(pFile, "%*s %i", &nPol);
+	fscanf(pFile, "%*s %i", &maxLength);
+	CSInit(cs, 1293744, nPol, maxLength, LX[0], dir);
+	
+	int t,u,v;
+	char* strIn = malloc(sizeof(char)*(maxLength+1));
+	int iPol=0;
+	while(fscanf(pFile, "%*s %i", &cs->polSize)>0){
+		fscanf(pFile, "%i %i %i", &t, &u, &v);
+		fscanf(pFile, "%s", strIn);
+		if(strlen(strIn) != cs->polSize){
+			printf("Meh: %li vs %i\n", strlen(strIn), cs->polSize);
+			exit(0);
+		}
+		int coor = TUV2Coor(t,u,v, cs->L);
+		for(int iMono=0; iMono<cs->polSize; iMono++){
+			int unit = CharToHex(strIn[iMono]);
+			cs->coorPol[iPol][iMono] = coor;
+			cs->unitPol[iPol][iMono] = unit;
+			coor = AddUnitToCoor(unit, coor, cs->L);
+		}
+		iPol++;
+	}
+	fclose(pFile);
+	
+	char latFile[3000];
+	sprintf(latFile, "%s/sav_t%li_dev=0.res", dir, lastT);
+	
+	pFile = fopen(latFile, "r");
+	if(!pFile){
+		printf("Error opening file %s\n", latFile);
+		exit(192);
+	}
+	
+	for(int i=0; i<4; i++){
+		fscanf(pFile, "%u", cs->rngState+i);
+	}
+	
+	for(int i=0; i<cs->LSize; i++){
+		fscanf(pFile, "%i %i", cs->topoState+i, cs->bondOcc+i);
+	}
+	fclose(pFile);
+	return 0;
+}
+
 void WritePolymer(CurState* cs, int iPol, FILE* pFile){
 	int L = cs->L;
 	fprintf(pFile, "len= %i\n", cs->polSize);
@@ -29,6 +105,22 @@ void WritePolymer(CurState* cs, int iPol, FILE* pFile){
 		fprintf(pFile, "%x", cs->unitPol[iPol][iMono]);
 	fprintf(pFile, "\n");
 }
+
+void WriteMetaData(CurState* cs, char* file){
+	FILE* pFile = fopen(file, "w");
+	if(!pFile){
+		printf("Error opening file %s\n", file);
+		assert(pFile);
+	}
+	
+	for(int i=0; i<4; i++) fprintf(pFile, "%u ", cs->rngState[i]);
+	fprintf(pFile, "\n");
+	for(int coor=0; coor<cs->LSize; coor++){
+		fprintf(pFile, "%i %i\n", cs->topoState[coor], cs->bondOcc[coor]);
+	}
+	fclose(pFile);
+}
+
 
 
 void WriteSimulationSettings(CurState* cs){

@@ -723,7 +723,7 @@ double TRelax(SimProperties* sp){
 	
 	double tConst = sp->LT*sp->LT*2;
 	double tRouseZ = 1.4*pow(Z, 2.2);
-	double tReptZ = 0.0933*pow(Z, 3.08);
+	double tReptZ = 0.261*pow(Z, 3.08);
 	
 	double tRouse = tRouseZ*tFac*pow(sp->Ne,2.2);
 	double tRept = tReptZ*tFac*pow(sp->Ne, 2.2);

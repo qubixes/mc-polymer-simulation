@@ -7,6 +7,7 @@ TYPE="ring"
 SELF_FILE="self_modes.dat"
 TRANS_FILE="trans_modes.dat"
 DIV=(5./3.)
+DIV_TITLE="5/3"
 
 PVAL=(`head -1 $SELF_FILE`)
 
@@ -52,7 +53,7 @@ fi
 # PLOT="$PLOT (f(x)**(-a)+g(x)**(-a))**(-1.0/a) title 'fit', f(x), g(x)"
 gnuplot -persist << EOF
 set term aqua enhanced font 'Helvetica, 20'
-set key top left
+set key bottom right
 set log x
 set log y
 a1=-10.0
@@ -79,8 +80,8 @@ m(x) = 0.18*x**(-1./3.)
 km(x) = (k(x)**-a1+m(x)**-a1)**(-1/a1)
 
 # set ytics 0.01,1.1*g(0)/0.01, 1.1*g(0)
-set ylabel '|X_l|^2 / l^2'
-set xlabel 'l'
+set ylabel '|X_{l_z}|^2 / {l_z}^{$DIV_TITLE} * c'
+set xlabel 'l_z'
 
 $PLOT
 EOF
