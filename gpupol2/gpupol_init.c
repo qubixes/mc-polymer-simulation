@@ -148,6 +148,7 @@ void LoadPolymers(SimProperties* sp, SimState* ss){
 		}
 	}
 	GetAllRingPolymers();
+	sp->polLength = ss[0].pol[0].length;
 }
 
 void FindBestBoxSize(SimProperties* sp, int nPol, int polSize, int* dRes){

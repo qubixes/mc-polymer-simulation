@@ -89,7 +89,8 @@ fi
 function get_dirs {
 
 SUBDIR=(ring)
-TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_gpupol*/ ../data/${SUBDIR}_denspol*/)
+TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_{gpupol,denspol}*/{,double_*/} )
+# echo ${TDIRS[*]}
 N_LIST="-1"
 N_COUNT="0"
 DENS_LIST="-1"

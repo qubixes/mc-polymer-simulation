@@ -17,13 +17,25 @@ fi
 
 DIRS=($BDIR/*/*/);
 
-for DIR in ${DIRS[*]}; do 
+UPD_DIRS=();
+NUPD=0
+
+for DIR in ${DIRS[*]}; do
+	if needs_update $DIR/simulation_settings.txt $DIR/cmsdif.dat; then
+		UPD_DIRS[NUPD]=$DIR
+		let "NUPD++"
+		echo "$DIR"
+	fi
+done
+# exit 0
+for DIR in ${UPD_DIRS[*]}; do 
 	./bin/create_ptl $DIR || exit $?
 done
 
-parallel -j $NPROC ./bin/lowm_modes ::: ${DIRS[*]} ::: $NE_FILE
+parallel -j $NPROC ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
+parallel -j 1 ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
 
-for DIR in ${DIRS[*]}; do 
+for DIR in ${UPD_DIRS[*]}; do 
 	if needs_update $DIR/shearmod.dat $DIR/shearmod_avg.dat; then
 		./bin/avg_data $DIR/shearmod.dat > $DIR/shearmod_avg.dat || echo "Failed: $DIR"
 	fi
@@ -44,11 +56,11 @@ for DIR in ${DIRS[*]}; do
 	fi
 done
 
-for DIR in ${DIRS[*]}; do 
+for DIR in ${UPD_DIRS[*]}; do 
 	./bin/create_cms $DIR || exit $?
 done
 
-parallel -j $NPROC ./bin/cms_cor ::: ${DIRS[*]}
+parallel -j $NPROC ./bin/cms_cor ::: ${UPD_DIRS[*]}
 
 BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 
@@ -59,7 +71,7 @@ ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 
 for DIR in ${BASE_DIRS[*]}; do
 	for FILE in ${ALL_FILES[*]}; do
-		if [ -d $DIR/long ]; then
+		if [ -d $DIR/long -a -f $DIR/long/$FILE ]; then
 			cp $DIR/long/$FILE $DIR
 		fi
 	done

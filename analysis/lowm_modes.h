@@ -65,6 +65,7 @@ typedef struct SimProperties{
 	double density;
 	double Ne;
 	double tFac;
+	int doubleStep;
 	int equilibrated;
 	int LT, LU, LV, LSIZE;
 	int updRouseStat, updRouseDyn, updGenom, updUnit, updSPRouse, updSL, updDif, updGyr;

@@ -18,7 +18,7 @@ if [ $TYPE == "lin" ]; then
 	PLOT="plot [2:1e4][0.3:2]"
 	B=0.7095350
 else
-	PLOT="plot [0.1:50][0.02:0.2]"
+	PLOT="plot [0.1:200][0.02:0.2]"
 	B=0.7120154
 # 	PLOT="plot [2:5][0.1:0.5]"
 # 	PLOT="plot [][] "

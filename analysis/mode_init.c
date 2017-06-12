@@ -523,6 +523,13 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %*s %lf", &sp->density);
 	pclose(pFile);
 	
+	sprintf(exec, "grep 'Double_step' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
+	if(fscanf(pFile, "%*s %*s %i", &sp->doubleStep) <= 0){
+		sp->doubleStep = 0;
+	}
+	pclose(pFile);
+	
 	sp->Ne=0;
 	if(sp->neFile){
 		sprintf(exec, "grep '^'\"%s %.1lf\" %s", sp->exec, sp->density, sp->neFile);

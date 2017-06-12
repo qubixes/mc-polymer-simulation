@@ -1,34 +1,11 @@
 #include "lowm_modes.h"
 
-// double TRelax(int polSize, int polType){
-// 	double tRouse, tInter, tRept, tau;
-// 	
-// 	if(polType == POL_TYPE_RING){
-// 		tRouse = 0.24  *pow(polSize, 2.2);
-// 		tInter = 0.042 *pow(polSize, 2.5);
-// 		tRept  = 1.5e-3*pow(polSize, 2.97);
-// 	}
-// 	else{
-// 		tRouse = 1.1    *pow(polSize, 2.2);
-// 		tInter = 0.3    *pow(polSize, 2.5);
-// 		tRept  = 1.26e-2*pow(polSize, 3.1);
-// 	}
-// 	
-// 	tau = MAX(15e3, tRouse);
-// 	tau = MAX(tau, tInter);
-// 	tau = MAX(tau, tRept);
-// 	return tau;
-// }
-
-
-
 int main(int argc, char** argv){
 	SimProperties sp;
 	char* dir;
 	FILE* pStdout;
 	Timer tCompute, tIO;
 	PolyTimeLapse ptl;
-// 	int TERM;
 	
 	if(argc<2){ 
 		printf("Need basedir\n");
@@ -47,13 +24,15 @@ int main(int argc, char** argv){
 	sprintf(sampleDir, "%s", dir);
 	if(GetNUpdates(&sp, sampleDir)==0) return 0;
 	SetSimProps(&sp, sampleDir);
-	if(!sp.equilibrated)
-// 		ptl.nTherm = (TRelaxStretched(sp.polSize, sp.polType,5))/sp.dT;
+	
+	if(sp.doubleStep)
+		ptl.nTherm = sp.nTime/2;
+	else if(!sp.equilibrated)
 		ptl.nTherm = TRelax(&sp)/sp.dT;
 	else
 		ptl.nTherm = 0;
 	if(sp.dT < 1000){
-		printf("Thermalization: %li x %li, tau=%lf\n", ptl.nTherm, sp.dT, TRelaxStretched(sp.polSize, sp.polType,5));
+		printf("Thermalization: %li x %li, tau=%lf\n", ptl.nTherm, sp.dT, TRelax(&sp)/1e3);
 	}
 	else if(sp.dT <1000000){
 		printf("Thermalization: %li x %liK, tau=%lfK\n", ptl.nTherm, sp.dT/1000, TRelax(&sp)/1e3);
@@ -61,10 +40,6 @@ int main(int argc, char** argv){
 	else{
 		printf("Thermalization: %li x %liM, tau=%lfM\n", ptl.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
 	}
-// 	if(ptl.nTherm>=sp.nTime){
-// 		printf("Samples not thermalized, continuing...\n");
-// 		return 0;
-// 	}
 	InitArrays(&sp, &ptl);
 	
 	for(int iDev=0; iDev<sp.nDev; iDev++){
@@ -83,9 +58,6 @@ int main(int argc, char** argv){
 	}
 	printf("\n");
 	WriteAllFiles(&sp, &ptl);
-// 		DestrArrays(&sp);
-// 	}
-// 	SpacDifDestr(&sd);
 	return 0;
 }
 
