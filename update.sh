@@ -32,8 +32,20 @@ for DIR in ${UPD_DIRS[*]}; do
 	./bin/create_ptl $DIR || exit $?
 done
 
-parallel -j $NPROC ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
-parallel -j 1 ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
+I=0
+# echo ${DIRS[*]}
+for DIR in ${UPD_DIRS[*]}; do
+	ARGS[2*I]=$DIR
+	ARGS[2*I+1]=$NE_FILE
+	let "I++"
+done
+
+echo ${ARGS[*]} | xargs -n 2 -P $NPROC ./bin/lowm_modes
+echo ${ARGS[*]} | xargs -n 2 -P 1 ./bin/lowm_modes
+# exit 0
+
+# parallel -j $NPROC ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
+# parallel -j 1 ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
 
 for DIR in ${UPD_DIRS[*]}; do 
 	if needs_update $DIR/shearmod.dat $DIR/shearmod_avg.dat; then

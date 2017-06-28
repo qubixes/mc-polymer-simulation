@@ -119,6 +119,7 @@ typedef struct PolyTimeLapse{
 	int* pointDensity;
 	
 	int nModes;
+	int pcBins;
 	double** avgPosition;
 	double* rGyrT;
 	double** avgModesStat;
@@ -134,6 +135,7 @@ typedef struct PolyTimeLapse{
 	double* avgRee;
 	double** genomProb;
 	double** pc;
+	double* pcAvg;
 	double avgRGyr;
 	double**** sAvgSpacMode;
 	double**** cAvgSpacMode;
@@ -251,6 +253,7 @@ void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteShearMod(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
+void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 int CharToHex(char c);
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 void LoadPol(SimProperties* sp, PolyTimeLapse* pt);

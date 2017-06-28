@@ -244,21 +244,29 @@ elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
 	fi
 	
 	DBL_DIRS=(`echo $BASE_DIR/double_*`)
-	if [ ! -d $DBL_DIRS ]; then
-		DBL_STEP=1
-		SRC_DIR=$BASE_DIR/long
-	else
-		let "DBL_STEP=${#DBL_DIRS[*]}+1"
-		SRC_DIR=$BASE_DIR/double_${#DBL_DIRS[*]}
-	fi
+
 	
 	for i in `seq $DBL_STEP`; do
 		let "L=L*2"
 	done
 	
 	DIR=$BASE_DIR/double_${DBL_STEP}
-	mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
-	$BIN_DIR/scaleup $SRC_DIR/`get_last_tfile $SRC_DIR` $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
+	
+	if [ $DBL_STEP -eq 1 ]; then
+		DBL_STEP=1
+		SRC_DIR=$BASE_DIR/long
+	else
+		let "DBL_PREV=$DBL_STEP-1"
+		SRC_DIR=$BASE_DIR/double_$DBL_PREV
+	fi
+	
+	if [ ! -f "$DIR/t\=0_dev\=0.res" ]; then
+		SRC_FILE=$SRC_DIR/`get_last_tfile $SRC_DIR` || { echo "File to scale not found: $SRC_DIR/`get_last_tfile $SRC_DIR`"; exit 192; }
+		if [ -f ${SRC_FILE} ]; then
+			mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
+			$BIN_DIR/scaleup $SRC_FILE $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
+		fi
+	fi
 else
 	DIR=$BASE_DIR/long
 fi

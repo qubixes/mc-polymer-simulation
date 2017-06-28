@@ -31,7 +31,14 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	ptl->sinfac = malloc(sizeof(double*)*(sp->polSize/2+1));
 	ptl->cosfac = malloc(sizeof(double*)*(sp->polSize/2+1));
 	
-	for(int p=0;p<=sp->polSize/2;p++){
+	int step=1; ptl->nModes=0; ptl->modeList = malloc(sizeof(int)*sp->polSize/2);
+	for(int p=0; p<sp->polSize/2; p+=step){
+		ptl->modeList[ptl->nModes++] = p;
+		step = MAX(1, p/5);
+	}
+	
+	for(int iP=0; iP<ptl->nModes; iP++){
+		int p = ptl->modeList[iP];
 		ptl->sinfac[p] = malloc(sizeof(double)*sp->polSize);
 		ptl->cosfac[p] = malloc(sizeof(double)*sp->polSize);
 		for(int n=0;n<sp->polSize;n++){
@@ -39,11 +46,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			ptl->cosfac[p][n]=sqrt(1.0/sp->polSize)*cos((2*PI*(n+0.25)*p)/(double)sp->polSize);
 		}
 	}
-	int step=1; ptl->nModes=0; ptl->modeList = malloc(sizeof(int)*sp->polSize/2);
-	for(int p=0; p<sp->polSize/2; p+=step){
-		ptl->modeList[ptl->nModes++] = p;
-		step = MAX(1, p/5);
-	}
+
 	
 	ptl->pointDensity = malloc(sizeof(int)*sp->polSize);
 	for(int i=0; i<sp->polSize; i++) ptl->pointDensity[i]=0;
@@ -73,7 +76,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 // 		printf("%i %i %lf\n", i, ptl->pointDensity[i], ptl->pointDensity[i]/(double)(i*i));
 // 	exit(0);
 	
-	ptl->genomList = malloc(sizeof(DInt)*sp->polSize*sp->polSize);
+	int maxGenom=100000000;
+	
+	ptl->genomList = malloc(sizeof(DInt)*maxGenom);
 	ptl->nGenom = 0;
 	int di=20;
 	int gMax;
@@ -84,9 +89,12 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		for(int i=0; i<sp->polSize; i+=di){
 			if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
 			int j = (i+g)%sp->polSize;
-// 			if(j>i){
-				ptl->genomList[ptl->nGenom].x = i;
-				ptl->genomList[ptl->nGenom++].y = j;
+			if(ptl->nGenom >= maxGenom){
+				printf("Error: reached memory storage limit for genom allocation\n");
+				exit(192);
+			}
+			ptl->genomList[ptl->nGenom].x = i;
+			ptl->genomList[ptl->nGenom++].y = j;
 // 			}
 // 			else{
 // 				ptl->genomList[ptl->nGenom].x = j;
@@ -109,9 +117,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		}
 	}
 	
-	ptl->sqrtList = malloc(sizeof(double)*sp->polSize*sp->polSize*2);
-	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
-		ptl->sqrtList[i] = sqrt(i/2.0);
+// 	ptl->sqrtList = malloc(sizeof(double)*sp->polSize*sp->polSize*2);
+// 	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
+// 		ptl->sqrtList[i] = sqrt(i/2.0);
 	
 	ptl->nEqd = MAX(0,sp->nTime-ptl->nTherm);
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
@@ -126,7 +134,11 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
 	ptl->polys = malloc(sizeof(PolyConfig)*sp->nTime);
 	ptl->avgRGyr = 0;
-	ptl->pc = malloc(sizeof(double*)*sp->polSize);
+	
+	
+	ptl->pcBins = MAX(1, sp->polSize/5000);
+	ptl->pc = malloc(sizeof(double*)*sp->polSize/ptl->pcBins+1);
+	ptl->pcAvg = malloc(sizeof(double)*sp->polSize);
 	
 	ptl->monoList= malloc(sizeof(int)*sp->polSize);
 	ptl->L = 400;
@@ -136,8 +148,12 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	for(int i=0; i<sp->polSize; i++){
 		ptl->avgUnitCor[i] = 0;
 		ptl->avgGenom[i] = 0;
-		ptl->pc[i] = malloc(sizeof(double)*sp->polSize);
-		for(int j=0; j<sp->polSize; j++)
+		ptl->pcAvg[i] = 0;
+	}
+	
+	for(int i=0; i<sp->polSize/ptl->pcBins+1; i++){
+		ptl->pc[i] = malloc(sizeof(double)*sp->polSize/ptl->pcBins+1);
+		for(int j=0; j<sp->polSize/ptl->pcBins+1; j++)
 			ptl->pc[i][j]=0;
 	}
 	
@@ -156,15 +172,15 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	}		
 
 	
-	ptl->avgModesStat = malloc(sizeof(double*)*(sp->polSize/2+1));
-	for(int i=0; i<=sp->polSize/2; i++){
-		ptl->avgModesStat[i] = malloc(sizeof(double)*(sp->polSize/2+1));
-		for(int j=0; j<=sp->polSize/2; j++)
+	ptl->avgModesStat = malloc(sizeof(double*)*ptl->nModes);
+	for(int i=0; i<ptl->nModes; i++){
+		ptl->avgModesStat[i] = malloc(sizeof(double)*ptl->nModes);
+		for(int j=0; j<ptl->nModes; j++)
 			ptl->avgModesStat[i][j] = 0;
 	}
 	
-	ptl->avgModesDyn = malloc(sizeof(double*)*(sp->polSize/2+1));
-	for(int i=0; i<=sp->polSize/2; i++){
+	ptl->avgModesDyn = malloc(sizeof(double*)*ptl->nModes);
+	for(int i=0; i< ptl->nModes; i++){
 		ptl->avgModesDyn[i] = malloc(sizeof(double)*ptl->nEqd);
 		for(int j=0; j<ptl->nEqd; j++)
 			ptl->avgModesDyn[i][j] = 0;
@@ -468,7 +484,7 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	sprintf(filename, "%s/%s", sampleDir, firstFile);
 	printf("file = %s\n", filename);
 	printf("dT = %li\n", sp->dT);
-	pFile=fopen(filename,"r");
+	assert(pFile=fopen(filename,"r"));
 	fscanf(pFile, "%*s %i", &LT);
 	fscanf(pFile, "%*s %i", &LU);
 	fscanf(pFile, "%*s %i", &LV);
@@ -487,7 +503,7 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fclose(pFile);
 	
 	sprintf(exec, "ls %s | grep 't=' | grep 'dev=0' | wc -w", sampleDir);
-	pFile = popen(exec, "r");
+	assert(pFile = popen(exec, "r"));
 	fscanf(pFile, "%i", &sp->nTime);
 	printf("Number of files detected: %i\n", sp->nTime);
 	pclose(pFile);

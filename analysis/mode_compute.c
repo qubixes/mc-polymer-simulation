@@ -322,8 +322,9 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			dr = (dx*dx+dy*dy+dz*dz);
 			
 			ptl->avgGenom[g] += dr/2.0;
-			double sqrtdr = ptl->sqrtList[dr];
-			int bin = (int)sqrtdr;
+// 			double sqrtdr = ptl->sqrtList[dr];
+			double sqrtdr = sqrt(dr/2.0);
+			int bin = (int) sqrtdr;
 			
 			ptl->genomProb[g][bin]++;
 			ptl->genomR[g][bin]+=sqrtdr;
@@ -391,9 +392,9 @@ void AddModesStat(SimProperties* sp, PolyTimeLapse* ptl){
 			}
 			
 			
-			ptl->avgModesStat[p][q] += crossAdd/(double)(2*ptl->nEqd);
+			ptl->avgModesStat[ip][iq] += crossAdd/(double)(2*ptl->nEqd);
 			if(q != p)
-				ptl->avgModesStat[q][p] += crossAdd/(double)(2*ptl->nEqd);
+				ptl->avgModesStat[iq][ip] += crossAdd/(double)(2*ptl->nEqd);
 		}
 	}
 }
@@ -421,7 +422,7 @@ void AddModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 				crossAdd += pcfg1->czmode[p]*pcfg2->czmode[p];
 				num++;
 			}
-			ptl->avgModesDyn[p][dt] += crossAdd/(double)(2*num);
+			ptl->avgModesDyn[ip][dt] += crossAdd/(double)(2*num);
 		}
 		dtStep = MAX(1, dt/10);
 	}
@@ -460,7 +461,8 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 					printf("????????????\n");
 					exit(192);
 				}
-				ptl->pc[iMono][curMono]++;
+				ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
+				ptl->pcAvg[abs(iMono-curMono)]++;
 			}
 			
 			for(int i=0; i<12; i++){
@@ -482,7 +484,8 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 				if(lattice[newPos].nOcc){
 					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono]){
 // 						printf("%i %i %i\n", iMono, pos, newPos);
-						ptl->pc[iMono][curMono]++;
+						ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
+						ptl->pcAvg[abs(iMono-curMono)]++;
 						if(iMono == curMono){
 							printf("?????\n");
 							exit(192);

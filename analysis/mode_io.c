@@ -10,13 +10,15 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 	if(sp->updSPRouse)   WriteSpaceRouse(sp, ptl);
 	if(sp->updSpacDif)   WriteSpacDif(sp,ptl);
 	if(sp->updDif) {
-// 		printf("nEqd=%li\n", ptl->nEqd);
 		WriteDiff(sp, ptl->cmsDif, "cms", ptl->nEqd);
 		WriteDiff(sp, ptl->smDif, "sm", ptl->nEqd);
 		WriteDiff(sp, ptl->emDif, "em", ptl->nEqd);
 		WriteDiff(sp, ptl->mmDif, "mm", ptl->nEqd);
 	}
-	if(sp->updPC) WriteContactProbability(sp, ptl);
+	if(sp->updPC){
+		WriteContactProbability(sp, ptl);
+		WriteAvgContactProbability(sp, ptl);
+	}
 	if(sp->updShearMod) WriteShearMod(sp,ptl);
 	if(sp->updRee) WriteRee(sp,ptl);
 	if(sp->updAvgPos) WriteAvgPos(sp,ptl);
@@ -26,8 +28,9 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	sprintf(file, "%s/pc.dat", sp->sampleDir);
 	FILE* pFile = fopen(file, "w");
-	for(int iMono=0; iMono<sp->polSize; iMono++){
-		for(int jMono=0; jMono<sp->polSize; jMono++){
+	fprintf(pFile, "#Bin= %i\n", ptl->pcBins);
+	for(int iMono=0; iMono<sp->polSize/ptl->pcBins+1; iMono++){
+		for(int jMono=0; jMono<sp->polSize/ptl->pcBins+1; jMono++){
 			if(iMono>jMono)
 				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd));
 			else
@@ -35,6 +38,17 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 		}
 		fprintf(pFile, "\n");
 	}
+	fclose(pFile);
+}
+
+void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
+	char file[1000];
+	sprintf(file, "%s/pc_avg.dat", sp->sampleDir);
+	FILE* pFile = fopen(file, "w");
+	for(int g=0; g<sp->polSize; g++){
+		fprintf(pFile, "%i %le\n", g, ptl->pcAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
+	}
+	fclose(pFile);
 }
 
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl){
@@ -233,10 +247,10 @@ void WriteModesStat(SimProperties* sp, PolyTimeLapse* ptl){
 	for(int ip=0; ip<ptl->nModes; ip++) fprintf(pFile, "%i ", ptl->modeList[ip]);
 	fprintf(pFile, "\n");
 	for(int ip=0; ip<ptl->nModes; ip++){
-		int p = ptl->modeList[ip];
+// 		int p = ptl->modeList[ip];
 		for(int iq=0; iq<ptl->nModes; iq++){
-			int q = ptl->modeList[iq];
-			fprintf(pFile, "%le ", ptl->avgModesStat[p][q]/(double)(sp->nPol*sp->nDev));
+// 			int q = ptl->modeList[iq];
+			fprintf(pFile, "%le ", ptl->avgModesStat[ip][iq]/(double)(sp->nPol*sp->nDev));
 // 			printf("(%i,%i,%lf) ", p,q,ptl->avgModesStat[p][q]);
 		}
 		fprintf(pFile, "\n");
@@ -263,8 +277,8 @@ void WriteModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 			continue;
 		fprintf(pFile, "%li ", sp->dT*dt);
 		for(int ip=0; ip<ptl->nModes; ip++){
-			int p = ptl->modeList[ip];
-			fprintf(pFile, "%le ", ptl->avgModesDyn[p][dt]/(double)(sp->nPol*sp->nDev));
+// 			int p = ptl->modeList[ip];
+			fprintf(pFile, "%le ", ptl->avgModesDyn[ip][dt]/(double)(sp->nPol*sp->nDev));
 		}
 		fprintf(pFile, "\n");
 	}
