@@ -29,12 +29,16 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	sprintf(file, "%s/pc.dat", sp->sampleDir);
 	FILE* pFile = fopen(file, "w");
 	fprintf(pFile, "#Bin= %i\n", ptl->pcBins);
-	for(int iMono=0; iMono<sp->polSize/ptl->pcBins+1; iMono++){
-		for(int jMono=0; jMono<sp->polSize/ptl->pcBins+1; jMono++){
+	for(int iMono=0; iMono<(sp->polSize-1)/ptl->pcBins+1; iMono++){
+		for(int jMono=0; jMono<(sp->polSize-1)/ptl->pcBins+1; jMono++){
 			if(iMono>jMono)
-				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd));
-			else
-				fprintf(pFile, "%le ", ptl->pc[jMono][iMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd));
+				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*ptl->pcBins*ptl->pcBins));
+			else if(iMono == jMono && ptl->pcBins > 1){
+				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*((ptl->pcBins*ptl->pcBins-ptl->pcBins)/2)));
+			}
+			else{
+				fprintf(pFile, "%le ", ptl->pc[jMono][iMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*ptl->pcBins*ptl->pcBins));
+			}
 		}
 		fprintf(pFile, "\n");
 	}
@@ -149,14 +153,15 @@ void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 			fprintf(pFile, "%i ", g);
 	}
 	fprintf(pFile, "\n");
-	for(int i=0; i<sp->polSize; i++){
-		for(int g=0; g<sp->polSize; g++){
+	for(int i=0; i<ptl->nGenomBin; i++){
+		for(int ig=0; ig<ptl->nIg; ig++){
+			int g = ptl->genomIdList[ig];
 			if(ptl->avgGenom[g]){
-				if(ptl->genomProb[g][i]==0)
+				if(ptl->genomProb[ig][i]==0)
 					fprintf(pFile, "nan nan ");
 				else{
-					fprintf(pFile, "%le ", ptl->genomProb[g][i]/(double)(ptl->genomCount[g]*ptl->pointDensity[i]));
-					fprintf(pFile, "%le ", ptl->genomR[g][i]/(double)ptl->genomProb[g][i]);
+					fprintf(pFile, "%le ", ptl->genomProb[ig][i]/(double)(ptl->genomCount[ig]*ptl->pointDensity[i]));
+					fprintf(pFile, "%le ", ptl->genomR[ig][i]/(double)ptl->genomProb[ig][i]);
 				}
 			}
 		}

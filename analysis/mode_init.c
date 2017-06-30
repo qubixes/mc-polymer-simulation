@@ -28,6 +28,9 @@ void InitRelPos(){
 }
 
 void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
+	ptl->nEqd = sp->nEqd;
+	ptl->nTherm = sp->nTherm;
+	
 	ptl->sinfac = malloc(sizeof(double*)*(sp->polSize/2+1));
 	ptl->cosfac = malloc(sizeof(double*)*(sp->polSize/2+1));
 	
@@ -76,15 +79,16 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 // 		printf("%i %i %lf\n", i, ptl->pointDensity[i], ptl->pointDensity[i]/(double)(i*i));
 // 	exit(0);
 	
-	int maxGenom=100000000;
+	int maxGenom=10000000;
 	
 	ptl->genomList = malloc(sizeof(DInt)*maxGenom);
+	ptl->genomIdList = malloc(sizeof(int)*maxGenom);
 	ptl->nGenom = 0;
 	int di=20;
 	int gMax;
 	if(sp->polType == POL_TYPE_LIN) gMax=sp->polSize-1;
 	else gMax = sp->polSize/2;
-	for(int g=1, dg=1; g<=gMax; g+=dg){
+	for(int g=1, dg=1, ig=0; g<=gMax; g+=dg, ig++){
 		di = MAX(1,MAX(sp->polSize/30, dg/3));
 		for(int i=0; i<sp->polSize; i+=di){
 			if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
@@ -93,7 +97,8 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 				printf("Error: reached memory storage limit for genom allocation\n");
 				exit(192);
 			}
-			ptl->genomList[ptl->nGenom].x = i;
+			ptl->genomList[ptl->nGenom].ig  = ig;
+			ptl->genomList[ptl->nGenom].x   = i;
 			ptl->genomList[ptl->nGenom++].y = j;
 // 			}
 // 			else{
@@ -101,17 +106,20 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 // 				ptl->genomList[ptl->nGenom++].y = i;
 // 			}
 		}
+		ptl->genomIdList[ig] = g;
 		dg = MAX(1,MIN(gMax-g, g/10));
 	}
+	ptl->nIg = ptl->genomList[ptl->nGenom-1].ig+1;
+	ptl->nGenomBin = 10*sp->LT;
 	printf("nGenom=%i\n", ptl->nGenom);
-	ptl->genomProb = malloc(sizeof(long*)*(gMax+1));
-	ptl->genomR = malloc(sizeof(double*)*(gMax+1));
-	ptl->genomCount = malloc(sizeof(long)*(gMax+1));
-	for(int i=0; i<(gMax+1); i++){
-		ptl->genomProb[i] = malloc(sizeof(long)*sp->polSize);
-		ptl->genomR[i] = malloc(sizeof(double)*sp->polSize);
+	ptl->genomProb = malloc(sizeof(long*)*(ptl->nIg));
+	ptl->genomR = malloc(sizeof(double*)*(ptl->nIg));
+	ptl->genomCount = malloc(sizeof(long)*(ptl->nIg));
+	for(int i=0; i<ptl->nIg; i++){
+		ptl->genomProb[i] = malloc(sizeof(long)  *ptl->nGenomBin);
+		ptl->genomR[i]    = malloc(sizeof(double)*ptl->nGenomBin);
 		ptl->genomCount[i] = 0;
-		for(int j=0; j<sp->polSize; j++){
+		for(int j=0; j<ptl->nGenomBin; j++){
 			ptl->genomProb[i][j]=0;
 			ptl->genomR[i][j]=0;
 		}
@@ -121,7 +129,6 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 // 	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
 // 		ptl->sqrtList[i] = sqrt(i/2.0);
 	
-	ptl->nEqd = MAX(0,sp->nTime-ptl->nTherm);
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->polSize);
 	ptl->avgGenom = malloc(sizeof(double)*sp->polSize);
@@ -136,15 +143,16 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	ptl->avgRGyr = 0;
 	
 	
-	ptl->pcBins = MAX(1, sp->polSize/5000);
-	ptl->pc = malloc(sizeof(double*)*sp->polSize/ptl->pcBins+1);
+	ptl->pcBins = MAX(1, sp->polSize/2000);
+	ptl->pc = malloc(sizeof(double*)*(sp->polSize/ptl->pcBins+1));
 	ptl->pcAvg = malloc(sizeof(double)*sp->polSize);
 	
-	ptl->monoList= malloc(sizeof(int)*sp->polSize);
-	ptl->L = 400;
-	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L)+(ptl->L*ptl->L*ptl->L)/2;
+	ptl->monoList= malloc(sizeof(PCMonoList)*sp->polSize);
+	ptl->L = 100;
+	ptl->LIMG = 100; /// This is all not for the original size of the lattice, just the 
+	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L);
 	for(int i=0; i<ptl->L*ptl->L*ptl->L; i++)
-		ptl->lattice[i-(ptl->L*ptl->L*ptl->L)/2].nOcc=0;
+		ptl->lattice[i].nOcc=0;
 	for(int i=0; i<sp->polSize; i++){
 		ptl->avgUnitCor[i] = 0;
 		ptl->avgGenom[i] = 0;
@@ -152,7 +160,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	}
 	
 	for(int i=0; i<sp->polSize/ptl->pcBins+1; i++){
-		ptl->pc[i] = malloc(sizeof(double)*sp->polSize/ptl->pcBins+1);
+		ptl->pc[i] = malloc(sizeof(double)*(sp->polSize/ptl->pcBins+1));
 		for(int j=0; j<sp->polSize/ptl->pcBins+1; j++)
 			ptl->pc[i][j]=0;
 	}
@@ -334,7 +342,7 @@ TDTTable* TTableNew(SimProperties* sp, int tFirst){
 // 	}
 // 	exit(0);
 	
-	printf("Using %i measuring points\n", tTable->nTDT);
+	printf("Using %i measuring points (%i %i %i %i)\n", tTable->nTDT, sp->nEqd, sp->nTherm, sp->nTime, nMaxStep);
 	return tTable;
 }
 
@@ -587,15 +595,17 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 		exit(192);
 	}
 	
-	if(!sp->equilibrated){
-		double tau = TRelaxStretched(sp->polSize, sp->polType, 5);
-		sp->nTherm = (int)(tau/sp->dT)+1;
-		sp->nEqd = sp->nTime-sp->nTherm;
+	if(sp->doubleStep){
+		sp->nTherm = sp->nTime/2;
+	}
+	else if(!sp->equilibrated){
+		sp->nTherm = TRelax(sp)/sp->dT;
 	}
 	else{
 		sp->nTherm=0;
-		sp->nEqd = sp->nTime;
 	}
+	sp->nEqd = sp->nTime - sp->nTherm;
+
 }
 
 void InitFilePos(SimProperties* sp, int devId){

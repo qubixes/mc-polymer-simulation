@@ -49,7 +49,7 @@ typedef struct Coor{
 }Coor;
 
 typedef struct DInt{
-	int x,y;
+	int x,y,ig;
 }DInt;
 
 typedef struct SimProperties{
@@ -104,15 +104,24 @@ typedef struct TDTTable{
 }TDTTable;
 	
 
+typedef struct PCMonoList{
+	int next;
+	int img;
+	int pos;
+}PCMonoList;
+
 typedef struct PolyTimeLapse{
 	PolyConfig* polys;
 	double** sinfac, **cosfac;
 	int* modeList;
 	LatPoint* lattice;
-	int* monoList;
-	int L;
+	PCMonoList* monoList;
+	int L, LIMG; /// For internal contact probability calculation.
 	DInt* genomList;
 	int nGenom;
+	int nIg;
+	int nGenomBin;
+	int* genomIdList;
 	long* genomCount;
 	double** genomR;
 	double* sqrtList;
@@ -143,8 +152,7 @@ typedef struct PolyTimeLapse{
 // 	double*** numSpacDif;
 	TDTTable tTable;
 	int polId, devId;
-	long nTherm;
-	long nEqd;
+	int nTherm, nEqd;
 // 	int nMeas;
 }PolyTimeLapse;
 

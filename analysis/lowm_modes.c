@@ -25,20 +25,20 @@ int main(int argc, char** argv){
 	if(GetNUpdates(&sp, sampleDir)==0) return 0;
 	SetSimProps(&sp, sampleDir);
 	
-	if(sp.doubleStep)
-		ptl.nTherm = sp.nTime/2;
-	else if(!sp.equilibrated)
-		ptl.nTherm = TRelax(&sp)/sp.dT;
-	else
-		ptl.nTherm = 0;
+// 	if(sp.doubleStep)
+// 		ptl.nTherm = sp.nTime/2;
+// 	else if(!sp.equilibrated)
+// 		ptl.nTherm = 
+// 	else
+// 		ptl.nTherm = 0;
 	if(sp.dT < 1000){
-		printf("Thermalization: %li x %li, tau=%lf\n", ptl.nTherm, sp.dT, TRelax(&sp)/1e3);
+		printf("Thermalization: %i x %li, tau=%lf\n", sp.nTherm, sp.dT, TRelax(&sp)/1e3);
 	}
 	else if(sp.dT <1000000){
-		printf("Thermalization: %li x %liK, tau=%lfK\n", ptl.nTherm, sp.dT/1000, TRelax(&sp)/1e3);
+		printf("Thermalization: %i x %liK, tau=%lfK\n", sp.nTherm, sp.dT/1000, TRelax(&sp)/1e3);
 	}
 	else{
-		printf("Thermalization: %li x %liM, tau=%lfM\n", ptl.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
+		printf("Thermalization: %i x %liM, tau=%lfM\n", sp.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
 	}
 	InitArrays(&sp, &ptl);
 	

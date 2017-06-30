@@ -43,7 +43,6 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	printf("[Add: %.2lf ms]", 1e3*TimerElapsed(&time)); fflush(NULL);
 }
 
-
 void ComputeRee(SimProperties* sp, PolyConfig* pcfg){
 	int monoId;
 	if(sp->polType == POL_TYPE_LIN)
@@ -309,8 +308,9 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 	Timer time;
 // 	printf("Doing %i operations\n", ptl->nGenom*ptl->nMeas);
 	for(int iGenom=0; iGenom<ptl->nGenom; iGenom++){
-		int i=ptl->genomList[iGenom].x;
-		int j=ptl->genomList[iGenom].y;
+		int i =ptl->genomList[iGenom].x;
+		int j =ptl->genomList[iGenom].y;
+		int ig=ptl->genomList[iGenom].ig;
 		int g = (j-i+sp->polSize)%sp->polSize;
 		TimerStart(&time);
 		for(int t=ptl->nTherm; t<sp->nTime; t++){
@@ -326,9 +326,10 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			double sqrtdr = sqrt(dr/2.0);
 			int bin = (int) sqrtdr;
 			
-			ptl->genomProb[g][bin]++;
-			ptl->genomR[g][bin]+=sqrtdr;
-			ptl->genomCount[g]++;
+			bin = MIN(bin, ptl->nGenomBin);
+			ptl->genomProb[ig][bin]++;
+			ptl->genomR[ig][bin]+=sqrtdr;
+			ptl->genomCount[ig]++;
 		}
 // 		printf("g=%i, took %.2f ms\n", g, TimerElapsed(&time)*1e3);
 	}
@@ -428,13 +429,30 @@ void AddModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 }
 
+void GetPosImg(int t, int u, int v, PolyTimeLapse* ptl, int* pos, int* img){
+	int L    = ptl->L;
+	int LIMG = ptl->LIMG;
+	
+	int posT = (t+L*LIMG)%L;
+	int posU = (u+L*LIMG)%L;
+	int posV = (v+L*LIMG)%L;
+	
+	int imgT = (t-posT)/L;
+	int imgU = (u-posU)/L;
+	int imgV = (v-posV)/L;
+	
+	*pos = posT + posU*L    + posV*L*L;
+	*img = imgT + imgU*LIMG + imgV*LIMG*LIMG;
+}
+
 void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 // 	int dx, dy, dz;
 // 	double dr, pc;
 	
 	for(int t=ptl->nTherm; t<sp->nTime; t++){
 		PolyConfig* pcfg = ptl->polys+t;
-		int L = ptl->L;
+// 		int L = ptl->L;
+// 		int LIMG= ptl->LIMG;
 		LatPoint* lattice = ptl->lattice;
 		
 		int ts = pcfg->t[0];
@@ -447,22 +465,28 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 			u = pcfg->u[iMono]-us;
 			v = pcfg->v[iMono]-vs;
 			
-			int pos = t+u*L+v*L*L;
+// 			int pos = t+u*L+v*L*L;
+			int pos, img;
+			GetPosImg(t,u,v, ptl, &pos, &img);
 			
 			if(lattice[pos].nOcc)
-				ptl->monoList[iMono]=lattice[pos].firstMono;
+				ptl->monoList[iMono].next = lattice[pos].firstMono;
 			else
-				ptl->monoList[iMono]=-1;
+				ptl->monoList[iMono].next = -1;
+			ptl->monoList[iMono].img = img;
+			ptl->monoList[iMono].pos = pos;
 			lattice[pos].firstMono=iMono;
 			lattice[pos].nOcc++;
 			
-			for(int curMono=ptl->monoList[iMono]; curMono >=0; curMono=ptl->monoList[curMono]){
+			for(int curMono=ptl->monoList[iMono].next; curMono >=0; curMono=ptl->monoList[curMono].next){
 				if(iMono == curMono){
 					printf("????????????\n");
 					exit(192);
 				}
-				ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
-				ptl->pcAvg[abs(iMono-curMono)]++;
+				if(ptl->monoList[curMono].img == img){
+					ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
+					ptl->pcAvg[abs(iMono-curMono)]++;
+				}
 			}
 			
 			for(int i=0; i<12; i++){
@@ -470,25 +494,30 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 				int du = tuvRelPos[i][1];
 				int dv = tuvRelPos[i][2];
 				
-				int newPos = pos+dt+du*L+dv*L*L;
-				if(newPos > ptl->L*ptl->L*ptl->L/2 || newPos<-ptl->L*ptl->L*ptl->L/2){
-					printf("Oh dear!\n");
-					printf("%i %i %i\n", t,u,v);
-					printf("%i %i %i\n", dt, du, dv);
-					printf("%i %i\n\n", pos, newPos);
-					for(int i=0; i<sp->polSize; i++){
-						printf("%i %i %i\n", pcfg->t[i]-ts, pcfg->u[i]-us, pcfg->v[i]-vs);
-					}
-					exit(192);
-				}
+				int newPos, newImg;
+				GetPosImg(t+dt, u+du, v+dv, ptl, &newPos, &newImg);
+				
+// 				int newPos = pos+dt+du*L+dv*L*L;
+// 				if(newPos > ptl->L*ptl->L*ptl->L/2 || newPos<-ptl->L*ptl->L*ptl->L/2){
+// 					printf("Oh dear!\n");
+// 					printf("%i %i %i\n", t,u,v);
+// 					printf("%i %i %i\n", dt, du, dv);
+// 					printf("%i %i\n\n", pos, newPos);
+// 					for(int i=0; i<sp->polSize; i++){
+// 						printf("%i %i %i\n", pcfg->t[i]-ts, pcfg->u[i]-us, pcfg->v[i]-vs);
+// 					}
+// 					exit(192);
+// 				}
 				if(lattice[newPos].nOcc){
-					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono]){
+					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono].next){
 // 						printf("%i %i %i\n", iMono, pos, newPos);
-						ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
-						ptl->pcAvg[abs(iMono-curMono)]++;
-						if(iMono == curMono){
-							printf("?????\n");
-							exit(192);
+						if(ptl->monoList[curMono].img == newImg){
+							ptl->pc[iMono/ptl->pcBins][curMono/ptl->pcBins]++;
+							ptl->pcAvg[abs(iMono-curMono)]++;
+							if(iMono == curMono){
+								printf("?????\n");
+								exit(192);
+							}
 						}
 					}
 				}
@@ -496,12 +525,7 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 		}
 // 		exit(0);
 		for(int iMono=0; iMono<sp->polSize; iMono++){
-			t = pcfg->t[iMono]-ts;
-			u = pcfg->u[iMono]-us;
-			v = pcfg->v[iMono]-vs;
-			
-			int pos = t+u*L+v*L*L;
-			lattice[pos].nOcc=0;
+			lattice[ptl->monoList[iMono].pos].nOcc=0;
 		}
 	}
 }

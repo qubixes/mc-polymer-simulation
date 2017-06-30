@@ -55,17 +55,17 @@ for DIR in ${UPD_DIRS[*]}; do
 		./bin/avg_data $DIR/ucor.dat 0 > $DIR/ucor_avg.dat || echo "Failed: $DIR"
 	fi
 	
-	if [ -f $DIR/pc.dat -a ! $DIR/pc_point.dat -nt $DIR/pc.dat ]; then
-		./scripts/plot_2d_pc.sh $DIR/pc.dat || echo "Failed: $DIR"
-	fi
-	if [ -f $DIR/pc_point.dat -a ! $DIR/dr.dat -nt $DIR/pc_point.dat ]; then
-		echo "./bin/localization $DIR/pc_point.dat > $DIR/dr.dat"
-		./bin/localization $DIR/pc_point.dat > $DIR/dr.dat || echo "Failed: $DIR"
-	fi
+# 	if [ -f $DIR/pc.dat -a ! $DIR/pc_point.dat -nt $DIR/pc.dat ]; then
+# 		./scripts/plot_2d_pc.sh $DIR/pc.dat || echo "Failed: $DIR"
+# 	fi
+# 	if [ -f $DIR/pc_point.dat -a ! $DIR/dr.dat -nt $DIR/pc_point.dat ]; then
+# 		echo "./bin/localization $DIR/pc_point.dat > $DIR/dr.dat"
+# 		./bin/localization $DIR/pc_point.dat > $DIR/dr.dat || echo "Failed: $DIR"
+# 	fi
 	
-	if [ -f $DIR/pc_point.dat -a ! $DIR/pc_avg.dat -nt $DIR/pc_point.dat ]; then
-		./scripts/get_pc_avg.sh $DIR/pc_point.dat > $DIR/pc_avg.dat || echo "Failed: $DIR, pc avging"
-	fi
+# 	if [ -f $DIR/pc_point.dat -a ! $DIR/pc_avg.dat -nt $DIR/pc_point.dat ]; then
+# 		./scripts/get_pc_avg.sh $DIR/pc_point.dat > $DIR/pc_avg.dat || echo "Failed: $DIR, pc avging"
+# 	fi
 done
 
 for DIR in ${UPD_DIRS[*]}; do 

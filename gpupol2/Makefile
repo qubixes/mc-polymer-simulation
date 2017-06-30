@@ -1,7 +1,7 @@
 .PHONY: clean all install
 
 CFLAGS=-O2 -Wall -std=c99 -DRELEASE=$(RELEASE)
-NVFLAGS=-O2 --compiler-options -DCUDA_GPULIB -x cu -DRELEASE=$(RELEASE)
+NVFLAGS=-O2 --compiler-options "-DCUDA_GPULIB -fPIC" -x cu -DRELEASE=$(RELEASE)
 #-lineinfo
 LDFLAGS=-lm
 CC=gcc
