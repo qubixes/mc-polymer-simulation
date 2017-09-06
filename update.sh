@@ -34,6 +34,7 @@ done
 
 I=0
 # echo ${DIRS[*]}
+# exit 0
 for DIR in ${UPD_DIRS[*]}; do
 	ARGS[2*I]=$DIR
 	ARGS[2*I+1]=$NE_FILE
@@ -72,7 +73,9 @@ for DIR in ${UPD_DIRS[*]}; do
 	./bin/create_cms $DIR || exit $?
 done
 
-parallel -j $NPROC ./bin/cms_cor ::: ${UPD_DIRS[*]}
+if [ "${UPD_DIRS[*]}" != "" ]; then 
+	parallel -j $NPROC ./bin/cms_cor ::: ${UPD_DIRS[*]}
+fi
 
 BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 

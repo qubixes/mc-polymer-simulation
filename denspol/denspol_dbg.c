@@ -5,30 +5,49 @@ int CheckIntegrity(CurState* cs, char* msg){
 		int coor = cs->coorPol[iPol][0];
 		for(int iMono=0; iMono<cs->polSize; iMono++){
 			coor= AddUnitToCoor(cs->unitPol[iPol][iMono], coor, L);
-			if(coor != cs->coorPol[iPol][(iMono+1)%cs->polSize]){
-				printf("Error in coordinates/unit conflageration\n");
+#if POL_TYPE == POL_TYPE_LIN
+			int jMono = iMono+1;
+#elif POL_TYPE == POL_TYPE_RING
+			int jMono = (iMono+1)%cs->polSize;
+#endif
+			if(coor != cs->coorPol[iPol][jMono]){
+				printf("Error: coor[%i]+unit[%i] != coor[%i]\n", iMono, iMono, iMono+1);
+// 				printf("%i +%i != %i\n", cs->coorPol
+				printf("At: %s\n", msg);
 				exit(192);
 			}
+#if POL_TYPE == POL_TYPE_RING
 			if(cs->unitPol[iPol][iMono]+cs->unitPol[iPol][(iMono+1)%cs->polSize] == 0xf){
 				printf("Error in units: hairpin configuration\n");
 				printf("At: %s\n", msg);
 				exit(192);
 			}
-			
+#elif POL_TYPE == POL_TYPE_LIN
+			if(iMono<cs->polSize-1 && cs->unitPol[iPol][iMono]+cs->unitPol[iPol][(iMono+1)%cs->polSize] == 0xf){
+				printf("Error in units: hairpin configuration\n");
+				printf("At: %s\n", msg);
+				exit(192);
+			}
+#endif
 #if TOPO_DENSE == TRUE
-			if(cs->unitPol[iPol][(iMono+1)%cs->polSize]){
-				int jMono=(iMono+2)%cs->polSize;
+// #if POL_TYPE == POL_TYPE_LIN
+// 			if(
+			if(cs->unitPol[iPol][iMono]){
+				int jMono=(iMono+1)%cs->polSize;
 				while(!cs->unitPol[iPol][jMono]){
 					jMono = (jMono+1)%cs->polSize;
 				}
-				if(!(cs->bondOcc[coor]&(1<<(cs->unitPol[iPol][(iMono+1)%cs->polSize]^0xf)))){
+				if(!(cs->bondOcc[cs->coorPol[iPol][iMono]]&(1<<(cs->unitPol[iPol][iMono]^0xf)))){
 					printf("Bond not stored!\n");
 					printf("At: %s\n", msg);
 					printf("bondOcc: %x, units[%x,%i]\n", cs->bondOcc[coor], cs->unitPol[iPol][(iMono+1)%cs->polSize], cs->unitPol[iPol][jMono]);
 					printf("iMono = %i, iPol = %i, coor = (%i, %i, %i, %i)\n", (iMono+1)%cs->polSize, iPol, cs->coorPol[iPol][(iMono-1+cs->polSize)%cs->polSize], cs->coorPol[iPol][iMono], coor, cs->coorPol[iPol][(iMono+2)%cs->polSize]);
-					return 1;
+					exit(192);
 				}
-				if(!(cs->bondOcc[cs->coorPol[iPol][jMono]]&(1<<cs->unitPol[iPol][(iMono+1)%cs->polSize]))){
+#if POL_TYPE == POL_TYPE_LIN
+				if(jMono <= iMono) continue;
+#endif
+				if(!(cs->bondOcc[cs->coorPol[iPol][jMono]]&(1<<cs->unitPol[iPol][iMono]))){
 					printf("Bond not stored 2\n");
 					printf("iPol = %i, iMono = %i, jMono = %i, coor = %i\n", iPol, iMono, jMono, cs->coorPol[iPol][jMono]);
 					printf("At: %s\n", msg);
@@ -39,24 +58,31 @@ int CheckIntegrity(CurState* cs, char* msg){
 		}
 	}
 #if TOPO_DENSE == TRUE
+#if POL_TYPE == POL_TYPE_LIN
+	int cycle = 2*cs->polSize;
+#elif POL_TYPE == POL_TYPE_RING
+	int cycle = cs->polSize;
+#endif
+
 	int nTrueBonds=0;
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		for(int iMono=0; iMono<cs->polSize; iMono++){
 			int iCoor1= cs->coorPol[iPol][iMono];
-			int iCoor2= cs->coorPol[iPol][(iMono+1)%cs->polSize];
+			int iCoor2= cs->coorPol[iPol][(iMono+1)%cycle];
 			if(iCoor1 == iCoor2) continue;
 			nTrueBonds++;
 			for(int jPol=0; jPol<cs->nPol; jPol++){
 				for(int jMono=0; jMono<cs->polSize; jMono++){
 					if(iPol == jPol && iMono == jMono) continue;
 					int jCoor1 = cs->coorPol[jPol][jMono];
-					int jCoor2 = cs->coorPol[jPol][(jMono+1)%cs->polSize];
+					int jCoor2 = cs->coorPol[jPol][(jMono+1)%cycle];
 					if(jCoor1 == jCoor2) continue;
 					if((iCoor1 == jCoor1 && iCoor2 == jCoor2) || (iCoor1 == jCoor2 && iCoor2 == jCoor1)){
 						printf("Error: bond occupied!\n");
 						printf("coor: (%i %i) vs (%i %i)\n", iCoor1, iCoor2, jCoor1, jCoor2);
+						printf("(%i, %i) vs (%i, %i)\n", iPol, iMono, jPol, jMono);
 						printf("At: %s\n", msg);
-						return 1;
+						exit(192);
 					}
 				}
 			}

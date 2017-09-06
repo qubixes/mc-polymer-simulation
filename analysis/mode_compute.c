@@ -305,14 +305,14 @@ void AddGenomNew(SimProperties* sp, PolyTimeLapse* ptl){
 void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 	int dx, dy, dz;
 	int dr;
-	Timer time;
+// 	Timer time;
 // 	printf("Doing %i operations\n", ptl->nGenom*ptl->nMeas);
 	for(int iGenom=0; iGenom<ptl->nGenom; iGenom++){
 		int i =ptl->genomList[iGenom].x;
 		int j =ptl->genomList[iGenom].y;
 		int ig=ptl->genomList[iGenom].ig;
-		int g = (j-i+sp->polSize)%sp->polSize;
-		TimerStart(&time);
+// 		int g = (j-i+sp->polSize)%sp->polSize;
+// 		TimerStart(&time);
 		for(int t=ptl->nTherm; t<sp->nTime; t++){
 			PolyConfig* pcfg = ptl->polys+t;
 			
@@ -321,7 +321,7 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			dz = pcfg->z[i]-pcfg->z[j];
 			dr = (dx*dx+dy*dy+dz*dz);
 			
-			ptl->avgGenom[g] += dr/2.0;
+			ptl->avgGenom[ig] += dr/2.0;
 // 			double sqrtdr = ptl->sqrtList[dr];
 			double sqrtdr = sqrt(dr/2.0);
 			int bin = (int) sqrtdr;
@@ -330,6 +330,9 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			ptl->genomProb[ig][bin]++;
 			ptl->genomR[ig][bin]+=sqrtdr;
 			ptl->genomCount[ig]++;
+// 			if(g>=24){
+// 				printf("g=%i, rsq=%.2lf\n", g, sqrtdr);
+// 			}
 		}
 // 		printf("g=%i, took %.2f ms\n", g, TimerElapsed(&time)*1e3);
 	}

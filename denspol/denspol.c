@@ -5,7 +5,7 @@ int main(int argc, char** argv){
 	LookupTables lt;
 	CurState cs;
 	Timer timer;
-	char outFile[10000];
+// 	char outFile[10000];
 	
 	cs.ss.L=10;
 	cs.ss.polSize=100;
@@ -13,8 +13,8 @@ int main(int argc, char** argv){
 // 	cs.ss.density=cs.ss.polSize/(double)(cs.ss.L*cs.ss.L*cs.ss.L);
 	cs.ss.density=7.0;
 	cs.ss.seed=12846102;
-	cs.ss.tMax=200000;
-	cs.ss.interval=10000;
+	cs.ss.tMax=20000;
+	cs.ss.interval=1000;
 	cs.ss.bendEnergy=0.3;
 
 	if(argc==10){
@@ -51,6 +51,7 @@ int main(int argc, char** argv){
 	}
 	printf("\n");
 	WriteCS(&cs, cs.curT);
+	WriteSimulationSettings(&cs);
 	CheckIntegrity(&cs, "After simulation");
 // 	PrintMoveCounts(&lt);
 	return 0;

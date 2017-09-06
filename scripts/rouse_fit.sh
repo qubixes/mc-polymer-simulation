@@ -2,21 +2,22 @@
 
 . ./util.sh
 DIRS=(`get_dirs $* -e`) || { echo ${DIRS[*]}; exit $?; }
+PAPER_DIR=`get_paper_dir`
 TYPE="ring"
 
 OFILE1="rouse_dyn_$TYPE"
-OFILE2="rouse_dyn_lin_$TYPE"
+# OFILE2="rouse_dyn_lin_$TYPE"
 
 PLOT="plot [][]"
 PLOT_LIN="plot [:1e1][]"
 
 J=0
 SET_LABEL=0
-USE_PCORR=1;
+USE_PCORR=0;
 PFAC=2.15;
 
 if [ $USE_PCORR == "1" ]; then
-	PLOT="plot [12:2e8][]"
+	PLOT="plot [12:2e9][]"
 else
 	PLOT="plot [][]"
 fi
@@ -40,12 +41,12 @@ for DIR in ${DIRS[*]}; do
 		}
 		}
 		END{
-		for(i=0; i<=NF; i++){
-			if(!zero[i])
-				printf "0 ";
-			else
-				print sqrt(var[i]/zero[i]);
-		}
+			for(i=0; i<=NF; i++){
+				if(!zero[i])
+					printf "0 ";
+				else
+					print sqrt(var[i]/zero[i]);
+			}
 		}
 		' $FILE`)
 # 	echo $DIR
@@ -113,7 +114,7 @@ Ne=100
 f(t,l) = (t/l**2)
 g(t,l) = (t/l**2.5+Ne**2*(l**-2-l**-2.5))
 time_tild(t,l) = ((t/l**2)**-k+(t/l**2.5+Ne**2*(l**-2-l**-2.5))**-k)**(-1/k)
-set xlabel 'log(t)'
+set xlabel 't'
 set ylabel 'log(-log(<X_l(t)*X_l(t+dt)>/<X_l(t)*X_l(t)>))+{/Symbol b} log (l)'
 set grid
 beta=-1.88
@@ -124,23 +125,29 @@ i(x) = exp(1.32)*x**0.85
 hi(x) = (h(x)**-4+i(x)**-4)**(-1./4.)
 $PLOT, log(h(x)) lw 1.5 notitle, log(i(x)) lw 1.5 notitle
 EOF
-
+# 
 # gnuplot << EOFGNU
 # set term epslatex color standalone colortext 14
 # beta=-1.88
 # delta=-0.0
+# set log x
+# set xtics 1,100,1e8
 # set key at 8.5,19
+# set label '{\\tiny \$ \\mathbf{\\alpha}=0.85 \$}' at 80,8.3  
+# set label '{\\tiny \$ \\mathbf{\\alpha}=0.61 \$}' at 4e6,16.5
 # set ylabel '\$\\log\\left[-\\log\\left(\\frac{\\left<\\mathbf{X}_\\ell(t)\\cdot \\mathbf{X}_\\ell(t+dt)\\right>}{\\left<\\mathbf{X}_\\ell(t)\\cdot \\mathbf{X}_\\ell(t)\\right>}\\right)\\right]+ \\beta \\log \\ell\$'
 # set xlabel '\$\\log t\$'
 # # set key spacing 1.5
 # set out "$OFILE1.tex"
 # f(x) = x**0
 # g(x) = x**-1
-# h(x) = x**1.0
-# $PLOT, 0.65*x+4.3 lw 2 notitle, 0.85*x+1.2 notitle
+# h(x) = (x>3e6 && x<2e8)?(exp(5.3)*x**0.61):1/0
+# i(x) = (x>1e2 && x<5e3)?(exp(2.0)*x**0.85):1/0
+# hi(x) = (h(x)**-4+i(x)**-4)**(-1./4.)
+# $PLOT, log(h(x)) lw 3 dt 2 lc rgb "black" notitle, log(i(x)) lw 3 dt 2 lc rgb "black" notitle
 # EOFGNU
-exit 0
-
+# # exit 0
+# 
 
 
 
@@ -177,8 +184,8 @@ exit 0
 # dvips -E -o full_$OFILE2.eps $OFILE2.dvi
 # mv full_$OFILE2.eps $OFILE2.eps
 # 
-exit 0
-make {$OFILE1,$OFILE2}.eps
-cp {$OFILE1,$OFILE2}.eps $ODIR
+# exit 0
+make $OFILE1.eps
+cp $OFILE1.eps $PAPER_DIR
 
 rm ./rtemp_*

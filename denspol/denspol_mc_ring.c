@@ -11,6 +11,7 @@ void PerformMutation(int mutation, int coor, int* topoState, LookupTables* lt){
 	topoState[coor] = lt->mutTopo[topo][mutation];
 }
 
+
 int TransStepCompact(CurState* cs, LookupTables* lt){
 	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
 	int iMono = mono%cs->polSize;

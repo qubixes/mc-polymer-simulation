@@ -4,24 +4,40 @@ OFILE="rouse_stat_trans"
 ./self_modes.sh $*
 
 TYPE="ring"
-SELF_FILE="self_modes.dat"
-TRANS_FILE="trans_modes.dat"
-DIV=(5./3.)
-DIV_TITLE="5/3"
+SELF_FILE="self_modes.tmp"
+TRANS_FILE="trans_modes.tmp"
+DIVS=(0 5./3.)
+DIV_TITLES=("0" "5/3")
+BOUNDS=("" "0.03:0.2")
 
 PVAL=(`head -1 $SELF_FILE`)
 
 let "NP=${#PVAL[*]}-1"
+
+
+IDIV=0
+for DIV in ${DIVS[*]}; do
+
+if [ ${DIV_TITLES[IDIV]} == "0" ]; then
+	DIV_TITLE_TOT=""
+	EX_FIT=", (x>5 && x<30)?(0.27*x**(5./3.)):(1/0) lw 2 dt 2 lc rgb \"black\" notitle"
+	EX_COMMAND="set label \"l_z^{5/3}\" at 10,40"
+else
+	DIV_TITLE_TOT="/ l_z^{${DIV_TITLES[IDIV]}}"
+	EX_COMMAND=""
+	EX_FIT=""
+fi
+
 
 if [ $TYPE == "lin" ]; then
 # 	PLOT="plot [2:5][0.3:0.9]"
 	PLOT="plot [2:1e4][0.3:2]"
 	B=0.7095350
 else
-	PLOT="plot [0.1:200][0.02:0.2]"
+# 	PLOT="plot [0.1:200][0.02:0.2]"
 	B=0.7120154
 # 	PLOT="plot [2:5][0.1:0.5]"
-# 	PLOT="plot [][] "
+	PLOT="plot [0.1:200][${BOUNDS[IDIV]}] "
 fi
 
 # NP=2
@@ -41,18 +57,19 @@ while [ $IP -lt $NP ]; do
 		TITLE="notitle"
 		LINE=""
 	fi
-	PLOT="${PLOT} \"$SELF_FILE\" u (\$1/(\$2*$P)):((\$3*\$$RCOL*($P/\$1)**($DIV))) w l $TITLE $LINE,"
+	PLOT="${PLOT} \"$SELF_FILE\" u (\$1/(\$2*$P)):((\$3*\$2**(-5./3.)*\$$RCOL*(\$2*$P/\$1)**($DIV))) w l $TITLE $LINE,"
 	let "IP=IP+1"
 done
 if [ $TYPE == "lin" ]; then
 	PLOT="$PLOT 0.08*x**0.067, 0.097*x**0.022, gauss(x)"
 else
-	PLOT="$PLOT  f(x), g(x), h(x), fg(x), fgh(x)"
+	PLOT="$PLOT fgh(x)*(x)**(5./3.-$DIV) title \"fit\""
 fi
+
 
 # PLOT="$PLOT (f(x)**(-a)+g(x)**(-a))**(-1.0/a) title 'fit', f(x), g(x)"
 gnuplot -persist << EOF
-set term aqua enhanced font 'Helvetica, 20'
+set term aqua enhanced dashed font 'Times Roman, 24'
 set key bottom right
 set log x
 set log y
@@ -80,8 +97,11 @@ m(x) = 0.18*x**(-1./3.)
 km(x) = (k(x)**-a1+m(x)**-a1)**(-1/a1)
 
 # set ytics 0.01,1.1*g(0)/0.01, 1.1*g(0)
-set ylabel '|X_{l_z}|^2 / {l_z}^{$DIV_TITLE} * c'
+set ylabel '|X_{l_z}|^2 $DIV_TITLE_TOT * c'
 set xlabel 'l_z'
 
-$PLOT
+$EX_COMMAND
+$PLOT $EX_FIT
 EOF
+let "IDIV++"
+done

@@ -88,8 +88,11 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	int gMax;
 	if(sp->polType == POL_TYPE_LIN) gMax=sp->polSize-1;
 	else gMax = sp->polSize/2;
+// 	ptl->genomIgToG = malloc(sizeof(int)*gMax);
+	
 	for(int g=1, dg=1, ig=0; g<=gMax; g+=dg, ig++){
 		di = MAX(1,MAX(sp->polSize/30, dg/3));
+// 		ptl->genomIgToG[ig] = g;
 		for(int i=0; i<sp->polSize; i+=di){
 			if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
 			int j = (i+g)%sp->polSize;
@@ -100,6 +103,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			ptl->genomList[ptl->nGenom].ig  = ig;
 			ptl->genomList[ptl->nGenom].x   = i;
 			ptl->genomList[ptl->nGenom++].y = j;
+// 			printf("%i %i %i\n", g, i, j);
 // 			}
 // 			else{
 // 				ptl->genomList[ptl->nGenom].x = j;
@@ -109,9 +113,10 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		ptl->genomIdList[ig] = g;
 		dg = MAX(1,MIN(gMax-g, g/10));
 	}
+// 	exit(0);
 	ptl->nIg = ptl->genomList[ptl->nGenom-1].ig+1;
 	ptl->nGenomBin = 10*sp->LT;
-	printf("nGenom=%i\n", ptl->nGenom);
+// 	printf("nGenom=%i, nIg = %i\n", ptl->nGenom, ptl->nIg);
 	ptl->genomProb = malloc(sizeof(long*)*(ptl->nIg));
 	ptl->genomR = malloc(sizeof(double*)*(ptl->nIg));
 	ptl->genomCount = malloc(sizeof(long)*(ptl->nIg));
@@ -124,7 +129,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			ptl->genomR[i][j]=0;
 		}
 	}
-	
+// 	exit(0);
 // 	ptl->sqrtList = malloc(sizeof(double)*sp->polSize*sp->polSize*2);
 // 	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
 // 		ptl->sqrtList[i] = sqrt(i/2.0);

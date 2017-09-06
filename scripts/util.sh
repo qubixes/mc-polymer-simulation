@@ -1,5 +1,9 @@
 #!/bin/bash
 
+function get_paper_dir {
+	echo "../../../gpupol/paper_imp_ring/"
+}
+
 function get_attr {
 	LINE=(`grep "$1" "$2/simulation_settings.txt"`)
 	echo "${LINE[2]}"
@@ -85,11 +89,32 @@ else
 fi
 }
 
+function get_last_t {
+DIR=$1
+FILES=(`echo $1/t*.res`)
+MAX_T=0
+MAX_FILE="NOT_FOUND"
+for FILE in ${FILES[*]}; do
+	if [ ! -f $FILE ]; then continue; fi
+	TSTR=${FILE%_dev*}
+	T=${TSTR#*t=}
+	if [ $T -gt $MAX_T ]; then
+		MAX_T=$T
+		MAX_FILE=$FILE
+	fi
+done
+echo ${MAX_T}
+if [ $MAX_FILE == "NOT_FOUND" ]; then
+	return 192
+else 
+	return 0
+fi
+}
+
 
 function get_dirs {
 
 SUBDIR=(ring)
-TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_{gpupol,denspol}*/{,double_*/} )
 # echo ${TDIRS[*]}
 N_LIST="-1"
 N_COUNT="0"
@@ -127,6 +152,10 @@ while (( "$#" )); do
 			DOUBLE_LIST[DOUBLE_COUNT]=$2
 			let "DOUBLE_COUNT++"
 			shift ;;
+		-l|--linear)
+			SUBDIR=(lin) ;;
+		-r|--ring)
+			SUBDIR=(ring) ;;
 		-e|--equilibrated)
 			EQUILIBRATED=1 ;;
 		-x|--exec)
@@ -145,7 +174,7 @@ while (( "$#" )); do
 done
 
 # echo "${EXEC_LIST[*]}"
-
+TDIRS=(../data/${SUBDIR}*/N*/ ../data/${SUBDIR}_{gpupol,denspol}*/{,double_*/} )
 I=0
 for DIR in ${TDIRS[*]}; do
 	if [ ! -f "$DIR/rgyr.dat" ]; then continue; fi

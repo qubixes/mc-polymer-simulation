@@ -4,6 +4,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#define POL_TYPE_RING 0
+#define POL_TYPE_LIN 1
+#ifndef POL_TYPE
+	#define POL_TYPE POL_TYPE_RING
+#endif
+
 #define TRUE 1
 #define FALSE 0
 #define TOPO_DENSE TRUE
@@ -14,6 +20,13 @@
 
 #define NON_EXISTING -1
 #define SAME_TOPO -2
+
+/** 
+ Notice: the polymer length is from now on defined as the number of bonds. This is different 
+ from the GPUpol package, and also previous work. Especially in the context of denspol
+ this makes much more sense, since the excluded volume is tested on the bonds, instead of
+ the monomers.  
+ **/
 
 typedef struct SimulationSettings{
 	double density;

@@ -123,6 +123,7 @@ typedef struct PolyTimeLapse{
 	int nGenomBin;
 	int* genomIdList;
 	long* genomCount;
+// 	int* genomIg
 	double** genomR;
 	double* sqrtList;
 	int* pointDensity;

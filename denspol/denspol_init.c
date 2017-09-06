@@ -37,8 +37,8 @@ void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char*
 	cs->coorPol = malloc(sizeof(int*)*cs->nPol);
 	
 	for(int iPol=0; iPol<cs->nPol; iPol++){
-		cs->unitPol[iPol] = malloc(sizeof(int)*cs->polSize);
-		cs->coorPol[iPol] = malloc(sizeof(int)*cs->polSize);
+		cs->unitPol[iPol] = malloc(sizeof(int)*(cs->polSize+1));
+		cs->coorPol[iPol] = malloc(sizeof(int)*(cs->polSize+1));
 	}
 	
 	for(int i=0; i<cs->LSize; i++){
@@ -53,9 +53,11 @@ void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char*
 }
 
 
+
+
 //TODO: FIX the delta=1 situation, because the simulation with TOPO_DENSE==FALSE will fail 
-//      (perhaps spectacularly)!
-void GeneratePolymers(CurState* cs, LookupTables* lt){
+//      (perhaps spectacularly, I won't give you back your money if your house burns down..)!
+void GenerateRingPolymers(CurState* cs, LookupTables* lt){
 	int delta;
 	int L = cs->L;
 	
@@ -122,7 +124,59 @@ void GeneratePolymers(CurState* cs, LookupTables* lt){
 	}
 }
 
+void GenerateLinearPolymers(CurState* cs, LookupTables* lt){
+	int delta;
+	int L = cs->L;
+	
+	for(delta=L; delta>=1; delta--){
+		int nTot = 1;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		if(nTot >= cs->nPol){
+			break;
+		}
+	}
+	if(!delta){
+		printf("Failed to find partition for polymers\n");
+		exit(102);
+	}
+	
+	int iPol=0;
+	for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
+		for(int u=0; u+delta/2<L && iPol<cs->nPol; u += delta){
+			for(int v=0; v+delta/2<L && iPol<cs->nPol; v += delta){
+				cs->unitPol[iPol][0] = 0x1;
+				
+				for(int iMono=1; iMono<cs->polSize; iMono++)
+					cs->unitPol[iPol][iMono] = 0;
+				cs->unitPol[iPol][cs->polSize] = 0xf;
+				
+				int coor = TUV2Coor(t,u,v,L);
+				for(int iMono=0; iMono<=cs->polSize; iMono++){
+					cs->coorPol[iPol][iMono] = coor;
+					coor = AddUnitToCoor(cs->unitPol[iPol][iMono], coor, L);
+				}
+				
+				int bondOcc0 = 1<<(cs->unitPol[iPol][0]^0xf);
+				int bondOcc1 = 1<<(cs->unitPol[iPol][0]);
+				
+				cs->bondOcc[cs->coorPol[iPol][0]] |= bondOcc0;
+				cs->bondOcc[cs->coorPol[iPol][1]] |= bondOcc1;
+				
+				iPol++;
+			}
+		}
+	}
+}
 
+void GeneratePolymers(CurState* cs, LookupTables* lt){
+#if POL_TYPE == POL_TYPE_LIN
+	GenerateLinearPolymers(cs,lt);
+#elif POL_TYPE == POL_TYPE_RING
+	GenerateRingPolymers(cs,lt);
+#endif
+}
 
 void GenerateMutators(LookupTables* lt, char* file){
 	int nMoves[16][16];
@@ -148,7 +202,7 @@ void GenerateMutators(LookupTables* lt, char* file){
 	}
 	
 	int mutId=0;
-	int mutIdTriple=0;
+// 	int mutIdTriple=0;
 	for(int unitA=1; unitA<0xf; unitA++){
 		if(!IsValid(unitA)) continue;
 		for(int unitB=1; unitB<0xf; unitB++){

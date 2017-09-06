@@ -5,8 +5,8 @@ DIRS=(`get_dirs $* -e`) || { echo "${DIRS[*]}"; exit $?; }
 
 NDIR=${#DIRS[*]}
 
-MODE_FILE="self_modes.dat"
-TRANS_FILE="self_modes_trans.dat"
+MODE_FILE="self_modes.tmp"
+TRANS_FILE="self_modes_trans.tmp"
 
 rm -f $MODE_FILE $TRANS_FILE
 

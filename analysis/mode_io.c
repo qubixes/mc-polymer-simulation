@@ -132,9 +132,10 @@ void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 		exit(192);
 	}
 	
-	for(g=1; g<sp->polSize; g++){
-		if(ptl->avgGenom[g])
-			fprintf(pFile, "%i %le\n", g, ptl->avgGenom[g]/(double)ptl->genomCount[g]);
+	for(int ig=0; ig<ptl->nIg; ig++){
+		g = ptl->genomIdList[ig];
+		if(ptl->avgGenom[ig])
+			fprintf(pFile, "%i %le\n", g, ptl->avgGenom[ig]/(double)ptl->genomCount[ig]);
 	}
 	
 	fclose(pFile);
