@@ -311,7 +311,7 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 	long nAccTrans=0;
 	long nAccDiff=0;
 	
-	for(int iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
+	for(long iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
 		int mono = DRng(cs->rngState)*cs->nPol*(cs->polSize+1);
 		int iMono = mono%(cs->polSize+1);
 		int iPol = mono/(cs->polSize+1);
@@ -329,7 +329,6 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 // 	CheckIntegrity(cs, "After step");
 	double ratTrans = nAccTrans/(double)(cs->polSize*cs->nPol*nStep);
 	return ratTrans;
-
 }
 
 

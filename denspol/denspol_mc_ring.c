@@ -320,7 +320,7 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 // 	double sl=0;
 // 	long nMeas=0;
 	
-	for(int iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
+	for(long iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
 #if TOPO_DENSE == TRUE
 		nAccTrans += TransStepCompact(cs, lt);
 // 		CheckIntegrity(cs, "After trans step\n");

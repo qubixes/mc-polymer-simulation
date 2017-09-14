@@ -99,7 +99,11 @@ int CSFromFile(CurState* cs, char* dir, long lastT){
 
 void WritePolymer(CurState* cs, int iPol, FILE* pFile){
 	int L = cs->L;
+#if POL_TYPE == POL_TYPE_LIN
 	fprintf(pFile, "len= %i\n", cs->polSize+1);
+#else
+	fprintf(pFile, "len= %i\n", cs->polSize);
+#endif
 	fprintf(pFile, "%u  %u  %u\t", TCoor(cs->coorPol[iPol][0], L), UCoor(cs->coorPol[iPol][0], L), VCoor(cs->coorPol[iPol][0], L));
 	
 	for(int iMono=0; iMono<cs->polSize; iMono++)
