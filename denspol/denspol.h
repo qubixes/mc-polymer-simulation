@@ -12,7 +12,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define TOPO_DENSE TRUE
+// #define TOPO_DENSE TRUE
 
 #define MAX_TOPO_STATES 1950238
 #define NMUTATOR 96
@@ -26,6 +26,7 @@
  from the GPUpol package, and also previous work. Especially in the context of denspol
  this makes much more sense, since the excluded volume is tested on the bonds, instead of
  the monomers.  
+ Notice2: I don't think the above is true!
  **/
 
 typedef struct SimulationSettings{
@@ -38,6 +39,7 @@ typedef struct SimulationSettings{
 	long interval;
 	int L;
 	int polSize;
+	int dblStep;
 }SimulationSettings;
 
 typedef struct CurState{
@@ -81,6 +83,13 @@ typedef struct TopoCompact{
 	int permBond;
 }TopoCompact;
 
+typedef struct HPTable{
+	double** HPStrength;
+	double*** distance;
+	int** monoId;
+	int* nInterHP;
+}HPTable;
+
 typedef struct LookupTables{
 	int** mutTopo;
 	TopoCompact* topComp;
@@ -97,7 +106,10 @@ typedef struct LookupTables{
 	int revMutTable[48][2];
 	int revMutTableTriple[96][3];
 	int mutIdTableTriple[16][16][16];
+	HPTable* hp;
 }LookupTables;
+
+
 
 int nSupTopo;
 

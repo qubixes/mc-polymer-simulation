@@ -7,6 +7,7 @@ void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double de
 	UnitDotInit(lt, cs->ss.bendEnergy);
 	GenerateMutators(lt, cs->ss.eeFile);
 	SuperTopoInit(lt);
+	lt->hp->distance = GenerateDistanceMatrix(L);
 	
 	if(lastT<0){
 		cs->curT=0;
@@ -21,6 +22,37 @@ void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double de
 	}
 	CheckIntegrity(cs, "After construction");
 }
+
+void LoadHPFile(char* file, HPTable* hp, CurState* cs){
+	int polSize = cs->polSize;
+	FILE* pFile = fopen(file, "r");
+	int nMono;
+	fscanf(pFile, "%*s %i", &nMono);
+	double ratio = (polSize+1)/(double)nMono;
+	
+	
+	hp->HPStrength = malloc(sizeof(double*)*(polSize+1));
+	hp->monoId     = malloc(sizeof(int*)*(polSize+1));
+	hp->nInterHP   = malloc(sizeof(int)*(polSize+1));
+	for(int iPol=0; iPol<=polSize; iPol++){
+		hp->HPStrength[iPol] = malloc(sizeof(double)*(polSize+1));
+		hp->monoId[iPol]     = malloc(sizeof(int)*(polSize+1));
+		hp->nInterHP[iPol]   = 0;
+	}
+	int iMono, jMono, iPol, jPol;
+	double strength;
+	while( !(feof(pFile)) && fscanf(pFile, "%i %i %i %i %lf", &iMono, &iPol, &jMono, &jPol, &strength) == 3){
+		int iMonoId = MonoPol2Id((int)(iMono*ratio), iPol, cs);
+		int jMonoId = MonoPol2Id((int)(jMono*ratio), jPol, cs);
+		
+		hp->monoId[iMonoId][hp->nInterHP[iMonoId]] = jMonoId;
+		hp->HPStrength[iMonoId][hp->nInterHP[iMonoId]++] = strength;
+		hp->monoId[jMonoId][hp->nInterHP[jMonoId]] = iMonoId;
+		hp->HPStrength[jMonoId][hp->nInterHP[jMonoId]++] = strength;
+	}
+}
+
+
 
 void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char* dir){
 	char exec[1000];
@@ -55,8 +87,6 @@ void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char*
 
 
 
-//TODO: FIX the delta=1 situation, because the simulation with TOPO_DENSE==FALSE will fail 
-//      (perhaps spectacularly, I won't give you back your money if your house burns down..)!
 void GenerateRingPolymers(CurState* cs, LookupTables* lt){
 	int delta;
 	int L = cs->L;
@@ -105,9 +135,9 @@ void GenerateRingPolymers(CurState* cs, LookupTables* lt){
 				}
 				
 				for(int iMono=0; iMono<3; iMono++){
-#if TOPO_DENSE == FALSE
-					cs->topoState[cs->coorPol[iPol][iMono]] = topoState[iMono];
-#endif
+// #if TOPO_DENSE == FALSE
+// 					cs->topoState[cs->coorPol[iPol][iMono]] = topoState[iMono];
+// #endif
 					int bondOcc = 1<<cs->unitPol[iPol][(iMono-1+3)%3];
 					bondOcc |= 1<<(cs->unitPol[iPol][iMono]^0xf);
 // 					if(cs->coorPol[iPol][iMono] == 0){
@@ -236,6 +266,11 @@ void GenerateMutators(LookupTables* lt, char* file){
 					continue;
 				}
 				lt->mutIdTableTriple[unitA][unitB][unitBC] = (mutId-1)+48*nTriple;
+				
+				lt->revMutTableTriple[(mutId-1)+48*nTriple][0] = unitA;
+				lt->revMutTableTriple[(mutId-1)+48*nTriple][1] = unitB;
+				lt->revMutTableTriple[(mutId-1)+48*nTriple][2] = unitBC;
+				
 				nTriple++;
 // 				PrintUnit(unitA); printf(" => "); PrintUnit(unitB); printf(" => "); PrintUnit(unitBC); printf("\n");
 // 				printf("%x => %x => %x\n", unitA, unitB, unitBC);
@@ -440,20 +475,9 @@ void MutateTopo(Topo* topo, int iMut, Topo* destTopo, LookupTables* lt){
 		int inserted=0;
 		for(int iBond=0; iBond<topo->nBonds && ! inserted; iBond++){
 			for(int k=0; k<2 && !inserted; k++){
-// 				PrintUnit(destTopo->bonds[iBond][k]); printf(" vs ");
-// 				PrintUnit(newBond[k]^(k*0xf)); printf("\n");
-				
 				if(destTopo->bonds[iBond][k] == (newBond[0]^(k*0xf)) ){
 					destTopo->bonds[iBond][k] = newBond[1]^((0x1^k)*0xf);
 					inserted = 1;
-// 					if(destTopo->bonds[iBond][k] == destTopo->bonds[iBond][k^0x1]){
-// 						PrintTopo(topo);
-// 						PrintTopo(destTopo);
-// 						PrintUnit(newBond[0]); printf(" => "); PrintUnit(newBond[1]); printf("\n");
-// 						printf("Error: Created a cycle\n");
-// 						printf("iMut = %i\n", iMut);
-// 						exit(0);
-// 					}
 				}
 			}
 		}
@@ -465,10 +489,6 @@ void MutateTopo(Topo* topo, int iMut, Topo* destTopo, LookupTables* lt){
 			exit(0);
 		}
 	}
-// 	destTopo->set = 1;
-// 	PrintTopo(topo);
-// 	PrintTopo(destTopo);
-// 	printf("------- mut = %i ---------\n", iMut);
 }
 
 void UpdateTopoMutations(Topo* topo, LookupTables* lt){
@@ -540,6 +560,84 @@ void UpdateTopoMutations(Topo* topo, LookupTables* lt){
 	
 }
 
+void PrintPermBond(int permBond){
+	printf("(");
+	for(int iB=0; iB<16; iB++){
+		if(permBond & (1<<iB)){
+			PrintUnit(iB); printf(" ");
+		}
+	}
+	printf(")");
+}
+
+void PrintStraightTopo(LookupTables* lt){
+	FILE* pFile = fopen("straight_topo.dat", "w");
+	for(int i=0; i<lt->nTopoComp; i++){
+		int permBond = lt->topComp[i].permBond;
+		int bonds[2], nBonds=0;
+		for(int iB=0; iB<16; iB++){
+			if(permBond & (1<<iB)){
+				if(nBonds>=2){
+					nBonds=3; break;
+				}
+				else
+					bonds[nBonds++] = iB;
+			}
+		}
+		
+		if(nBonds==2 && bonds[0] == 15-bonds[1]){
+// 			fprintf(pFile, "%x %x %i\n", bonds[0], bonds[1], i);
+			
+			int found=0;
+			for(int iMut=0; iMut<NMUTATOR && !found; iMut++){
+				int topo1 = lt->topComp[i].mutators[iMut];
+				if(topo1 < 0 ) continue;
+				
+				for(int jMut=0; jMut<NMUTATOR && !found; jMut++){
+					int topo2 = lt->topComp[topo1].mutators[jMut];
+					if(topo2 != 0) continue;
+					
+// 					PrintPermBond(lt->topComp[topo1].permBond);
+// 					PrintUnit(bonds[0]); printf(" "); PrintUnit(bonds[1]); PrintPermBond(lt->topComp[i].permBond); printf(" => ");
+// 					for(int k=0; k<2; k++){
+// 						PrintUnit(lt->revMutTable[iMut][k]); printf(" ");
+// 					}
+// 					PrintPermBond(lt->topComp[topo1].permBond);
+// 					printf("\n");
+// 					for(int k=0; k<2; k++){
+// 						PrintUnit(lt->revMutTable[jMut][k]); printf(" ");
+// 					}
+// 					printf("\n");
+// 					printf("%i (%i)=> %i (%i)=> %i\n", i, iMut, topo1, jMut, topo2);
+					
+					int tripleMut=-1;
+					for(int kMut=0; kMut<NMUTATOR; kMut++){
+						if(lt->topComp[0].mutators[kMut] == topo1){
+// 							for(int k=0; k<3; k++){
+// 								PrintUnit(lt->revMutTableTriple[kMut][k]); printf(" ");
+// 							}
+							tripleMut = kMut;
+						}
+					}
+// 					printf("\n\n");
+					
+					for(int k=0; k<2; k++){
+						for(int l=0; l<3; l+=2){
+							if(lt->revMutTableTriple[tripleMut][l] == bonds[k]){
+								fprintf(pFile, "%x %i\n", bonds[k], i);
+// 								printf("Correct bond = %i\n", bonds[k]);
+								found=1;
+							}
+						}
+					}
+				}
+			}
+// 			printf("---------------------------\n");
+// 			PrintUnit(bonds[0]); printf(" -> "); PrintUnit(bonds[1]); printf(" = %i\n", i); 
+		}
+	}
+	exit(0);
+}
 
 void SuperTopoInit(LookupTables* lt){
 	nSupTopo = lt->nTopo;
@@ -602,6 +700,7 @@ void SuperTopoInit(LookupTables* lt){
 		}
 	}
 	
+	lt->nTopoComp = nIds;
 	
 	for(int i=0; i<nSupTopo; i++){
 		for(int iMut=0; iMut<NMUTATOR; iMut++){
@@ -631,13 +730,56 @@ void SuperTopoInit(LookupTables* lt){
 			}
 		}
 	}
-// 	printf("nIds = %i\n", nIds);
-	
-	
-	
-// 	exit(0);
 }
 
+double*** GenerateDistanceMatrix(int L){
+	
+	double*** distances = (double***)malloc(sizeof(double**)*(2*L)) + L;
+	for(int i=-(L-1); i<=L-1; i++){
+		distances[i] = (double**) malloc(sizeof(double*)*(2*L)) + L;
+		for(int j=-(L-1); j<=L-1; j++){
+			distances[i][j] = (double*) malloc(sizeof(double)*(2*L)) + L;
+			for(int k=-(L-1); k<=L-1; k++){
+				distances[i][j][k]=0;
+			}
+		}
+	}
+	
+	int tuv[3], xyz[3], dist;
+	
+	for(int t=0; t<L; t++){
+		for(int u=0; u<L; u++){
+			for(int v=0; v<L; v++){
+				int minDist=L*L*L*L;
+				
+				for(int dt=0; dt<=L; dt += L){
+					for(int du=0; du<=L; du += L){
+						for(int dv=0; dv<=L; dv += L){
+							tuv[0] = t-dt;
+							tuv[1] = u-du;
+							tuv[2] = v-dv;
+							
+							TUV2XYZ(tuv, xyz);
+							dist=0;
+							for(int k=0; k<3; k++) dist += xyz[k];
+							minDist = MIN(dist, minDist);
+						}
+					}
+				}
+				
+				for(int dt=0; dt<=L; dt += L){
+					for(int du=0; du<=L; du += L){
+						for(int dv=0; dv<=L; dv += L){
+							distances[t-dt][u-du][v-dv] = minDist/2.0;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	return distances;
+}
 
 
 

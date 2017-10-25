@@ -17,7 +17,7 @@ int main(int argc, char** argv){
 	cs.ss.interval=1000;
 	cs.ss.bendEnergy=0.3;
 
-	if(argc==10){
+	if(argc==11){
 		cs.ss.seed=      (unsigned int)(atol(argv[1]));
 		cs.ss.dir=       argv[2];
 		cs.ss.density=   atof(argv[3]);
@@ -27,6 +27,7 @@ int main(int argc, char** argv){
 		cs.ss.L=         atoi(argv[7]);
 		cs.ss.eeFile=    argv[8];
 		cs.ss.bendEnergy=atof(argv[9]);
+		cs.ss.dblStep=   atoi(argv[10]);
 	}
 	else{
 		cs.ss.dir = malloc(sizeof(char)*100);
@@ -37,7 +38,7 @@ int main(int argc, char** argv){
 	}
 	
 	SimulationInit(&cs, &lt, cs.ss.seed, cs.ss.density, cs.ss.polSize, cs.ss.L, cs.ss.dir);
-	
+// 	PrintStraightTopo(&lt);
 	long curStep=0, totStep=cs.ss.tMax*cs.polSize*cs.nPol;
 	long endT = cs.curT + cs.ss.tMax;
 	for(; cs.curT<endT; cs.curT += cs.ss.interval){

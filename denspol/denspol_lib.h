@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include "denspol.h"
+#define MIN(X,Y) ((X<Y)?X:Y)
 
 int TUV2Coor(int t, int u, int v, int L);
 int ValidateAddUnitVectors(int a, int b, int* c);
@@ -9,3 +12,8 @@ int UCoor(int coor, int L);
 int VCoor(int coor, int L);
 int UnitInProd(int unit1, int unit2);
 int CharToHex(char c);
+void PrintCoor(int coor, int L);
+int MonoPol2Id(int iMono, int iPol, CurState* cs);
+void Id2MonoPol(int monoId, int* iMono, int* iPol, CurState* cs);
+void TUV2XYZ(int tuv[3], int xyz[3]);
+void Coor2TUV(int coor, int tuv[3], int L);

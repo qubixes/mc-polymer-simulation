@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function get_paper_dir {
-	echo "../../../gpupol/paper_imp_ring/"
+	echo "../denspol_paper/pics/"
 }
 
 function get_attr {

@@ -29,7 +29,7 @@ int CheckIntegrity(CurState* cs, char* msg){
 				exit(192);
 			}
 #endif
-#if TOPO_DENSE == TRUE
+// #if TOPO_DENSE == TRUE
 // #if POL_TYPE == POL_TYPE_LIN
 // 			if(
 			if(cs->unitPol[iPol][iMono]){
@@ -50,14 +50,16 @@ int CheckIntegrity(CurState* cs, char* msg){
 				if(!(cs->bondOcc[cs->coorPol[iPol][jMono]]&(1<<cs->unitPol[iPol][iMono]))){
 					printf("Bond not stored 2\n");
 					printf("iPol = %i, iMono = %i, jMono = %i, coor = %i\n", iPol, iMono, jMono, cs->coorPol[iPol][jMono]);
+					PrintCoor(coor, L); printf("\n");
+					printf("BondOcc=%x, unit=%x, topo=%x\n", cs->bondOcc[cs->coorPol[iPol][jMono]], cs->unitPol[iPol][iMono], cs->topoState[cs->coorPol[iPol][jMono]]);
 					printf("At: %s\n", msg);
 					exit(192);
 				}
 			}
-#endif
+// #endif
 		}
 	}
-#if TOPO_DENSE == TRUE
+// #if TOPO_DENSE == TRUE
 #if POL_TYPE == POL_TYPE_LIN
 	int cycle = 2*cs->polSize;
 #elif POL_TYPE == POL_TYPE_RING
@@ -101,7 +103,7 @@ int CheckIntegrity(CurState* cs, char* msg){
 		printf("At: %s\n", msg);
 		exit(192);
 	}
-#endif
+// #endif
 	return 0;
 }
 

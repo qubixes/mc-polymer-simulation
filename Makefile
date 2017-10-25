@@ -1,6 +1,6 @@
 .PHONY: clean tar all gpupol analysis cpupol util gpupol2 denspol secstruct
 
-RELEASE=0.9.1
+RELEASE=0.9.2
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"
@@ -22,10 +22,9 @@ denspol:
 
 gpupol2: 
 	$(MAKE) -C gpupol2
-	
+
 secstruct:
 	$(MAKE) -C secstruct
-
 
 tar: clean
 	if [ ! -d $(TAR_DIR) ]; then mkdir -p $(TAR_DIR); fi

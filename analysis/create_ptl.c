@@ -29,6 +29,7 @@ int main(int argc, char** argv){
 		exit(0);
 	}
 	sampleDir = argv[1];
+	sp.neFile=NULL;
 	
 	sprintf(exec, "mkdir -p %s/ptl", sampleDir); system(exec);
 	int update=NeedsUpdatePath("simulation_settings.txt", "ptl/pol=0_dev=0.res", sampleDir);
@@ -63,7 +64,10 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 		fh.timeFNames[i] = malloc(sizeof(char)*strlen(file)+1);
 		strcpy(fh.timeFNames[i], file);
 		FILE* pFile = fopen(file, "r");
-		if(!pFile) printf("woops: not opening file %s (%i)\n", allFiles[i], sp->nTime);
+		if(!pFile){
+			printf("woops: not opening file %s (%i)\n", file, sp->nTime);
+			exit(192);
+		}
 		
 		for(int i=0; i<5; i++) fscanf(pFile, "%*s %*s");
 		

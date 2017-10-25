@@ -38,6 +38,7 @@ int main(int argc, char** argv){
 		for(int i=0; i<sp.nPol; i++){
 			sprintf(file, "%s/ptl/pol=%i_dev=%i.res", dir, i, iDev);
 			pFile = fopen(file, "r");
+			if(!pFile){ printf("Error openening file %s\n", file); exit(192); }
 			fscanf(pFile, "%*s %*s");
 			fscanf(pFile, "%*s %*s");
 			fscanf(pFile, "%*s %*s");

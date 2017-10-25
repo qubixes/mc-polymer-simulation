@@ -151,7 +151,7 @@ void WriteSimulationSettings(CurState* cs){
 	fprintf(pFile, "Density = %lf\n", ss->density);
 	fprintf(pFile, "Latsize = %i\n", ss->L);
 	fprintf(pFile, "Start_polysize = %i\n", ss->polSize);
-	fprintf(pFile, "Double_step = %i\n", 0);
+	fprintf(pFile, "Double_step = %i\n", ss->dblStep);
 	fprintf(pFile, "Interval = %li\n", ss->interval);
 	fprintf(pFile, "Equilibrated = 0\n");
 	fprintf(pFile, "Npol = %i\n", cs->nPol);

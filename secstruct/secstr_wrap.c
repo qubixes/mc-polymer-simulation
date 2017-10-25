@@ -14,6 +14,7 @@ typedef struct RunProperties{
 	char fileIn[1000];
 	char dirOut[1000];
 	int polId;
+	int cGrain;
 	long t;
 }RunProperties;
 
@@ -31,6 +32,7 @@ int main(int argc, char** argv){
 	rp.binDir = argv[2];
 	rp.t = atol(argv[3]);
 	rp.polId = atoi(argv[4]);
+	rp.cGrain = atoi(argv[5]);
 	
 	sprintf(rp.fileIn, "%s/t=%li_dev=0.res", rp.dir, rp.t);
 	sprintf(rp.dirOut, "%s/sec_struct", rp.dir);
@@ -139,7 +141,7 @@ void RunSecAnalysis(Data* data, RunProperties* rp){
 // 	sprintf(exec, "sed 's/RING_LENGTH_SUB/%i/' %s/input_template.dat > %s/input.dat", data->N);
 // 	system(exec);
 	
-	data = CoarseGrain(data, 10000);
+	data = CoarseGrain(data, rp->cGrain);
 	
 	sprintf(exec, "%s/dJost.exe %s %i\n", rp->binDir, rp->dirOut, rp->polId);
 	FILE* pFile = popen(exec, "w");

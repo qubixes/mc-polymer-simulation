@@ -80,7 +80,7 @@ fi
 BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 
 MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat")
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 

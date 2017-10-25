@@ -47,6 +47,20 @@ int AddUnitToCoor(int unit, int coor, int L){
 	return TUV2Coor((t+dt+L)%L, (u+du+L)%L, (v+dv+L)%L, L);
 }
 
+void PrintCoor(int coor, int L){
+	int t = TCoor(coor, L);
+	int u = UCoor(coor, L);
+	int v = VCoor(coor, L);
+	
+	printf("(%i %i %i)", t,u,v);
+}
+
+void Coor2TUV(int coor, int tuv[3], int L){
+	tuv[0] = TCoor(coor, L);
+	tuv[1] = UCoor(coor, L);
+	tuv[2] = VCoor(coor, L);
+}
+
 void TUV2XYZ(int tuv[3], int xyz[3]){
 	xyz[0] = tuv[0]+tuv[1]-tuv[2];
 	xyz[1] = tuv[0]-tuv[1]       ;
@@ -82,4 +96,57 @@ int CharToHex(char c){
 	hex = c-'0';
 	if(hex>=10) hex = 10+(int)(c-'a');
 	return hex;
+}
+
+int MonoPol2Id(int iMono, int iPol, CurState* cs){
+#if POL_TYPE == POL_TYPE_RING
+	return iMono+iPol*cs->polSize;
+#else
+	return iMono+iPol*(cs->polSize+1);
+#endif
+}
+
+void Id2MonoPol(int monoId, int* iMono, int* iPol, CurState* cs){
+#if POL_TYPE == POL_TYPE_RING
+	*iMono = monoId%cs->polSize;
+	*iPol = monoId/cs->polSize;
+#else
+	*iMono = monoId%(cs->polSize+1);
+	*iPol = monoId/(cs->polSize+1);
+#endif
+}
+
+int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, int iPol, int newUnit){
+	double** HPStrength = lt->hp->HPStrength;
+	int* nInterHP = lt->hp->nInterHP;
+	int** monoIdTable = lt->hp->monoId;
+	int iMonoId = MonoPol2Id(iMono, iPol, cs);
+	
+	int ituv[3], newituv[3];
+	int newCoor = AddUnitToCoor(newUnit, cs->coorPol[iMono][iPol], cs->L);
+	Coor2TUV(cs->coorPol[iMono][iPol], ituv, cs->L);
+	Coor2TUV(newCoor, newituv, cs->L);
+	double dE=0;
+	
+	for(int jInter=0; jInter<nInterHP[iMonoId]; jInter++){
+		int jMonoId = monoIdTable[iMonoId][jInter];
+		double strength = HPStrength[iMonoId][jInter];
+		int jMono, jPol;
+		Id2MonoPol(jMonoId, &jMono, &jPol, cs);
+		
+		int jtuv[3], dtuv[3];
+		Coor2TUV(cs->coorPol[jMono][jPol], jtuv, cs->L);
+		
+		for(int k=0; k<3; k++) dtuv[k] = jtuv[k] - ituv[k];
+		double distance = lt->hp->distance[dtuv[0]][dtuv[1]][dtuv[2]];
+		dE -= strength*distance;
+		
+		for(int k=0; k<3; k++) dtuv[k] = jtuv[k] - newituv[k];
+		distance = lt->hp->distance[dtuv[0]][dtuv[1]][dtuv[2]];
+		dE += strength*distance;
+	}
+	
+	double prob = (dE<=0)?1:(exp(-dE));
+	if(DRng(cs->rngState)<prob) return 1;
+	else return 0;
 }

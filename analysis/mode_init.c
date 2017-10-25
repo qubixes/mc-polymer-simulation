@@ -28,6 +28,7 @@ void InitRelPos(){
 }
 
 void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
+	curPolId=0;
 	ptl->nEqd = sp->nEqd;
 	ptl->nTherm = sp->nTherm;
 	
@@ -137,22 +138,35 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->polSize);
 	ptl->avgGenom = malloc(sizeof(double)*sp->polSize);
-	ptl->cmsDif = malloc(sizeof(double)*ptl->nEqd);
-	ptl->smDif = malloc(sizeof(double)*ptl->nEqd);
-	ptl->mmDif = malloc(sizeof(double)*ptl->nEqd);
-	ptl->emDif = malloc(sizeof(double)*ptl->nEqd);
+	if(ptl->nEqd > 0){
+		ptl->cmsDif      = malloc(sizeof(double)*ptl->nEqd);
+		ptl->smDif       = malloc(sizeof(double)*ptl->nEqd);
+		ptl->mmDif       = malloc(sizeof(double)*ptl->nEqd);
+		ptl->emDif       = malloc(sizeof(double)*ptl->nEqd);
+		ptl->avgRee      = malloc(sizeof(double)*ptl->nEqd);
+		ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
+	} else {
+		ptl->cmsDif      = malloc(sizeof(double));
+		ptl->smDif       = malloc(sizeof(double));
+		ptl->mmDif       = malloc(sizeof(double));
+		ptl->emDif       = malloc(sizeof(double));
+		ptl->avgRee      = malloc(sizeof(double));
+		ptl->avgShearMod = malloc(sizeof(double));
+	}
+	
 	ptl->avgSL = malloc(sizeof(double)*sp->nTime);
-	ptl->avgRee = malloc(sizeof(double)*ptl->nEqd);
-	ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
 	ptl->polys = malloc(sizeof(PolyConfig)*sp->nTime);
 	ptl->avgRGyr = 0;
 	
 	
 	ptl->pcBins = MAX(1, sp->polSize/2000);
 	ptl->pc = malloc(sizeof(double*)*(sp->polSize/ptl->pcBins+1));
+	ptl->pcss = malloc(sizeof(double*)*(sp->polSize/ptl->pcBins+1));
 	ptl->pcAvg = malloc(sizeof(double)*sp->polSize);
+	ptl->pcssAvg = malloc(sizeof(double)*sp->polSize);
 	
-	ptl->monoList= malloc(sizeof(PCMonoList)*sp->polSize);
+	ptl->monoList=   malloc(sizeof(PCMonoList)*sp->polSize);
+	ptl->ssMonoList= malloc(sizeof(IDouble)*sp->polSize);
 	ptl->L = 100;
 	ptl->LIMG = 100; /// This is all not for the original size of the lattice, just the 
 	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L);
@@ -162,12 +176,16 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 		ptl->avgUnitCor[i] = 0;
 		ptl->avgGenom[i] = 0;
 		ptl->pcAvg[i] = 0;
+		ptl->pcssAvg[i] = 0;
 	}
 	
 	for(int i=0; i<sp->polSize/ptl->pcBins+1; i++){
 		ptl->pc[i] = malloc(sizeof(double)*(sp->polSize/ptl->pcBins+1));
-		for(int j=0; j<sp->polSize/ptl->pcBins+1; j++)
+		ptl->pcss[i] = malloc(sizeof(double)*(sp->polSize/ptl->pcBins+1));
+		for(int j=0; j<sp->polSize/ptl->pcBins+1; j++){
 			ptl->pc[i][j]=0;
+			ptl->pcss[i][j]=0;
+		}
 	}
 	
 	for(int i=0; i<ptl->nEqd; i++){
@@ -261,13 +279,13 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	
 	sp->updGyr  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rgyr.dat", sampleDir);
 	sp->updGyr |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "rgyr_time.dat", sampleDir);
-	if(sp->updGyr){ nUpd++; printf("Updating rgyr\n");}
+	if(sp->updGyr){ nUpd++; printf("Updating rgyr\n"); }
 	
 	sp->updRouseStat = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rouse_stat.dat", sampleDir);
-	if(sp->updRouseStat){ nUpd++; printf("Updating static rouse modes\n");}
+	if(sp->updRouseStat){ nUpd++; printf("Updating static rouse modes\n"); }
 	
 	sp->updRouseDyn = NeedsUpdatePath("ptl/pol=0_dev=0.res", "rouse_dyn.dat", sampleDir);
-	if(sp->updRouseDyn){ nUpd++; printf("Updating dynamic rouse modes\n");}
+	if(sp->updRouseDyn){ nUpd++; printf("Updating dynamic rouse modes\n"); }
 	
 	sp->updGenom = NeedsUpdatePath("ptl/pol=0_dev=0.res", "genom.dat", sampleDir);
 	sp->updGenom |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pgenom.dat", sampleDir);
@@ -610,7 +628,8 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 		sp->nTherm=0;
 	}
 	sp->nEqd = sp->nTime - sp->nTherm;
-
+// 	printf("NEq=%i, nTime=%i, nTherm=%i\n", sp->nEqd, sp->nTime, sp->nTherm);
+// 	exit(0);
 }
 
 void InitFilePos(SimProperties* sp, int devId){

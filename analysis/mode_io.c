@@ -53,6 +53,14 @@ void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 		fprintf(pFile, "%i %le\n", g, ptl->pcAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
 	}
 	fclose(pFile);
+	
+	sprintf(file, "%s/pc_avg_ss.dat", sp->sampleDir);
+	pFile = fopen(file, "w");
+	for(int g=0; g<sp->polSize; g++){
+		fprintf(pFile, "%i %le\n", g, ptl->pcssAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
+	}
+	fclose(pFile);
+
 }
 
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl){
@@ -356,6 +364,7 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 	for(int i=0; i<3; i++) fscanf(pFile, "%*s %*s");
 	
 // 	for(int i=0; i<THERM; i++) fscanf(pFile, "%*i %*i %*i %*s");
+	double tAvgLast, uAvgLast, vAvgLast;
 	for(int i=0; i<sp->nTime; i++){
 		fscanf(pFile, "%d %d %d", t, u, v);
 		fscanf(pFile, "%s", strIn);
@@ -383,6 +392,39 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 			u[iMono+1] = u[iMono]+((step>>1)&0x1)-((step>>3)&0x1);
 			v[iMono+1] = v[iMono]+((step>>2)&0x1)-((step>>3)&0x1);
 		}
+		
+		double tAvg=0, uAvg=0, vAvg=0;
+		for(int iMono=0; iMono<sp->polSize; iMono++){
+			tAvg += t[iMono]/(double)sp->polSize;
+			uAvg += u[iMono]/(double)sp->polSize;
+			vAvg += v[iMono]/(double)sp->polSize;
+		}
+		
+		int dt=0, du=0, dv=0;
+		if(i != 0){
+			while(tAvg-tAvgLast+dt >  LT/2) dt -= LT;
+			while(tAvg-tAvgLast+dt < -LT/2) dt += LT;
+			while(uAvg-uAvgLast+du >  LU/2) du -= LU;
+			while(uAvg-uAvgLast+du < -LU/2) du += LU;
+			while(vAvg-vAvgLast+dv >  LU/2) dv -= LV;
+			while(vAvg-vAvgLast+dv < -LU/2) dv += LV;
+		}
+		
+		tAvgLast = tAvg+dt;
+		uAvgLast = uAvg+du;
+		vAvgLast = vAvg+dv;
+		
+// 		if(curPolId == 0){
+// 			printf("%lf %lf %lf %i %i %i\n", tAvg, uAvg, vAvg, dt, du, dv);
+// 		}
+		
+		for(int iMono=0; iMono<sp->polSize; iMono++){
+			t[iMono] += dt;
+			u[iMono] += du;
+			v[iMono] += dv;
+		}
+
+		
 		
 		for(int iMono=0; iMono<sp->polSize; iMono++){
 // 			ptl->polys[i-THERM].x[iMono] = v[iMono]-t[iMono];

@@ -23,6 +23,7 @@
 
 int tuvRelPos[12][3];
 
+int curPolId;
 int LT, LU, LV;
 int *t, *u, *v;
 char* strIn;
@@ -51,6 +52,10 @@ typedef struct Coor{
 typedef struct DInt{
 	int x,y,ig;
 }DInt;
+
+typedef struct IDouble{
+	int id; double val;
+}IDouble;
 
 typedef struct SimProperties{
 	int polSize;
@@ -118,6 +123,7 @@ typedef struct PolyTimeLapse{
 	PCMonoList* monoList;
 	int L, LIMG; /// For internal contact probability calculation.
 	DInt* genomList;
+	IDouble* ssMonoList;
 	int nGenom;
 	int nIg;
 	int nGenomBin;
@@ -145,7 +151,9 @@ typedef struct PolyTimeLapse{
 	double* avgRee;
 	double** genomProb;
 	double** pc;
+	double** pcss;
 	double* pcAvg;
+	double* pcssAvg;
 	double avgRGyr;
 	double**** sAvgSpacMode;
 	double**** cAvgSpacMode;
@@ -176,9 +184,6 @@ typedef struct SpacDif{
 // 	int nBalls[LT*LU*LV]; //Given a set of tuv coordinates, how many SD balls does it lie within?
 }SpacDif;
 
-typedef struct IDouble{
-	int id; double val;
-}IDouble;
 
 // PolyTimeLapse ;
 SpacDif sd;

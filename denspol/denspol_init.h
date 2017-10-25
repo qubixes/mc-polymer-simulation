@@ -10,3 +10,5 @@ void GenerateMutators(LookupTables* lt, char* file);
 void UnitDotInit(LookupTables* lt, double bendEnergy);
 void SuperTopoInit(LookupTables* lt);
 void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double density, int polSize, int L, char* dir);
+void PrintStraightTopo(LookupTables* lt);
+double*** GenerateDistanceMatrix(int L);

@@ -24,8 +24,11 @@ NPOL=`get_attr 'Npol' $DIR`
 LAST_T=`get_last_t $DIR`
 
 IPOL=0
+
+BATCH_DIR="./batch/N${START_N}_${SUB_DIR}"
+mkdir -p $BATCH_DIR
 while [ $IPOL -lt $NPOL ]; do
-	BATCH_FILE="./batch/batch_${START_N}_${SUB_DIR}_${IPOL}.sh"
+	BATCH_FILE="$BATCH_DIR/batch_${START_N}_${SUB_DIR}_${IPOL}.sh"
 	
 	cat << EOFC > $BATCH_FILE
 #!/bin/bash

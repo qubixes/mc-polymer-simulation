@@ -49,7 +49,8 @@ function remove_schar {
 	echo $1 | sed 's/[\+\*\^\/]//g'
 }
 
-CUR_DIR=`abs_path $0`
+# CUR_DIR=`abs_path $0`
+CUR_DIR=.
 DATA_DIR="$CUR_DIR/data"
 BIN_DIR="$CUR_DIR/bin"
 SCRIPT_DIR="$CUR_DIR/scripts"
@@ -261,10 +262,24 @@ elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
 	fi
 	
 	if [ ! -f "$DIR/t\=0_dev\=0.res" ]; then
-		SRC_FILE=$SRC_DIR/`get_last_tfile $SRC_DIR` || { echo "File to scale not found: $SRC_DIR/`get_last_tfile $SRC_DIR`"; exit 192; }
-		if [ -f ${SRC_FILE} ]; then
-			mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
-			$BIN_DIR/scaleup $SRC_FILE $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
+		if [ $B_EXEC == "denspol" ]; then 
+			SRC_FILE="$SRC_DIR/t=`get_last_t $SRC_DIR`_dev=0.res" 
+			SAV_FILE="$SRC_DIR/sav_t`get_last_t $SRC_DIR`_dev=0.res"
+			
+			if [ -f $SRC_FILE ]; then
+				mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; }
+				echo "$BIN_DIR/denspol_scaleup $SRC_FILE $SAV_FILE $DIR/t=0_dev=0.res $DIR/sav_t0_dev=0.res ./denspol/straight_topo.dat"
+				$BIN_DIR/denspol_scaleup $SRC_FILE $SAV_FILE "$DIR/t=0_dev=0.res" "$DIR/sav_t0_dev=0.res" "./denspol/straight_topo.dat" || { echo "Error processing file"; exit 192; }
+			else 
+				echo "Error finding source file $SRC_FILE"
+				exit 192;
+			fi
+		else 
+			SRC_FILE=$SRC_DIR/`get_last_tfile $SRC_DIR` || { echo "File to scale not found: $SRC_DIR/`get_last_tfile $SRC_DIR`"; exit 192; }
+			if [ -f ${SRC_FILE} ]; then
+				mkdir -p $DIR || { echo "Error creating directory $DIR"; exit 192; } 
+				$BIN_DIR/scaleup $SRC_FILE $DIR/t\=0_dev\=0.res || { echo "No file found in ${SRC_DIR}"; exit 192; }
+			fi
 		fi
 	fi
 else
@@ -275,7 +290,7 @@ fi
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "denspol" ]; then
-	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo.dat $BEND_ENERGY"
+	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo.dat $BEND_ENERGY $DBL_STEP"
 elif [ $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol2" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi

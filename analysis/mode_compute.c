@@ -21,6 +21,8 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	TimerStart(&time);
 	for(pcfg = ptl->polys; pcfg < ptl->polys+sp->nTime; pcfg++)
 		ComputeObsPoly(sp, pcfg);
+	curPolId++;
+
 	printf("[Compute: %.2lf ms] ", 1e3*TimerElapsed(&time)); fflush(NULL);
 	TimerStart(&time);
 	if(sp->updRouseStat) AddModesStat(sp,ptl);
@@ -199,7 +201,11 @@ void ComputeCMS(SimProperties* sp, PolyConfig* pcfg){
 	pcfg->cms.x /= sp->polSize*sqrt(2);
 	pcfg->cms.y /= sp->polSize*sqrt(2);
 	pcfg->cms.z /= sp->polSize*sqrt(2);
-// 	printf("%lf %lf %lf\n", pcfg->cms.x, pcfg->cms.y, pcfg->cms.z);
+// 	if(curPolId == 0){
+// 		FILE* pFile = fopen("cmst.dat", "a");
+// 		fprintf(pFile, "%lf %lf %lf\n", pcfg->cms.x, pcfg->cms.y, pcfg->cms.z);
+// 		fclose(pFile);
+// 	}
 }
 
 void ComputeTUVCMS(SimProperties* sp, PolyConfig* pcfg){
@@ -448,9 +454,44 @@ void GetPosImg(int t, int u, int v, PolyTimeLapse* ptl, int* pos, int* img){
 	*img = imgT + imgU*LIMG + imgV*LIMG*LIMG;
 }
 
+void AddSSContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
+	for(int t=ptl->nTherm; t<sp->nTime; t++){
+		PolyConfig* pcfg = ptl->polys+t;
+		for(int iMono=0; iMono<sp->polSize; iMono++){
+			int pos, img;
+			int dt = pcfg->t[iMono]-pcfg->t[0];
+			int du = pcfg->u[iMono]-pcfg->u[0];
+			int dv = pcfg->v[iMono]-pcfg->v[0];
+			
+			GetPosImg(dt, du, dv, ptl, &pos, &img);
+			ptl->ssMonoList[iMono].val = pos+img*sp->LSIZE;
+			ptl->ssMonoList[iMono].id = iMono;
+		}
+		qsort(ptl->ssMonoList, sp->polSize, sizeof(IDouble), &CompareIDouble);
+		
+		for(int iMono=0; iMono<sp->polSize; ){
+			int jMono;
+			for(jMono=iMono+1; jMono<sp->polSize; jMono++){
+				if(ptl->ssMonoList[iMono].val != ptl->ssMonoList[jMono].val) break;
+			}
+			
+			for(int kMono=iMono; kMono<jMono; kMono++){
+				for(int lMono=kMono+1; lMono<jMono; lMono++){
+					if(lMono==kMono) continue;
+					ptl->pcss[ptl->ssMonoList[kMono].id/ptl->pcBins][ptl->ssMonoList[lMono].id/ptl->pcBins]++;
+					ptl->pcssAvg[abs(ptl->ssMonoList[kMono].id-ptl->ssMonoList[lMono].id)]++;
+				}
+			}
+			iMono=jMono;
+		}
+	}
+}
+
 void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 // 	int dx, dy, dz;
 // 	double dr, pc;
+	
+	AddSSContactProbability(sp, ptl);
 	
 	for(int t=ptl->nTherm; t<sp->nTime; t++){
 		PolyConfig* pcfg = ptl->polys+t;

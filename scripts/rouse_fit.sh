@@ -4,6 +4,7 @@
 DIRS=(`get_dirs $* -e`) || { echo ${DIRS[*]}; exit $?; }
 PAPER_DIR=`get_paper_dir`
 TYPE="ring"
+EXEC=`get_attr 'Executable' $DIRS`
 
 OFILE1="rouse_dyn_$TYPE"
 # OFILE2="rouse_dyn_lin_$TYPE"
@@ -104,6 +105,13 @@ done
 PLOT=${PLOT:0:${#PLOT}-2}
 PLOT_LIN=${PLOT_LIN:0:${#PLOT_LIN}-2}
 # echo $PLOT
+
+if [ "$EXEC" == "denspol" ]; then
+	GNU_FUNC="h(x) = exp(3.5)*x**0.61; i(x) = exp(1.5)*x**0.75;"
+else
+	GNU_FUNC="h(x) = exp(5.02)*x**0.61; i(x) = exp(1.32)*x**0.85;"
+fi
+
 gnuplot -persist << EOF
 set term aqua enhanced font 'Helvetica, 22'
 set log x
@@ -120,8 +128,7 @@ set grid
 beta=-1.88
 delta=-0.0
 # plot [Ne**2/100:Ne**2*100] time_tild(x, 500), f(x, 500), g(x, 500)
-h(x) = exp(5.02)*x**0.61
-i(x) = exp(1.32)*x**0.85
+$GNU_FUNC
 hi(x) = (h(x)**-4+i(x)**-4)**(-1./4.)
 $PLOT, log(h(x)) lw 1.5 notitle, log(i(x)) lw 1.5 notitle
 EOF
@@ -185,7 +192,7 @@ EOF
 # mv full_$OFILE2.eps $OFILE2.eps
 # 
 # exit 0
-make $OFILE1.eps
-cp $OFILE1.eps $PAPER_DIR
+# make $OFILE1.eps
+# cp $OFILE1.eps $PAPER_DIR
 
 rm ./rtemp_*

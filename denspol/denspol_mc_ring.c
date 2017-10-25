@@ -11,6 +11,7 @@ void PerformMutation(int mutation, int coor, int* topoState, LookupTables* lt){
 	topoState[coor] = lt->mutTopo[topo][mutation];
 }
 
+/// Forward transverse move: unit1+unit2 => newUnits[0]+newUnits[1]
 
 int TransStepCompact(CurState* cs, LookupTables* lt){
 	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
@@ -50,7 +51,7 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		
 		if(lt->bendProb[dBend+BEND_LVL] < 1 && DRng(cs->rngState) > lt->bendProb[dBend+BEND_LVL])
 			return 0;
-		
+	
 		
 		coor[1] = AddUnitToCoor(newUnits[0], coor[0], L);
 		coor[2] = cs->coorPol[iPol][(iMono+2)%cs->polSize];
@@ -84,6 +85,11 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		if(mut[1] != SAME_TOPO)
 			cs->topoState[coor[2]] = lt->topComp[cs->topoState[coor[2]]].mutators[mut[1]];
 		
+#ifdef __HP_ENABLED__
+		int monoMove = unit2?iMono:((iMono+1)%cs->polSize);
+		int unitMove = unit2?newUnits[0]:(newUnits[1]^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) return 0;
+#endif
 		
 		cs->bondOcc[coor[0]] ^= 1<<((unit1|unit2)^0xf);
 		cs->bondOcc[coor[0]] |= 1<<(newUnits[0]^0xf);
@@ -143,6 +149,12 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		if(mut[1] == NON_EXISTING) return 0;
 		if(mut[1] != SAME_TOPO && lt->topComp[cs->topoState[coor[2]]].mutators[mut[1]] == NON_EXISTING)
 			return 0;
+		
+#ifdef __HP_ENABLED__
+		int monoMove = ((iMono+1)%cs->polSize);
+		int unitMove = newUnits[0]?unit2:(unit1^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) return 0;
+#endif
 		
 		///Change topological state of left side
 		if(mut[0] != SAME_TOPO)
@@ -271,12 +283,20 @@ int DiffuseStep(CurState* cs){
 	int iPrev = (iMono-1+cs->polSize)%cs->polSize;
 	
 	if(cs->unitPol[iPol][iMono] && !cs->unitPol[iPol][iPrev]){
+#ifdef __HP_ENABLED__
+		int unitMove = cs->unitPol[iPol][iMono];
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) return 0;
+#endif
 		cs->unitPol[iPol][iPrev] = cs->unitPol[iPol][iMono];
 		cs->unitPol[iPol][iMono] = 0;
 		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][(iMono+1)%cs->polSize];
 		return 1;
 	}
 	else if(!cs->unitPol[iPol][iMono] && cs->unitPol[iPol][iPrev]){
+#ifdef __HP_ENABLED__
+		int unitMove = cs->unitPol[iPol][iPrev]^0xf;
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) return 0;
+#endif
 		cs->unitPol[iPol][iMono] = cs->unitPol[iPol][iPrev];
 		cs->unitPol[iPol][iPrev] = 0;
 		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][iPrev];
@@ -296,9 +316,7 @@ double MeasSl(CurState* cs){
 }
 
 void MeasBends(CurState* cs, LookupTables* lt, long counts[4]){
-	
 	for(int iPol=0; iPol<cs->nPol; iPol++){
-		
 		for(int iBond=0; iBond<cs->polSize; iBond++){
 			if(cs->unitPol[iPol][iBond] == 0) continue;
 			int jBond=(iBond+1)%cs->polSize; 
@@ -321,12 +339,12 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 // 	long nMeas=0;
 	
 	for(long iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
-#if TOPO_DENSE == TRUE
+// #if TOPO_DENSE == TRUE
 		nAccTrans += TransStepCompact(cs, lt);
 // 		CheckIntegrity(cs, "After trans step\n");
-#else
-		nAccTrans += TransStep(cs, lt);
-#endif
+// #else
+// 		nAccTrans += TransStep(cs, lt);
+// #endif
 		nAccDiff += DiffuseStep(cs);
 // 		CheckIntegrity(cs, "After diffuse step\n");
 // 		if(iStep%(cs->polSize*cs->nPol) == cs->polSize*cs->nPol-1){

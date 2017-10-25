@@ -88,6 +88,15 @@ int CompareIDouble(const void* id1, const void* id2){
 	return 0;
 }
 
+// int CompareInt(const void* int1, const void* int2){
+// 	int i1, i2;
+// 	i1 = *((int*)int1); i2 = *((int*)int2);
+// 	if(i1 <  i2) return -1;
+// 	if(i1 == i2) return  0;
+// 	if(i1 >  i2) return  1;
+// 	return 0;
+// }
+
 void RemPeriod(int coor[3], int coorRet[3]){
 	
 	for(int i=0; i<3; i++){
