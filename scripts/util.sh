@@ -67,26 +67,50 @@ function cross_sect_files {
 	exec 4<&-
 }
 
+# function get_last_tfile {
+# DIR=$1
+# FILES=(`echo $1/t*.res`)
+# MAX_T=0
+# MAX_FILE="NOT_FOUND"
+# for FILE in ${FILES[*]}; do
+# 	if [ ! -f $FILE ]; then continue; fi
+# 	TSTR=${FILE%_dev*}
+# 	T=${TSTR#*t=}
+# 	if [ $T -gt $MAX_T ]; then
+# 		MAX_T=$T
+# 		MAX_FILE=$FILE
+# 	fi
+# done
+# echo ${MAX_FILE##*/}
+# if [ $MAX_FILE == "NOT_FOUND" ]; then
+# 	return 192
+# else 
+# 	return 0
+# fi
+# }
+
 function get_last_tfile {
-DIR=$1
-FILES=(`echo $1/t*.res`)
-MAX_T=0
-MAX_FILE="NOT_FOUND"
-for FILE in ${FILES[*]}; do
-	if [ ! -f $FILE ]; then continue; fi
-	TSTR=${FILE%_dev*}
-	T=${TSTR#*t=}
-	if [ $T -gt $MAX_T ]; then
-		MAX_T=$T
-		MAX_FILE=$FILE
+	DIR=$1
+	LAST_T=`get_last_t $DIR`
+	if [ $LAST_T == "NOT_FOUND" ]; then
+		echo $LAST_T
+		return 192;
 	fi
-done
-echo ${MAX_FILE##*/}
-if [ $MAX_FILE == "NOT_FOUND" ]; then
-	return 192
-else 
+	
+	echo "t=${LAST_T}_dev=0.res"
 	return 0
-fi
+}
+
+function get_last_savfile {
+	DIR=$1
+	LAST_T=`get_last_t $DIR`
+	if [ $LAST_T == "NOT_FOUND" ]; then
+		echo $LAST_T
+		return 192;
+	fi
+	
+	echo "sav_t${LAST_T}_dev=0.res"
+	return 0
 }
 
 function get_last_t {
@@ -103,10 +127,12 @@ for FILE in ${FILES[*]}; do
 		MAX_FILE=$FILE
 	fi
 done
-echo ${MAX_T}
+# echo ${MAX_T}
 if [ $MAX_FILE == "NOT_FOUND" ]; then
+	echo "NOT_FOUND"
 	return 192
 else 
+	echo "$MAX_T"
 	return 0
 fi
 }

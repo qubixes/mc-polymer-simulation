@@ -1,5 +1,9 @@
 #include "denspol_mc.h"
 
+/// The "noTopo" flag is raised if the backbone of the polymer is length one 
+/// which in this case means the 1st unit vector is the only non-zero unit vector
+/// Obviously this means that nothing topologically is happening. 
+
 int StartMove(CurState* cs, LookupTables* lt, int iPol){
 	if(cs->unitPol[iPol][0] == 0x0) return 0;
 	
@@ -34,6 +38,12 @@ int StartMove(CurState* cs, LookupTables* lt, int iPol){
 		if(mut >= 0 && lt->topComp[cs->topoState[coor1]].mutators[mut] == NON_EXISTING)
 			return 0;
 		
+#ifdef __HP_ENABLED__
+		int monoMove = 0;
+		int unitMove = AddUnitVectors(unit0, newUnit^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) 
+			return 0;
+#endif
 		if(mut != SAME_TOPO)
 			cs->topoState[coor1] = lt->topComp[cs->topoState[coor1]].mutators[mut];
 	}
@@ -86,6 +96,13 @@ int EndMove(CurState* cs, LookupTables* lt, int iPol){
 		if(mut == NON_EXISTING) return 0;
 		if(mut >= 0 && lt->topComp[cs->topoState[coor1]].mutators[mut] == NON_EXISTING)
 			return 0;
+		
+#ifdef __HP_ENABLED__
+		int monoMove = mono0;
+		int unitMove = AddUnitVectors(unit0^0xf, newUnit);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) 
+			return 0;
+#endif
 		
 		if(mut != SAME_TOPO)
 			cs->topoState[coor1] = lt->topComp[cs->topoState[coor1]].mutators[mut];
@@ -182,6 +199,13 @@ int TransStepCompactLinear(CurState* cs, LookupTables* lt, int iMono, int iPol){
 				return 0;
 		}
 		
+#ifdef __HP_ENABLED__
+		int monoMove = (iMono+1)%cs->polSize;
+		int unitMove = unit2?newUnits[0]:(newUnits[1]^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) 
+			return 0;
+#endif
+		
 		///Change the topological state of the left position
 		if(!unit0ringed && mut[0] != SAME_TOPO)
 			cs->topoState[coor[0]] = lt->topComp[cs->topoState[coor[0]]].mutators[mut[0]];
@@ -257,6 +281,13 @@ int TransStepCompactLinear(CurState* cs, LookupTables* lt, int iMono, int iPol){
 				return 0;
 		}
 		
+#ifdef __HP_ENABLED__
+		int monoMove = ((iMono+1)%cs->polSize);
+		int unitMove = newUnits[0]?unit2:(unit1^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove))
+			return 0;
+#endif
+		
 		///Change topological state of left side
 		if(!unit0ringed && mut[0] != SAME_TOPO)
 			cs->topoState[coor[0]] = lt->topComp[cs->topoState[coor[0]]].mutators[mut[0]];
@@ -322,7 +353,9 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 			EndMove(cs, lt, iPol);
 		else
 			TransStepCompactLinear(cs, lt, iMono, iPol);
-
+#ifdef __TOPO_MOVE_ENABLED__
+		TopoMove(cs,lt);
+#endif
 		nAccDiff += DiffuseStepLinear(cs);
 // 		printf("Step %i/%i\n", iStep, cs->polSize*cs->nPol*nStep);
 	}

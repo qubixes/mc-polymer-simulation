@@ -49,7 +49,7 @@ function remove_schar {
 	echo $1 | sed 's/[\+\*\^\/]//g'
 }
 
-# CUR_DIR=`abs_path $0`
+CUR_DIR=`abs_path $0`
 CUR_DIR=.
 DATA_DIR="$CUR_DIR/data"
 BIN_DIR="$CUR_DIR/bin"

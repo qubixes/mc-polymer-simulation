@@ -77,6 +77,13 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		if(mut[1] >= 0 && lt->topComp[cs->topoState[coor[2]]].mutators[mut[1]] == NON_EXISTING)
 			return 0;
 		
+#ifdef __HP_ENABLED__
+		int monoMove = (iMono+1)%cs->polSize;
+		int unitMove = unit2?newUnits[0]:(newUnits[1]^0xf);
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) 
+			return 0;
+// 		printf("success forward!\n");
+#endif
 		///Change the topological state of the left position
 		if(mut[0] != SAME_TOPO)
 			cs->topoState[coor[0]] = lt->topComp[cs->topoState[coor[0]]].mutators[mut[0]];
@@ -85,11 +92,7 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		if(mut[1] != SAME_TOPO)
 			cs->topoState[coor[2]] = lt->topComp[cs->topoState[coor[2]]].mutators[mut[1]];
 		
-#ifdef __HP_ENABLED__
-		int monoMove = unit2?iMono:((iMono+1)%cs->polSize);
-		int unitMove = unit2?newUnits[0]:(newUnits[1]^0xf);
-		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) return 0;
-#endif
+
 		
 		cs->bondOcc[coor[0]] ^= 1<<((unit1|unit2)^0xf);
 		cs->bondOcc[coor[0]] |= 1<<(newUnits[0]^0xf);
@@ -153,7 +156,9 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 #ifdef __HP_ENABLED__
 		int monoMove = ((iMono+1)%cs->polSize);
 		int unitMove = newUnits[0]?unit2:(unit1^0xf);
-		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) return 0;
+		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove))
+			return 0;
+// 		printf("success backward!\n");
 #endif
 		
 		///Change topological state of left side
@@ -275,7 +280,7 @@ int TransStep(CurState* cs, LookupTables* lt){
 	return 0;
 }
 
-int DiffuseStep(CurState* cs){
+int DiffuseStep(CurState* cs, LookupTables* lt){
 	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
 	int iMono = mono%cs->polSize;
 	int iPol = mono/cs->polSize;
@@ -285,7 +290,9 @@ int DiffuseStep(CurState* cs){
 	if(cs->unitPol[iPol][iMono] && !cs->unitPol[iPol][iPrev]){
 #ifdef __HP_ENABLED__
 		int unitMove = cs->unitPol[iPol][iMono];
-		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) return 0;
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove))
+			return 0;
+// 		printf("Sucess diffuse 1\n");
 #endif
 		cs->unitPol[iPol][iPrev] = cs->unitPol[iPol][iMono];
 		cs->unitPol[iPol][iMono] = 0;
@@ -295,7 +302,9 @@ int DiffuseStep(CurState* cs){
 	else if(!cs->unitPol[iPol][iMono] && cs->unitPol[iPol][iPrev]){
 #ifdef __HP_ENABLED__
 		int unitMove = cs->unitPol[iPol][iPrev]^0xf;
-		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) return 0;
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) 
+			return 0;
+// 		printf("Sucess diffuse 2\n");
 #endif
 		cs->unitPol[iPol][iMono] = cs->unitPol[iPol][iPrev];
 		cs->unitPol[iPol][iPrev] = 0;
@@ -334,40 +343,18 @@ void MeasBends(CurState* cs, LookupTables* lt, long counts[4]){
 double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 	long nAccTrans=0;
 	long nAccDiff=0;
-// 	long bendCounts[4]={0,0,0,0};
-// 	double sl=0;
-// 	long nMeas=0;
+	long nTopoMove=0;
 	
 	for(long iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
-// #if TOPO_DENSE == TRUE
 		nAccTrans += TransStepCompact(cs, lt);
-// 		CheckIntegrity(cs, "After trans step\n");
-// #else
-// 		nAccTrans += TransStep(cs, lt);
-// #endif
-		nAccDiff += DiffuseStep(cs);
-// 		CheckIntegrity(cs, "After diffuse step\n");
-// 		if(iStep%(cs->polSize*cs->nPol) == cs->polSize*cs->nPol-1){
-// 			MeasBends(cs, lt, bendCounts);
-// 			sl += MeasSl(cs);
-// 			nMeas++;
-// 		}
+		nAccDiff += DiffuseStep(cs, lt);
+		
+#ifdef __TOPO_MOVE_ENABLED__
+		nTopoMove += TopoMove(cs,lt);
+#endif
 	}
 	
-// 	long totBends=0;
-// 	for(int i=0; i<4; i++)
-// 		totBends += bendCounts[i];
-// 	printf("\n");
-// 	double avgBend=0;
-// 	for(int i=0; i<4; i++){
-// 		avgBend += (i-1)*bendCounts[i]/(double)totBends;
-// 		printf("%i %.2lf\n", i-1, bendCounts[i]/(double)totBends);
-// 	}
-// 	printf("Avg= %.3lf\n", avgBend);
-// 	printf("Sl = %.2lf\n", sl/nMeas);
-// 	CheckIntegrity(cs, "After MC Step");
 	double ratTrans = nAccTrans/(double)(cs->polSize*cs->nPol*nStep);
-// 	printf("Trans moves accepted: %.2lf %%\n", 100*ratTrans);
 	return ratTrans;
 }
 

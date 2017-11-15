@@ -14,6 +14,7 @@
 #define FALSE 0
 // #define TOPO_DENSE TRUE
 
+#define MAX(X,Y) ((X>Y)?X:Y)
 #define MAX_TOPO_STATES 1950238
 #define NMUTATOR 96
 #define BEND_LVL 10
@@ -27,6 +28,7 @@
  this makes much more sense, since the excluded volume is tested on the bonds, instead of
  the monomers.  
  Notice2: I don't think the above is true!
+ Notice3: Yes it is?
  **/
 
 typedef struct SimulationSettings{
@@ -34,12 +36,15 @@ typedef struct SimulationSettings{
 	double bendEnergy;
 	char* dir;
 	char* eeFile;
+	char* hpFile;
 	unsigned int seed;
 	long tMax;
 	long interval;
+	int polIdShuffle;
 	int L;
 	int polSize;
 	int dblStep;
+	double hpStrength;
 }SimulationSettings;
 
 typedef struct CurState{
@@ -70,16 +75,25 @@ typedef struct Topo{
 	struct SuperTopo* supTopo;
 }Topo;
 
-
 typedef struct SuperTopo{
 	struct Topo* topo;
 	struct Topo* mutTopo[NMUTATOR];
+	struct SuperTopo* topoSameBonds;
 	int permBond;
 	int id;
+	int keyInserted;
 }SuperTopo;
+
+typedef struct KeyNode{
+	int val;
+	struct KeyNode* next;
+	struct KeyNode* child;
+	SuperTopo* sTopo;
+}KeyNode;
 
 typedef struct TopoCompact{
 	int mutators[NMUTATOR];
+	int sameTopo;
 	int permBond;
 }TopoCompact;
 
@@ -93,6 +107,7 @@ typedef struct HPTable{
 typedef struct LookupTables{
 	int** mutTopo;
 	TopoCompact* topComp;
+	KeyNode* sameTopoTree;
 	int nTopoComp;
  	int nTopo;
 	int unitDot[16][16];
@@ -106,10 +121,8 @@ typedef struct LookupTables{
 	int revMutTable[48][2];
 	int revMutTableTriple[96][3];
 	int mutIdTableTriple[16][16][16];
-	HPTable* hp;
+	HPTable hp;
 }LookupTables;
-
-
 
 int nSupTopo;
 

@@ -546,7 +546,7 @@ int MutateFindConfig(ExactEnum* ee, Topo* topo, Node* node, Config curConfig){
 			if(newCfg==NULL) continue;
 // 			CheckIntegrity(newCfg);
 			Topo* newTopo=NULL;
-			int nConfig = FindInternalCfg(ee, newCfg, &newTopo);
+			FindInternalCfg(ee, newCfg, &newTopo);
 			
 			if(!topo->supTopo->mutTopo[i]){
 				topo->supTopo->mutTopo[i] = newTopo;
@@ -585,7 +585,7 @@ void DirectMutateTopo(ExactEnum* ee){
 	while(iTopo<ee->nTopo){
 
 		Config* startCfg = NewConfig();
-		int ret= MutateFindConfig(ee, ee->allTopo+iTopo, ee->allTopo[iTopo].allConfigs, *startCfg);
+		MutateFindConfig(ee, ee->allTopo+iTopo, ee->allTopo[iTopo].allConfigs, *startCfg);
 // 		printf("++++++++++++++++++++++ %i configs found ++++++++++++++++\n", ret); 
 // 		PrintConfig(startCfg)
 		DeleteConfig(startCfg);
