@@ -18,6 +18,9 @@
 #define MAX_TOPO_STATES 1950238
 #define NMUTATOR 96
 #define BEND_LVL 10
+#ifndef __FROM_TOPO_COMP__
+	#define __FROM_TOPO_COMP__ TRUE
+#endif
 
 #define NON_EXISTING -1
 #define SAME_TOPO -2

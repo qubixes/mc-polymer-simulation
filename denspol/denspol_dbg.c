@@ -40,8 +40,9 @@ int CheckIntegrity(CurState* cs, char* msg){
 				if(!(cs->bondOcc[cs->coorPol[iPol][iMono]]&(1<<(cs->unitPol[iPol][iMono]^0xf)))){
 					printf("Bond not stored!\n");
 					printf("At: %s\n", msg);
-					printf("bondOcc: %x, units[%x,%i]\n", cs->bondOcc[coor], cs->unitPol[iPol][(iMono+1)%cs->polSize], cs->unitPol[iPol][jMono]);
-					printf("iMono = %i, iPol = %i, coor = (%i, %i, %i, %i)\n", (iMono+1)%cs->polSize, iPol, cs->coorPol[iPol][(iMono-1+cs->polSize)%cs->polSize], cs->coorPol[iPol][iMono], coor, cs->coorPol[iPol][(iMono+2)%cs->polSize]);
+					printf("iMono = %i, polSize=%i\n", iMono, cs->polSize);
+					printf("bondOcc: %x, units[%x,%x]\n", cs->bondOcc[coor], cs->unitPol[iPol][iMono], cs->unitPol[iPol][jMono]);
+					printf("iMono = %i, iPol = %i, coor = (", (iMono+1)%cs->polSize, iPol); PrintCoor(cs->coorPol[iPol][(iMono-1+cs->polSize)%cs->polSize],L); printf(", "); PrintCoor(cs->coorPol[iPol][iMono],L); printf(", "); PrintCoor(coor,L); printf(", "); PrintCoor(cs->coorPol[iPol][(iMono+2)%cs->polSize], L); printf(")\n");
 					exit(192);
 				}
 #if POL_TYPE == POL_TYPE_LIN

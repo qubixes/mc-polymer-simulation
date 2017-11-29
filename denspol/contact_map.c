@@ -7,6 +7,10 @@ typedef struct DInt{
 	int iPol, iMono;
 }DInt;
 
+typedef struct Contact{
+	DInt monomers[2];
+}Contact;
+
 typedef struct Data{
 	DInt** lattice;
 	int* nIdList;
@@ -19,23 +23,30 @@ typedef struct Data{
 typedef struct RunProperties{
 	char* fileIn;
 	char* fileOut;
+	long nSamples;
 }RunProperties;
 
 Data* ReadData(char* file);
-void PrintContactMatrix(Data* data, char* file);
+void PrintContactMatrix(Data* data, char* file, long nSamples);
 
 int main(int argc, char** argv){
 	if(argc<3){
 		printf("Need two arguments!\n");
 		return 192;
 	}
+	
 	RunProperties rp;
 	
 	rp.fileIn = argv[1];
 	rp.fileOut = argv[2];
+	if(argc > 3)
+		rp.nSamples = (long)atof(argv[3]);
+	else
+		rp.nSamples = (long)1e8;
 	
+	printf("nSamples = %li\n", rp.nSamples);
 	Data* data = ReadData(rp.fileIn);
-	PrintContactMatrix(data, rp.fileOut);
+	PrintContactMatrix(data, rp.fileOut, rp.nSamples);
 }
 
 Data* NewData(int polSize, int nPol, int L){
@@ -103,17 +114,38 @@ Data* ReadData(char* file){
 	return data;
 }
 
-void PrintContactMatrix(Data* data, char* file){
-	FILE* pFile = fopen(file, "w");
+void PrintContactMatrix(Data* data, char* file, long nSamples){
 	int L=data->L;
 	
-	fprintf(pFile, "#len= %i\n", data->N);
+	int dAlloc = 1000;
+	int cAlloc = dAlloc;
+	Contact* contacts = malloc(sizeof(Contact)*cAlloc);
+	int nContacts=0;
+	unsigned int rng[4];
+	Seed(rng, 1209384);
+	
 	for(int coor=0; coor<L*L*L; coor++){
 		for(int indexMono=0; indexMono<data->nIdList[coor]; indexMono++){
 			for(int jIndexMono=indexMono+1; jIndexMono<data->nIdList[coor]; jIndexMono++){
-				fprintf(pFile, "%i %i %i %i %lf\n", data->lattice[coor][indexMono].iPol, data->lattice[coor][indexMono].iMono, data->lattice[coor][jIndexMono].iPol, data->lattice[coor][jIndexMono].iMono, 1.0);
+				contacts[nContacts].monomers[0].iPol = data->lattice[coor][indexMono].iPol;
+				contacts[nContacts].monomers[0].iMono= data->lattice[coor][indexMono].iMono;
+				contacts[nContacts].monomers[1].iPol = data->lattice[coor][jIndexMono].iPol;
+				contacts[nContacts].monomers[1].iMono= data->lattice[coor][jIndexMono].iMono;
+				nContacts++;
+				if(cAlloc <= nContacts){
+					cAlloc += dAlloc;
+					contacts = realloc(contacts, sizeof(Contact)*cAlloc);
+				}
 			}
 		}
+	}
+	
+	FILE* pFile = fopen(file, "w");
+	fprintf(pFile, "#len= %i\n", data->N);
+	for(long i=0; i<nSamples && i<nContacts; i++){
+		long j = DRng(rng)*(nContacts-i);
+		fprintf(pFile, "%i %i %i %i %lf\n", contacts[j].monomers[0].iPol, contacts[j].monomers[0].iMono, contacts[j].monomers[1].iPol, contacts[j].monomers[1].iMono, 1.0);
+		contacts[j] = contacts[nContacts-i-1];
 	}
 	fclose(pFile);
 }

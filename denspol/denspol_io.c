@@ -22,7 +22,11 @@ int WriteLatticeFile(CurState* cs, char* file){
 	fprintf(pFile, "LU= %i\n", cs->L);
 	fprintf(pFile, "LV= %i\n", cs->L);
 	fprintf(pFile, "np= %i\n", cs->nPol);
+#if POL_TYPE == POL_TYPE_LIN
+	fprintf(pFile, "maxPolLength= %i\n", cs->polSize+1);
+#else
 	fprintf(pFile, "maxPolLength= %i\n", cs->polSize);
+#endif
 	
 	for(iPol=0; iPol<cs->nPol; iPol++){
 		WritePolymer(cs, iPol, pFile);
@@ -76,6 +80,10 @@ int CSFromFile(CurState* cs, char* dir, long lastT){
 		iPol++;
 	}
 	fclose(pFile);
+	
+#if POL_TYPE == POL_TYPE_LIN
+	cs->polSize--;
+#endif
 	
 	char latFile[3000];
 	sprintf(latFile, "%s/sav_t%li_dev=0.res", dir, lastT);
@@ -201,3 +209,37 @@ void TopoMapFromFile(LookupTables* lt, char* file){
 	}
 	lt->mutTopo = realloc(lt->mutTopo, sizeof(int*)*lt->nTopo);
 }
+
+void WriteTopComp(LookupTables* lt, char* file){
+	FILE* pFile = fopen(file, "w");
+	if(!pFile){
+		printf("Error opening file %s\n", file);
+		exit(192);
+	}
+	
+	fprintf(pFile, "nTopo= %i\n", lt->nTopoComp);
+	for(int i=0; i<lt->nTopoComp; i++){
+		fprintf(pFile, "%i %i %i", i, lt->topComp[i].sameTopo, lt->topComp[i].permBond);
+		for(int iMut=0; iMut<NMUTATOR; iMut++)
+			fprintf(pFile, " %i", lt->topComp[i].mutators[iMut]);
+		fprintf(pFile, "\n");
+	}
+	fclose(pFile);
+}
+
+void ReadTopComp(LookupTables* lt, char* file){
+	FILE* pFile = fopen(file, "r");
+	if(!pFile){
+		printf("Error opening file %s\n", file);
+		exit(192);
+	}
+	fscanf(pFile, "%*s %i", &lt->nTopoComp);
+	lt->topComp = malloc(sizeof(TopoCompact)*lt->nTopoComp);
+	for(int iTopo=0; iTopo<lt->nTopoComp; iTopo++){
+		fscanf(pFile, "%*i %i %i", &lt->topComp[iTopo].sameTopo, &lt->topComp[iTopo].permBond);
+		for(int iMut=0; iMut<NMUTATOR; iMut++)
+			fscanf(pFile, "%i", &lt->topComp[iTopo].mutators[iMut]);
+	}
+	fclose(pFile);
+}
+

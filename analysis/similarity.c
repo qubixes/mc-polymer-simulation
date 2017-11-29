@@ -9,6 +9,7 @@ typedef struct Data{
 	int*** tuv;
 	int nPol;
 	int polSize;
+	int polType;
 	int L;
 }Data;
 
@@ -97,6 +98,8 @@ Data* ReadData(char* file){
 		for(int k=0; k<3; k++)
 			data->tuv[iPol][data->polSize][k] = tuv[k];
 	}
+	if(str[data->polSize-1] == 'f') data->polType = POL_TYPE_LIN;
+	else data->polType = POL_TYPE_RING;
 	fclose(pFile);
 	return data;
 }

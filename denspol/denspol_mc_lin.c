@@ -282,7 +282,7 @@ int TransStepCompactLinear(CurState* cs, LookupTables* lt, int iMono, int iPol){
 		}
 		
 #ifdef __HP_ENABLED__
-		int monoMove = ((iMono+1)%cs->polSize);
+		int monoMove = iMono+1;
 		int unitMove = newUnits[0]?unit2:(unit1^0xf);
 		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove))
 			return 0;
@@ -315,7 +315,7 @@ int TransStepCompactLinear(CurState* cs, LookupTables* lt, int iMono, int iPol){
 	return 1;
 }
 
-int DiffuseStepLinear(CurState* cs){
+int DiffuseStepLinear(CurState* cs, LookupTables* lt){
 	int mono = DRng(cs->rngState)*cs->nPol*(cs->polSize-1);
 	int iMono = (mono%(cs->polSize-1))+1;
 	int iPol = mono/(cs->polSize-1);
@@ -323,12 +323,22 @@ int DiffuseStepLinear(CurState* cs){
 	int iPrev = iMono-1;
 	
 	if(cs->unitPol[iPol][iMono] && !cs->unitPol[iPol][iPrev]){
+#ifdef __HP_ENABLED__
+		int unitMove = cs->unitPol[iPol][iMono];
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove))
+			return 0;
+#endif
 		cs->unitPol[iPol][iPrev] = cs->unitPol[iPol][iMono];
 		cs->unitPol[iPol][iMono] = 0;
 		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][iMono+1];
 		return 1;
 	}
 	else if(!cs->unitPol[iPol][iMono] && cs->unitPol[iPol][iPrev]){
+#ifdef __HP_ENABLED__
+		int unitMove = cs->unitPol[iPol][iPrev]^0xf;
+		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) 
+			return 0;
+#endif
 		cs->unitPol[iPol][iMono] = cs->unitPol[iPol][iPrev];
 		cs->unitPol[iPol][iPrev] = 0;
 		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][iPrev];
@@ -356,7 +366,7 @@ double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
 #ifdef __TOPO_MOVE_ENABLED__
 		TopoMove(cs,lt);
 #endif
-		nAccDiff += DiffuseStepLinear(cs);
+		nAccDiff += DiffuseStepLinear(cs, lt);
 // 		printf("Step %i/%i\n", iStep, cs->polSize*cs->nPol*nStep);
 	}
 // 	CheckIntegrity(cs, "After step");

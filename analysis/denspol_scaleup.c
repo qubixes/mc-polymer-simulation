@@ -88,8 +88,6 @@ void PrintCoor(int pos, int L){
 	printf("(%i,%i,%i)", t,u,v);
 }
 
-	
-
 BoxState* NewBoxState(int L, int nPol, int maxPolSize){
 	BoxState* bs = malloc(sizeof(BoxState));
 	bs->L          = L;
@@ -152,6 +150,8 @@ BoxState* LoadSystem(char* file, char* topoFile){
 			if(iBond+1<bs->polSize[iPol])
 				bs->coor[iPol][iBond+1] = coor;
 		}
+		if(str[bs->polSize[iPol]-1] == 'f') bs->polType = POL_TYPE_LIN;
+		else bs->polType = POL_TYPE_RING;
 	}
 	
 	fclose(pFile);
@@ -176,27 +176,36 @@ BoxState* LoadSystem(char* file, char* topoFile){
 
 BoxState* UpscaleBox(BoxState* bs, int* topoStraight){
 	
-	BoxState* newBs = NewBoxState(bs->L*2, bs->nPol, bs->maxPolSize*8);
+	BoxState* newBs;
+	
+	if(bs->polType == POL_TYPE_LIN)
+		newBs = NewBoxState(bs->L*2, bs->nPol, bs->maxPolSize*8-7);
+	else
+		newBs = NewBoxState(bs->L*2, bs->nPol, bs->maxPolSize*8);
 	
 	for(int iPol=0; iPol<bs->nPol; iPol++){
 		for(int i=0; i<3; i++)
 			newBs->startTUV[iPol][i] = bs->startTUV[iPol][i]*2;
 		
 		int curCoor= TUV2CoorX(newBs->startTUV[iPol][0], newBs->startTUV[iPol][1], newBs->startTUV[iPol][2], newBs->L);
-		for(int iBond=0; iBond<bs->polSize[iBond]; iBond++){
+		for(int iBond=0; iBond<bs->polSize[iPol]; iBond++){
+			int bond = bs->bonds[iPol][iBond];
+			if(bond == 0xf){
+				newBs->bonds[iPol][iBond*8] = 0xf;
+				newBs->coor[iPol][iBond*8] = 0xf;
+				break;
+			}
+			
 			for(int i=0; i<3; i++){
 				newBs->bonds[iPol][iBond*8+i] = 0;
 				newBs->coor[iPol][iBond*8+i] = curCoor;
 			}
-			int bond = bs->bonds[iPol][iBond];
-			if(bond != 0xf){
-				newBs->bonds[iPol][iBond*8+3] = bond;
-				newBs->coor [iPol][iBond*8+3] = curCoor;
-				if(bond != 0x0){
-					curCoor = AddUnitToCoor(bond, curCoor, newBs->L);
-					newBs->topo[curCoor]    = topoStraight[bond];
-					newBs->bondOcc[curCoor] = (1<<bond)|(1<<(bond^0xf));
-				}
+			newBs->bonds[iPol][iBond*8+3] = bond;
+			newBs->coor [iPol][iBond*8+3] = curCoor;
+			if(bond != 0x0){
+				curCoor = AddUnitToCoor(bond, curCoor, newBs->L);
+				newBs->topo[curCoor]    = topoStraight[bond];
+				newBs->bondOcc[curCoor] = (1<<bond)|(1<<(bond^0xf));
 			}
 			for(int i=4; i<7; i++){
 				newBs->bonds[iPol][iBond*8+i] = 0;
@@ -206,7 +215,10 @@ BoxState* UpscaleBox(BoxState* bs, int* topoStraight){
 			newBs->coor[iPol][iBond*8+7] = curCoor;
 			curCoor = AddUnitToCoor(bs->bonds[iPol][iBond], curCoor, newBs->L);
 		}
-		newBs->polSize[iPol] = bs->polSize[iPol]*8;
+		if(bs->polType == POL_TYPE_RING)
+			newBs->polSize[iPol] = bs->polSize[iPol]*8;
+		else
+			newBs->polSize[iPol] = bs->polSize[iPol]*8-7;
 	}
 	
 	for(int coor=0; coor<bs->L*bs->L*bs->L; coor++){

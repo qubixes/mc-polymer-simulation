@@ -11,8 +11,8 @@ int main(int argc, char** argv){
 	cs.ss.polSize      = 100;
 	cs.ss.density      = 7.0;
 	cs.ss.seed         = 12846102;
-	cs.ss.tMax         = 20000;
-	cs.ss.interval     = 1000;
+	cs.ss.tMax         = 2000;
+	cs.ss.interval     = 100;
 	cs.ss.bendEnergy   = 0.3;
 	cs.ss.hpFile       = NULL;
 	cs.ss.polIdShuffle = 0;
@@ -34,7 +34,7 @@ int main(int argc, char** argv){
 		cs.ss.dir = malloc(sizeof(char)*100);
 		cs.ss.eeFile = malloc(sizeof(char)*100);
 		sprintf(cs.ss.dir   , "./data/test");
-		sprintf(cs.ss.eeFile, "./ee_topo.dat");
+		sprintf(cs.ss.eeFile, "./ee_topo_comp.dat");
 		printf("Using test values: (supply %i+ instead of %i arguments)\n", 10, argc);
 	}
 	if(argc>=12)
@@ -61,6 +61,7 @@ int main(int argc, char** argv){
 	WriteCS(&cs, cs.curT);
 	WriteSimulationSettings(&cs);
 	CheckIntegrity(&cs, "After simulation");
+// 	WriteTopComp(&lt, "./ee_topo_comp.dat");
 // 	PrintMoveCounts(&lt);
 	return 0;
 }
