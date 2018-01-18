@@ -1,10 +1,10 @@
-.PHONY: clean tar all gpupol analysis cpupol util gpupol2 denspol secstruct
+.PHONY: clean tar all gpupol analysis cpupol util gpupol2 denspol secstruct gpupol
 
-RELEASE=0.9.4
+RELEASE=0.9.5
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"
-DIRS=cpupol util analysis denspol gpupol2 secstruct
+DIRS=cpupol util analysis denspol gpupol2 secstruct gpupol
 export RELEASE
 all: $(DIRS)
 
@@ -20,6 +20,9 @@ util:
 denspol: 
 	$(MAKE) -C denspol
 
+gpupol:
+	$(MAKE) -C gpupol
+	
 gpupol2: 
 	$(MAKE) -C gpupol2
 

@@ -7,15 +7,16 @@ BETA=1
 PLOT="plot [][0.1:]"
 PLOT2="plot [][0.1:1]"
 FNAME="pc_vs_genom.dat"
+PC_FILE="pc_avg.dat"
 ODIR=`get_paper_dir`
 OFILE="pc_resc"
 
 
 for DIR in ${DIRS[*]}; do
 	FOUT="$DIR/$FNAME"
-	cross_sect_files $DIR/pc_avg_ss.dat $DIR/genom.dat > $FOUT
+	cross_sect_files $DIR/$PC_FILE $DIR/genom.dat > $FOUT
 	N=`get_attr 'Length' $DIR`
-	PLOT="$PLOT '$DIR/pc_avg_ss.dat' u 1:((\$1<$N/2.)?(\$2*\$1**$BETA):1/0) w l notitle, "
+	PLOT="$PLOT '$DIR/$PC_FILE' u 1:((\$1<$N/4.)?(\$2*\$1**$BETA):1/0) w l notitle, "
 	PLOT2="$PLOT2 '$FOUT' u 2:(\$3/\$2**-1.5) w l notitle, "
 done
 

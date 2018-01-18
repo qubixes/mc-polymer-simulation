@@ -210,7 +210,7 @@ if [ $B_EXEC == "efpol" ]; then
 elif [ $B_EXEC == "denspol" ]; then
 	EXEC="$BIN_DIR/denspol_$SIM_TYPE"
 	BASE_DIR="$DATA_DIR/${SIM_TYPE}_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_b${BEND_ENERGY}"
-elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" ]; then
+elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol" ]; then
 	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
 	
 	if [ $FAST_EQ != "0" ]; then
@@ -291,7 +291,7 @@ if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "denspol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo_comp.dat $BEND_ENERGY $DBL_STEP"
-elif [ $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol2" ]; then
+elif [ $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi
 

@@ -1,15 +1,54 @@
 #ifndef _GPUPOL_H_INCLUDED_
 #define _GPUPOL_H_INCLUDED_
 
-// #define LCELL 3
+#define TUD 2
+#define LCELL 4
 #define WST 8
 #define WSU 8
 #define WSV 8
 #define WS (WST*WSU*WSV)
-#define CELL_SIZE (LCELL*LCELL*LCELL)
+
 #define WLT (LCELL*WST)
 #define WLU (LCELL*WSU)
 #define WLV (LCELL*WSV)
+
+#define MSPIN 4
+#define SL_MSPIN 32
+#define LAB_MSPIN 16
+#define CELL_SIZE (LCELL*LCELL*LCELL)
+
+#define PREV_MASK 0x00555555
+#define NEXT_MASK 0x00aaaaaa
+
+#define PREV1_MASK 0x00041041
+#define PREV2_MASK (PREV1_MASK<<2)
+#define PREV3_MASK (PREV2_MASK<<2)
+
+#define NEXT1_MASK (PREV1_MASK<<1)
+#define NEXT2_MASK (NEXT1_MASK<<2)
+#define NEXT3_MASK (NEXT2_MASK<<2)
+
+#define SL1_MASK 0x01000000
+#define SL2_MASK (SL1_MASK<<2)
+#define SL3_MASK (SL2_MASK<<2)
+#define SL_MASK (SL1_MASK|SL2_MASK|SL3_MASK)
+
+#define ED1_MASK 0x02000000
+#define ED2_MASK (ED1_MASK<<2)
+#define ED3_MASK (ED2_MASK<<2)
+#define ED_MASK (ED1_MASK|ED2_MASK|ED3_MASK)
+
+#define SUB1_MASK (PREV1_MASK|NEXT1_MASK|SL1_MASK|ED1_MASK)
+#define SUB2_MASK (PREV2_MASK|NEXT2_MASK|SL2_MASK|ED2_MASK)
+#define SUB3_MASK (PREV3_MASK|NEXT3_MASK|SL3_MASK|ED3_MASK)
+
+#define ENT_PIXEL_ENABLE (SUB1_MASK|SUB2_MASK|SUB3_MASK)
+#define TOT_PIX ENT_PIXEL_ENABLE
+
+#define SUBV1_MASK (PREV1_MASK|NEXT1_MASK|SL1_MASK)
+#define SUBV2_MASK (PREV2_MASK|NEXT2_MASK|SL2_MASK)
+#define SUBV3_MASK (PREV3_MASK|NEXT3_MASK|SL3_MASK)
+#define SUBV_MASK (SUBV1_MASK|SUBV2_MASK|SUBV3_MASK)
 
 #define RNG_FAC_W1 2.328306437080797375431469961868E-10
 #define RNG_FAC    2.3283064365386962890625E-10
@@ -34,15 +73,16 @@
 #define DIR_BACKWARD 0x8
 #define PRINTED_BIT 0x80000000
 
+
+#define TOSTR2(x) #x
+#define TOSTR(x) TOSTR2(x)
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-
-#define TOSTR2(x) #x
-#define TOSTR(x) TOSTR2(x)
-
 #include "gpupol_def.h"
 #ifdef OPENCL_GPULIB
 	#include "gpupol_ocl_def.h"
@@ -54,6 +94,7 @@
 	#include "gpupol_cuda.h"
 #endif
 
+#include "ocl_util.h"
 #include "gpupol_init.h"
 #include "gpupol_io.h"
 

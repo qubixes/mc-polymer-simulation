@@ -44,7 +44,8 @@ int main(int argc, char** argv){
 	else
 		rp.nSamples = (long)1e8;
 	
-	printf("nSamples = %li\n", rp.nSamples);
+// 	printf("nSamples = %li\n", rp.nSamples);
+// 	printf("argc=%i, %s\n", argc, argv[3]);
 	Data* data = ReadData(rp.fileIn);
 	PrintContactMatrix(data, rp.fileOut, rp.nSamples);
 }

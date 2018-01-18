@@ -20,7 +20,7 @@ for DIR in ${ALL_DIRS[*]}; do
 		
 		OUT_FILE="$BASE_DIR/similarity_${BASE_TITLE}.dat"
 		
-		cp $FIRST_DIR/similarity_* $OUT_FILE
+		cp $FIRST_DIR/similarity.dat $OUT_FILE
 		
 		DT=`get_last_t $FIRST_DIR`
 		CURT=$DT
@@ -46,7 +46,7 @@ PLOT=${PLOT:0:${#PLOT}-2}
 
 
 gnuplot -persist <<EOFGNU
-
+set grid
 $PLOT
 
 EOFGNU

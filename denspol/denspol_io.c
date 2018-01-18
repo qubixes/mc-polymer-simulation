@@ -22,11 +22,7 @@ int WriteLatticeFile(CurState* cs, char* file){
 	fprintf(pFile, "LU= %i\n", cs->L);
 	fprintf(pFile, "LV= %i\n", cs->L);
 	fprintf(pFile, "np= %i\n", cs->nPol);
-#if POL_TYPE == POL_TYPE_LIN
-	fprintf(pFile, "maxPolLength= %i\n", cs->polSize+1);
-#else
-	fprintf(pFile, "maxPolLength= %i\n", cs->polSize);
-#endif
+	fprintf(pFile, "maxPolLength= %i\n", cs->nMono);
 	
 	for(iPol=0; iPol<cs->nPol; iPol++){
 		WritePolymer(cs, iPol, pFile);
@@ -107,11 +103,7 @@ int CSFromFile(CurState* cs, char* dir, long lastT){
 
 void WritePolymer(CurState* cs, int iPol, FILE* pFile){
 	int L = cs->L;
-#if POL_TYPE == POL_TYPE_LIN
-	fprintf(pFile, "len= %i\n", cs->polSize+1);
-#else
-	fprintf(pFile, "len= %i\n", cs->polSize);
-#endif
+	fprintf(pFile, "len= %i\n", cs->nMono);
 	fprintf(pFile, "%u  %u  %u\t", TCoor(cs->coorPol[iPol][0], L), UCoor(cs->coorPol[iPol][0], L), VCoor(cs->coorPol[iPol][0], L));
 	
 	for(int iMono=0; iMono<cs->polSize; iMono++)
@@ -146,11 +138,7 @@ void WriteSimulationSettings(CurState* cs){
 	sprintf(file, "%s/simulation_settings.txt", ss->dir);
 	FILE* pFile = fopen(file, "w");
 	fprintf(pFile, "Start_seed = %u\n", ss->seed);
-#if POL_TYPE == POL_TYPE_RING
-	fprintf(pFile, "Length = %i\n", ss->polSize);
-#elif POL_TYPE == POL_TYPE_LIN
-	fprintf(pFile, "Length = %i\n", ss->polSize+1);
-#endif
+	fprintf(pFile, "Length = %i\n", cs->nMono);
 #if POL_TYPE == POL_TYPE_RING
 	fprintf(pFile, "Polytype = ring\n");
 #else

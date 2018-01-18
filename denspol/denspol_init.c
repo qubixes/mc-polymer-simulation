@@ -2,22 +2,9 @@
 
 
 void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double density, int polSize, int L, char* dir){
-	long lastT = GetLastT(dir);
-// #if POL_TYPE == POL_TYPE_LIN
-// 	cs->polSize = polSize-1;
-// 	cs->ss.poLSize = polSize-1;
-// #else
 	cs->polSize = polSize;
-// #endif
 	int nPol = (int)(L*L*L*density/(double)polSize+0.5);
 	cs->nPol = nPol;
-	if(cs->ss.hpFile){
-		LoadHPFile(cs->ss.hpFile, &lt->hp, cs);
-	}
-	else{
-		lt->hp.nInterHP = malloc(sizeof(int)*(polSize+1)*nPol);
-		for(int i=0; i<(polSize+1)*nPol; i++) lt->hp.nInterHP[i]=0;
-	}
 	
 
 	UnitDotInit(lt, cs->ss.bendEnergy);
@@ -29,10 +16,9 @@ void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double de
 	SuperTopoInit(lt);
 #endif
 	
-	lt->hp.distance = GenerateDistanceMatrix(L);
+	long lastT = GetLastT(dir);
 	if(lastT<0){
 		cs->curT=0;
-		int nPol = (int)(L*L*L*density/(double)polSize+0.5);
 		CSInit(cs, seed, nPol, polSize, L, dir);
 		GeneratePolymers(cs, lt);
 	}
@@ -41,7 +27,18 @@ void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double de
 		cs->curT=lastT;
 		CSFromFile(cs, dir, lastT);
 	}
+#if POL_TYPE == POL_TYPE_RING
+	cs->nMono = cs->polSize;
+#else
+	cs->nMono = cs->polSize+1;
+#endif
 	if(cs->ss.hpFile) LoadHPFile(cs->ss.hpFile, &lt->hp, cs);
+	else{
+		lt->hp.nInterHP = malloc(sizeof(int)*(polSize+1)*nPol);
+		for(int i=0; i<(polSize+1)*nPol; i++) lt->hp.nInterHP[i]=0;
+	}
+	lt->hp.distance = GenerateDistanceMatrix(L);
+	
 	if(cs->ss.polIdShuffle){
 		printf("Shuffling polymer\n");
 		ShufflePolymerIds(cs);
@@ -52,12 +49,8 @@ void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double de
 void AddInteraction(HPTable* hp, int iMono, int iPol, int jMono, int jPol, int nMono, double strength, CurState* cs){
 // 	if(iPol != jPol) return;
 	
-#if POL_TYPE == POL_TYPE_RING
-	double ratio = (cs->polSize)/(double)nMono;
-#else
-	double ratio = (cs->polSize+1)/(double)nMono;
-#endif
-	strength *= ratio*cs->ss.hpStrength;
+	double ratio = (cs->nMono)/(double)nMono;
+	strength *= cs->ss.hpStrength;
 	
 	int iMonoId = MonoPol2Id((int)(iMono*ratio+0.5)%cs->polSize, iPol, cs->polSize);
 	int jMonoId = MonoPol2Id((int)(jMono*ratio+0.5)%cs->polSize, jPol, cs->polSize);
@@ -99,9 +92,10 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 	}
 	fscanf(pFile, "%*s %i", &nMono);
 	
-	double ratio = (cs->polSize+1)/(double)nMono;
+	double ratio = cs->nMono/(double)nMono;
+// 	printf("N = (%i %i)\n", cs->nMono, nMono);
 	int maxInter = MAX(12, 12/(ratio*ratio));
-
+	
 	
 	hp->HPStrength = (double**)malloc(sizeof(double*)*(polSize+1)*cs->nPol);
 	hp->monoId     = (int**)malloc(sizeof(int*)*(polSize+1)*cs->nPol);
@@ -113,21 +107,22 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 	}
 	int iMono, jMono, iPol, jPol;
 	double strength;
+	long nContacts=0;
 	while( !(feof(pFile)) && fscanf(pFile, "%i %i %i %i %lf", &iPol, &iMono, &jPol, &jMono, &strength) == 5){
 		AddInteraction(hp, iMono, iPol, jMono, jPol, nMono, strength, cs);
+		nContacts++;
 	}
-	int monoId;
-	iPol=0;
-	for(int iMono=0; iMono<cs->polSize; iMono++){
-		monoId = MonoPol2Id(iMono, iPol, polSize);
-		for(int iId=0; iId<hp->nInterHP[monoId]; iId++){
-			int newMono, newPol;
-			Id2MonoPol(hp->monoId[monoId][iId], &newMono, &newPol, polSize);
-// 			double strength = hp->HPStrength[monoId][iId];
-// 			printf("%i %i %i %lf\n", iMono, newPol, newMono, strength);
+	
+	double strPrefac = MIN(1, 0.874*cs->nMono*cs->nPol/(double)nContacts);
+	
+// 	printf("New vs old: %lf vs %lf, interactions: %li\n", strPrefac, ratio, nContacts);
+// 	exit(0);
+	
+	for(int iMono=0; iMono<cs->nMono*cs->nPol; iMono++){
+		for(int iContact=0; iContact<hp->nInterHP[iMono]; iContact++){
+			hp->HPStrength[iMono][iContact] *= strPrefac;
 		}
 	}
-// 	exit(0);
 }
 
 void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char* dir){

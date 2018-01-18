@@ -4,7 +4,6 @@
 #include "ringpol_cu.h"
 
 int GPULibInit(SimProperties* sp, GPUDeviceState* devStates, GPULibContext* cudaContext){
-	printf("Initializing GPU\n");
 	gpuErrchk( cudaGetDeviceCount(&(sp->nDevices)) );
 	
 	double* perf = (double*)malloc(sizeof(double)*sp->nDevices);
@@ -24,7 +23,6 @@ int GPULibInit(SimProperties* sp, GPUDeviceState* devStates, GPULibContext* cuda
 	}
 	sp->nDevices = nDev;
 	free(perf);
-	printf("Finished initializing GPU\n");
 	return 0;
 }
 

@@ -31,7 +31,7 @@
  this makes much more sense, since the excluded volume is tested on the bonds, instead of
  the monomers.  
  Notice2: I don't think the above is true!
- Notice3: Yes it is?
+ Notice3: Yes it is?!
  **/
 
 typedef struct SimulationSettings{
@@ -59,6 +59,7 @@ typedef struct CurState{
 	
 	int nPol;
 	int polSize;
+	int nMono; // Ring: nMono=polSize, Lin: nMono=polSize+1;
 	
 	int L;
 	int LSize;

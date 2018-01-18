@@ -20,12 +20,13 @@ void PrintBinary(uint num){
 	printf("    ");
 }
 
-void PrintSite(char* lattice, uint t, uint u, uint v){
+void PrintSite(uint* gLattice, uint t, uint u, uint v){
 	
-	uint site;
+	uint site, slot;
 	
-	site= GetGpuSite(t,u,v, &sp);
-	printf("%x\n", lattice[site]);
+	GetSiteSlot(t,u,v, &site, &slot, &sp, MSPIN);
+	
+	printf("0x%x\n", (gLattice[site] & (0xff<<(8*slot)))>>(8*slot));
 }
 
 void WriteSimulationSettings(SimProperties* sp, SimState* ss){
@@ -47,28 +48,12 @@ void WriteSimulationSettings(SimProperties* sp, SimState* ss){
 	fprintf(pFile, "Interval = %li\n", sp->writeInterval);
 	fprintf(pFile, "Equilibrated = %i\n", sp->equilibrated);
 	fprintf(pFile, "Npol = %i\n", ss->nPol);
-// 	if(cfg->polModel == SL_EQUAL)
-// 		fprintf(pFile, "Polymodel = sl_equal\n");
-// 	else if(cfg->polModel == SL_DOUBLE)
 	fprintf(pFile, "Polymodel = sl_equal\n");
-// 	else if(cfg->polModel == SL_QUAD)
-// 		fprintf(pFile, "Polymodel = sl_quad\n");
-// 	else 
-// 		fprintf(pFile, "Polymodel = ??\n");
-#if LCELL == 3
-	fprintf(pFile, "Executable = gpupol2\n");
-#elif LCELL == 4
-	fprintf(pFile, "Executable = gpupol3\n");
-#else
-	THIS_ERROR_MEANS_LCELL_IS_NOT_DEFINED_AND_IT_SHOULD_BE
-#endif
+	fprintf(pFile, "Executable = gpupol\n");
 	fprintf(pFile, "Fast_equilibration = %i\n", ((sp->fastEq)?1:0));
 	fprintf(pFile, "FEQ_timestep = %li\n", sp->fastEq);
 #ifdef RELEASE
-// #define STRINGIZE2(s) #s
-// #define STRINGIZE(s) STRINGIZE2(s)
 #define RELEASE_STR TOSTR(RELEASE)
-// 	char rel[]= RELEASE_STR;
 	fprintf(pFile, "Release = %s\n", RELEASE_STR);
 #else
 	fprintf(pFile, "Release = unknown\n");
@@ -76,39 +61,39 @@ void WriteSimulationSettings(SimProperties* sp, SimState* ss){
 	fclose(pFile);
 }
 
-// void PrintSummary(SimProperties* sp, SimState* ss){
-// 	int iPol;//, polIndex;
-// 	int* revTranslate;
-// // 	Polymer* pol;
-// 	
-// 	SimState* curState;
-// 	for(int i=0; i<sp->nDevices; i++){
-// 		curState = ss+i;
-// 		printf("device %i: %i polymers\n", i, curState->nPol);
-// 		revTranslate = (int*) malloc(sizeof(int)*curState->nPol);
-// 		for(iPol=0; iPol<curState->nPol; iPol++){
-// // 			origPol = pol;
-// 			revTranslate[curState->polNumTranslate[iPol]] = iPol;
-// // 			printf("%i <=> %i\n", dev->polNumTranslate[iPol], iPol);
-// 		}
-// 		for(iPol=0; iPol<curState->nPol; iPol++){
-// 			polIndex = revTranslate[iPol];
-// // 			pol = curState->pol+polIndex;
-// // 			polIndex=pol;
-// // 			printf("pol %i: CMS=(%.1lf, %.1lf, %.1lf), length=%i\n", iPol, pol->oldModes[0].x, pol->oldModes[0].y, pol->oldModes[0].z, pol->length);
-// 		}
-// 		free(revTranslate);
-// 	}
-// 	printf("------------------------------------\n\n");
-// }
+
+void PrintSummary(SimProperties* sp, SimState* ss){
+	int iPol, polIndex;
+	int* revTranslate;
+	Polymer* pol;
+	
+	SimState* curState;
+	for(int i=0; i<sp->nDevices; i++){
+		curState = ss+i;
+		printf("device %i: %i polymers\n", i, curState->nPol);
+		revTranslate = (int*) malloc(sizeof(int)*curState->nPol);
+		for(iPol=0; iPol<curState->nPol; iPol++){
+// 			origPol = pol;
+			revTranslate[curState->polNumTranslate[iPol]] = iPol;
+// 			printf("%i <=> %i\n", dev->polNumTranslate[iPol], iPol);
+		}
+		for(iPol=0; iPol<curState->nPol; iPol++){
+			polIndex = revTranslate[iPol];
+			pol = curState->pol+polIndex;
+// 			polIndex=pol;
+// 			printf("pol %i: CMS=(%.1lf, %.1lf, %.1lf), length=%i\n", iPol, pol->oldModes[0].x, pol->oldModes[0].y, pol->oldModes[0].z, pol->length);
+		}
+		free(revTranslate);
+	}
+	printf("------------------------------------\n\n");
+}
 
 int ReadLatticeFile(SimState* ss, SimProperties* sp, char* file){
-	printf("Reading lattice file\n");
 	FILE* pFile;
 	uint i;
 	uint iPol;
 	uint length;
-// 	int latSide;
+	int latSide;
 	char* spol;
 	int* slArray;
 	uint* bonds, *tBonds;
@@ -160,7 +145,6 @@ int ReadLatticeFile(SimState* ss, SimProperties* sp, char* file){
 	free(spol); free(slArray);
 	free(bonds); free(tBonds); 
 	printf("Succesfully read file %s\n", file);
-	printf("Finished Reading lattice file\n");
 	return 0;
 }
 
