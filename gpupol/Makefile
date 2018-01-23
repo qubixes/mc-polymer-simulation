@@ -37,7 +37,6 @@ else
  override TARGETS=$(CUDA_EXECS)
  $(OCL_EXECS): override LDFLAGS+= -lOpenCL
  $(CUDA_EXECS): override LDFLAGS+= -L$(CUDA_HOME)/lib64
- NVCC += -gencode=arch=compute_20,code=sm_20 -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_35,code=sm_35 -gencode=arch=compute_35,code=compute_35
 endif
 
 

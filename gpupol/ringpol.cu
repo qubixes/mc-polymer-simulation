@@ -160,6 +160,7 @@ __device__ void TransMove(uint* lattice, uint site, uint* slab, uint* trans, uin
 	}
 	else{
 		///Backward: no SL -> SL
+		if(((rand>>4)&0x1) != 0) return;
 		prevBond = rand&0x1;
 		
 		if(EdgeOutside(site, (~prev)&0xf)|EdgeOutside(site,next))
