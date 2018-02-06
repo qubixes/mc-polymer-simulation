@@ -36,8 +36,8 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	if(sp->updSL)        AddSL(sp,ptl);
 	if(sp->updGyr)       AddRGyr(sp,ptl);
 	if(sp->updDif){
-		AddEM(sp,ptl); AddCMS(sp,ptl); AddSM(sp,ptl); 
-		AddMM(sp,ptl); AddEM(sp,ptl);
+		AddEM(sp,ptl); AddCMS(sp,ptl); 
+		AddSM(sp,ptl); AddMM(sp,ptl); 
 	}
 	if(sp->updAvgPos) AddAvgPos(sp,ptl);
 	if(sp->updShearMod) AddShearMod(sp,ptl);

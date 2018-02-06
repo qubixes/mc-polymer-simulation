@@ -104,7 +104,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			ptl->genomList[ptl->nGenom].ig  = ig;
 			ptl->genomList[ptl->nGenom].x   = i;
 			ptl->genomList[ptl->nGenom++].y = j;
-// 			printf("%i %i %i\n", g, i, j);
+			printf("%i %i %i\n", g, i, j);
 // 			}
 // 			else{
 // 				ptl->genomList[ptl->nGenom].x = j;
@@ -582,7 +582,7 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 		sprintf(exec, "grep '^'\"%s %.1lf\" %s", sp->exec, sp->density, sp->neFile);
 // 		printf("Exec: %s\n", exec);
 		pFile = popen(exec, "r");
-		fscanf(pFile, "%*s %*s %lf %lf %*s %*s", &sp->Ne, &sp->tFac);
+		fscanf(pFile, "%*s %*s %lf %*s %lf %*s", &sp->Ne, &sp->tFac);
 		pclose(pFile);
 	}
 	if(sp->Ne==0){
@@ -787,6 +787,6 @@ double TRelax(SimProperties* sp){
 	
 	double tau = MAX(tConst, tRouse);
 	tau = MAX(tau, tRept);
-// 	printf("Ne=%.1lf, tRouse=%lf, tRep=%lf\n", Ne, tRouse, tRept);
+// 	printf("Ne=%.1lf, tRouse=%lf, tRep=%lf, Z=%lf, reptZ=%lf, tFac=%lf\n", Ne, tRouse, tRept, Z, tReptZ, tFac);
 	return tau;
 }

@@ -229,6 +229,7 @@ __device__ void TransMove(uint* lattice, uint site, uint* slab, uint* trans, uin
 		if(((rand>>4)&0x1) != 0) return;
 		
 		if(next == 0 || prev == 0){
+			if(((rand>>5)&0x7) != 0) return;
 			if(next==0){
 				bond = prev^0xf;
 				prevBond=1;

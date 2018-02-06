@@ -1,5 +1,5 @@
 .PHONY: all clean install
-FC = gfortran-mp-4.9
+FC = gfortran
 FFLAGS=-O2 
 CFLAGS=-O2 -Wall -std=c99
 CC = gcc
@@ -11,6 +11,11 @@ SRCS = main.f90 readparam.f90 readpos.f90 ener.f90 tW.f90 tV.f90
 OBJS = main.o readparam.o readpos.o ener.o tW.o tV.o
 PRGM = dJost.exe 
 EXECS= $(PRGM) secstr_wrap
+
+OS=$(shell uname)
+ifeq ($(OS), Darwin)
+	FC=gfortran-mp-4.9
+endif
 
 override CFLAGS += -I../analysis -I../util
 
