@@ -17,7 +17,7 @@ int StartMove(CurState* cs, LookupTables* lt, int iPol){
 	int newCoor = AddUnitToCoor(newUnit^0xf, coor1, cs->L);
 	int jMono = 1;
 	while(jMono<cs->polSize && !cs->unitPol[iPol][jMono]) jMono++;
-	int noTopo=(jMono==cs->polSize)?1:0;
+	int noTopo= (jMono==cs->polSize)?1:0;
 	int unit1 = (jMono==cs->polSize)?0xf:cs->unitPol[iPol][jMono];
 	
 	if(cs->bondOcc[newCoor]&(1<<(newUnit^0xf))) return 0;
@@ -25,7 +25,7 @@ int StartMove(CurState* cs, LookupTables* lt, int iPol){
 	if(!noTopo){
 		int dBend=0;
 		dBend -= lt->unitDot[unit0][unit1];
-		dBend += lt->unitDot[unit0][newUnit];
+		dBend += lt->unitDot[newUnit][unit1];
 		if(lt->bendProb[dBend+BEND_LVL] < 1 && DRng(cs->rngState) > lt->bendProb[dBend+BEND_LVL])
 			return 0;
 		

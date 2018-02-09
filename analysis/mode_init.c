@@ -104,7 +104,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 			ptl->genomList[ptl->nGenom].ig  = ig;
 			ptl->genomList[ptl->nGenom].x   = i;
 			ptl->genomList[ptl->nGenom++].y = j;
-			printf("%i %i %i\n", g, i, j);
+// 			printf("%i %i %i\n", g, i, j);
 // 			}
 // 			else{
 // 				ptl->genomList[ptl->nGenom].x = j;
