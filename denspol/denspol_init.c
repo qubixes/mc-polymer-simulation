@@ -86,11 +86,16 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 	int polSize = cs->polSize;
 	FILE* pFile = fopen(file, "r");
 	int nMono;
+	int nPol;
+	long nContacts=-1;
+	
 	if(!pFile){
 		printf("Error opening file %s\n", file);
 		exit(192);
 	}
+	fscanf(pFile, "%*s %i", &nPol);
 	fscanf(pFile, "%*s %i", &nMono);
+	fscanf(pFile, "%*s %li", &nContacts); 
 	
 	double ratio = cs->nMono/(double)nMono;
 // 	printf("N = (%i %i)\n", cs->nMono, nMono);
@@ -107,10 +112,15 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 	}
 	int iMono, jMono, iPol, jPol;
 	double strength;
-	long nContacts=0;
+	long nContactsFound=0;
 	while( !(feof(pFile)) && fscanf(pFile, "%i %i %i %i %lf", &iPol, &iMono, &jPol, &jMono, &strength) == 5){
 		AddInteraction(hp, iMono, iPol, jMono, jPol, nMono, strength, cs);
-		nContacts++;
+		nContactsFound++;
+	}
+	
+	if(nContactsFound != nContacts){
+		printf("Error in the number of contacts in file %s\n%li vs %li\n", file, nContacts, nContactsFound);
+		exit(192);
 	}
 	
 	double strPrefac = MIN(1, 0.874*cs->nMono*cs->nPol/(double)nContacts);

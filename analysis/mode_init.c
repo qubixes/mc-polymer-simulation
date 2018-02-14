@@ -318,7 +318,9 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	sp->updRee = NeedsUpdatePath("ptl/pol=0_dev=0.res", "ree.dat", sampleDir);
 	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
 	
-	sp->updPC = NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc.dat", sampleDir);
+	sp->updPC  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc.dat", sampleDir);
+	sp->updPC |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc_avg.dat", sampleDir);
+	sp->updPC |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc_avg_ss.dat", sampleDir);
 	if(sp->updPC){ nUpd++; printf("Updating p_c\n");}	
 
 	return nUpd;
@@ -528,9 +530,9 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");
-	fscanf(pFile, "%*s %i", &sp->polSize);
+	fscanf(pFile, "%*s %li", &sp->polSize);
 	printf("nPol = %i\n", sp->nPol);
-	printf("polSize=%i\n", sp->polSize);
+	printf("polSize=%li\n", sp->polSize);
 	fclose(pFile);
 	
 	sprintf(exec, "ls %s | grep 't=' | grep 'dev=0' | wc -w", sampleDir);

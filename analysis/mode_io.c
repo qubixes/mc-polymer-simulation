@@ -28,7 +28,7 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	sprintf(file, "%s/pc.dat", sp->sampleDir);
 	FILE* pFile = fopen(file, "w");
-	fprintf(pFile, "#Bin= %i\n", ptl->pcBins);
+	fprintf(pFile, "#Bin= %li\n", ptl->pcBins);
 	for(int iMono=0; iMono<(sp->polSize-1)/ptl->pcBins+1; iMono++){
 		for(int jMono=0; jMono<(sp->polSize-1)/ptl->pcBins+1; jMono++){
 			if(iMono>jMono)
@@ -49,8 +49,8 @@ void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	sprintf(file, "%s/pc_avg.dat", sp->sampleDir);
 	FILE* pFile = fopen(file, "w");
-	for(int g=0; g<sp->polSize; g++){
-		fprintf(pFile, "%i %le\n", g, ptl->pcAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
+	for(long g=0; g<sp->polSize; g++){
+		fprintf(pFile, "%li %le\n", g, ptl->pcAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
 	}
 	fclose(pFile);
 	
@@ -60,7 +60,6 @@ void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 		fprintf(pFile, "%i %le\n", g, ptl->pcssAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
 	}
 	fclose(pFile);
-
 }
 
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl){
@@ -382,7 +381,7 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 		vLast = v[0];
 		
 		if(strlen(strIn) != sp->polSize){
-			printf("\n\nMeh: %li vs %i\nfile=%s\n\n", strlen(strIn), sp->polSize, file);
+			printf("\n\nMeh: %li vs %li\nfile=%s\n\n", strlen(strIn), sp->polSize, file);
 			exit(0);
 		}
 		

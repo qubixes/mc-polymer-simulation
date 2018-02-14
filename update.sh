@@ -20,14 +20,24 @@ DIRS=($BDIR/*/*/);
 UPD_DIRS=();
 NUPD=0
 
+MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat")
+ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
+ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
+
+
 for DIR in ${DIRS[*]}; do
-	if needs_update $DIR/simulation_settings.txt $DIR/cmsdif.dat; then
-		UPD_DIRS[NUPD]=$DIR
-		let "NUPD++"
-		echo "$DIR"
-	fi
+	for FILE in ${ALL_FILES[*]}; do 
+		if needs_update $DIR/simulation_settings.txt $DIR/$FILE; then
+			UPD_DIRS[NUPD]=$DIR
+			let "NUPD++"
+			echo "$DIR $FILE"
+			break
+		fi
+	done
 done
-# exit 0
+exit 0
+
 for DIR in ${UPD_DIRS[*]}; do 
 	./bin/create_ptl $DIR || exit $?
 done
@@ -79,10 +89,6 @@ fi
 
 BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 
-MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat")
-ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
-ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 
 for DIR in ${BASE_DIRS[*]}; do
 	for FILE in ${ALL_FILES[*]}; do

@@ -148,7 +148,7 @@ while (( "$#" )); do
 		-h|--help)
 			printf "$USAGE"
 			exit 0 ;;
-		-r|--ring)
+		--ring)
 			echo "Doing simulation with only ring polymers"
 			SIM_TYPE="ring" ;;
 		-d|--density)

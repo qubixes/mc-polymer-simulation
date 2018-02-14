@@ -29,7 +29,7 @@ int main(int argc, char** argv){
 			fprintf(pFile, "LU= %i\n", LT);
 			fprintf(pFile, "LV= %i\n", LT);
 			fprintf(pFile, "np= %i\n", sp.nPol);
-			fprintf(pFile, "maxPolLength= %i\n", sp.polSize+1);
+			fprintf(pFile, "maxPolLength= %li\n", sp.polSize+1);
 			fclose(pFile);
 		}
 	}
@@ -48,7 +48,7 @@ int main(int argc, char** argv){
 				int t,u,v;
 				fscanf(pFile, "%i %i %i", &t, &u, &v);
 				fscanf(pFile, "%s", str);
-				fprintf(pFileDest, "len= %i\n%i %i %i\n%s\n", sp.polSize, t, u, v, str);
+				fprintf(pFileDest, "len= %li\n%i %i %i\n%s\n", sp.polSize, t, u, v, str);
 				fclose(pFileDest);
 			}
 			fclose(pFile);

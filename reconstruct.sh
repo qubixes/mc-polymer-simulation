@@ -9,52 +9,89 @@ function abs_path {
 	echo $X
 }
 
-if [ $# -lt 2 ]; then
-	echo "Need at least two arguments: directory and HP strength"
-	exit 192;
-fi
-
-TOPO="FALSE"
+TOPO=""
 POL_TYPE="ring"
 NPC_SAMPLES=""
 EE_TOPO_FILE=./denspol/ee_topo_comp.dat
 
-DIR=$1
-HP_STRENGTH=$2
+DIR=""
+HP_STRENGTH=0.35
 
 SEED=12938173
 TIME=2e5
 INTERVAL=1e3
-FIRST_TIME=2e5
-FIRST_INTERVAL=1e4
 
 BEND_ENERGY=0.3
 SHUFFLE=1
-HP_STRENGTH_2=`echo "$HP_STRENGTH+0.1" | bc -l`
-HP_STRENGTH_3=`echo "$HP_STRENGTH+0.2" | bc -l`
 
+DIR="$1"
+shift
 
-if [ $# -ge 3 -a "$3" == "TOPO" ]; then
-	TOPO="TRUE"
-fi
+while (( "$#" )); do
+	case $1 in 
+		-t|--time)
+			if [ $# -lt 2 ]; then
+				echo "Need amount of time after -t/--time option."
+				exit 1
+			fi
+			TIME=$2
+			shift;;
+		-s|--seed)
+			if [ $# -lt 2 ]; then
+				echo "Need seed after -s/--seed option"
+				exit 1
+			fi
+			SEED=$2
+			shift;;
+		-r|--dir)
+			if [ $# -lt 2 ]; then
+				echo "Need directory after -r/--dir option"
+				exit 1
+			fi
+			DIR=$2
+			shift;;
+		--ring)
+			POL_TYPE="ring" ;;
+		--linear)
+			POL_TYPE="lin" ;;
+		-i|--interval)
+			if [ $# -lt 2 ]; then
+				echo "Need interval after -i/--interval option"
+				exit 1
+			fi
+			INTERVAL=$2
+			shift;;
+		--phantom|--topo)
+			TOPO="_topo" ;;
+		-n|--samples)
+			if [ $# -lt 2 ]; then
+				echo "Need number of samples after -n/--samples option"
+				exit 1
+			fi
+			NPC_SAMPLES=$2
+			shift;;
+		-e|--hpstrength)
+			if [ $# -lt 2 ]; then
+				echo "Need attraction strength after -e/--hpstrength option"
+				exit 1
+			fi
+			shift;;
+		*)
+			echo "Error: unknown option $1"
+			exit 1 ;;
+	esac
+	shift
+done
 
-if [ $# -ge 4 -a "$4" == "lin" ]; then
-	POL_TYPE="lin"
-fi
+HP_STRENGTH_2=`echo "$HP_STRENGTH+0.05" | bc -l`
+HP_STRENGTH_3=`echo "$HP_STRENGTH+0.10" | bc -l`
 
-if [ $# -ge 5 ]; then
-	NPC_SAMPLES=$5
-fi
+FIRST_TIME=`echo "print $TIME*10" | gnuplot 2> /dev/stdout`
+FIRST_INTERVAL=`echo "print $INTERVAL*10" | gnuplot 2> /dev/stdout`
 
-if [ $# -ge 6 ]; then
-	SEED=$6
-fi
+echo "$FIRST_TIME $FIRST_INTERVAL"
 
-if [ $TOPO == "TRUE" ]; then
-	EXEC=$BIN_DIR/denspol_${POL_TYPE}_hp_topo
-else
-	EXEC=$BIN_DIR/denspol_${POL_TYPE}_hp
-fi
+EXEC=$BIN_DIR/denspol_${POL_TYPE}_hp${TOPO}
 
 if [ $POL_TYPE == "lin" ]; then
 	FIRST_EXEC=$BIN_DIR/denspol_${POL_TYPE}_hp_topo
@@ -68,7 +105,7 @@ if [ ! -f "$DIR/simulation_settings.txt" ]; then
 	exit 193;
 fi
 
-make all install &> /dev/null || { echo "Error in compilation.\n"; exit 192; }
+make all install &> /dev/null || { echo "Error in compilation."; exit 192; }
 
 SCRIPT_DIR=`pwd`
 cd $DIR/..
@@ -80,14 +117,12 @@ DENSITY=`get_attr 'Density' $DIR`
 NPOL=`get_attr 'Npol' $DIR`
 
 
-DENSITY=`echo "$DENSITY/2.0" | bc -l`
+# DENSITY=`echo "$DENSITY/2.0" | bc -l`
 # echo $DENSITY; exit 0
 # echo "get_attr 'Npol' $BASE_DIR"
 # echo "NPOL=$NPOL"
 # exit 0
 NSTEP=0
-CUR_LENGTH=$LENGTH
-
 CUR_LENGTH=7;
 MIN_L=4;
 BEST_L=-1;
@@ -135,13 +170,9 @@ DENSITY=`echo "$NPOL $START_L $START_LENGTH" | awk '{print $(1)*$(3)/($(2)*$(2)*
 
 ISTEP=0
 
-BASE_DEST_DIR="$BASE_DIR/rec_l${START_LENGTH}_hp${HP_STRENGTH}_t${TIME}_${POL_TYPE}_s${SEED}"
+BASE_DEST_DIR="$BASE_DIR/reconstruction/rec_l${START_LENGTH}_hp${HP_STRENGTH}_t${TIME}_${POL_TYPE}_s${SEED}${TOPO}"
 
-if [ $TOPO == "TRUE" ]; then
-	BASE_DEST_DIR="${BASE_DEST_DIR}_TOPO"
-fi
-
-if [ $# -ge 5 ]; then
+if [ "$NPC_SAMPLES" != "" ]; then
 	BASE_DEST_DIR="${BASE_DEST_DIR}_ns${NPC_SAMPLES}"
 fi
 
@@ -196,25 +227,3 @@ while [ $CUR_LENGTH -lt $LENGTH ]; do
 	FIRST_DIR=$SECOND_DIR
 	let "DBL_STEP++"
 done
-
-# echo "SHUFFLE=$SHUFFLE"
-# exit 192
-
-# echo "$BIN_DIR/denspol_ring_hp $SEED $FIRST_DIR $DENSITY $TIME $INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 $SHUFFLE $FIRST_DIR/contact_map.dat $HP_STRENGTH"
-# exit 0
-
-
-# ./update.sh
-
-# for i in `seq 1 144`; do 
-# ./bin/mobility $FIRST_DIR/ptl/pol\=${i}_dev\=0.res | awk '{sum+=$(2); n++;}END{print sum/n}'; done
-
-# while [ $ISTEP -lt $NSTEP ]; do
-# 	
-# 	
-# 	let "ISTEP++"
-# done
-
-# echo $LENGTH $CUR_LENGTH $NSTEP $START_LENGTH
-
-#plot "pc_test.dat" u ($1*100+$2):($3*100+$4):5 w circles

@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "denspol.h"
 #define MIN(X,Y) ((X<Y)?X:Y)
+#define TOSTR2(x) #x
+#define TOSTR(x) TOSTR2(x)
+
 
 int TUV2Coor(int t, int u, int v, int L);
 int ValidateAddUnitVectors(int a, int b, int* c);

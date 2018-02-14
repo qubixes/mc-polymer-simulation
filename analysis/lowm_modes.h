@@ -58,7 +58,7 @@ typedef struct IDouble{
 }IDouble;
 
 typedef struct SimProperties{
-	int polSize;
+	long polSize;
 	int nTime, nEqd, nTherm;
 	long dT, tStart;
 	int nPol;
@@ -135,7 +135,7 @@ typedef struct PolyTimeLapse{
 	int* pointDensity;
 	
 	int nModes;
-	int pcBins;
+	long pcBins;
 	double** avgPosition;
 	double* rGyrT;
 	double** avgModesStat;

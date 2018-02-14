@@ -2,7 +2,7 @@
 
 VPATH=../util
 
-EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms cms_cor ptl2t scaleup denspol_scaleup similarity mobility
+EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms cms_cor ptl2t scaleup denspol_scaleup similarity mobility sim_contact
 EXTRA_INC=../util
 BIN_DIR=../bin
 CFLAGS= -Wall -O2
@@ -27,6 +27,8 @@ scaleup: scaleup.o timer.o file.o mode_util.o
 denspol_scaleup: denspol_scaleup.o mode_util.o
 
 similarity: similarity.o mode_util.o
+
+sim_contact: sim_contact.o mode_util.o
 
 install:
 	cp $(EXECS) $(BIN_DIR)

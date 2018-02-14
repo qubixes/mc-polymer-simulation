@@ -128,10 +128,10 @@ void PrintContactMatrix(Data* data, char* file, long nSamples){
 	for(int coor=0; coor<L*L*L; coor++){
 		for(int indexMono=0; indexMono<data->nIdList[coor]; indexMono++){
 			for(int jIndexMono=indexMono+1; jIndexMono<data->nIdList[coor]; jIndexMono++){
-				contacts[nContacts].monomers[0].iPol = data->lattice[coor][indexMono].iPol;
-				contacts[nContacts].monomers[0].iMono= data->lattice[coor][indexMono].iMono;
-				contacts[nContacts].monomers[1].iPol = data->lattice[coor][jIndexMono].iPol;
-				contacts[nContacts].monomers[1].iMono= data->lattice[coor][jIndexMono].iMono;
+				contacts[nContacts].monomers[0].iPol  = data->lattice[coor][indexMono].iPol;
+				contacts[nContacts].monomers[0].iMono = data->lattice[coor][indexMono].iMono;
+				contacts[nContacts].monomers[1].iPol  = data->lattice[coor][jIndexMono].iPol;
+				contacts[nContacts].monomers[1].iMono = data->lattice[coor][jIndexMono].iMono;
 				nContacts++;
 				if(cAlloc <= nContacts){
 					cAlloc += dAlloc;
@@ -142,7 +142,9 @@ void PrintContactMatrix(Data* data, char* file, long nSamples){
 	}
 	
 	FILE* pFile = fopen(file, "w");
+	fprintf(pFile, "#nPol= %i\n", data->nPol);
 	fprintf(pFile, "#len= %i\n", data->N);
+	fprintf(pFile, "#nContacts= %li\n", MIN(nSamples, nContacts));
 	for(long i=0; i<nSamples && i<nContacts; i++){
 		long j = DRng(rng)*(nContacts-i);
 		fprintf(pFile, "%i %i %i %i %lf\n", contacts[j].monomers[0].iPol, contacts[j].monomers[0].iMono, contacts[j].monomers[1].iPol, contacts[j].monomers[1].iMono, 1.0);

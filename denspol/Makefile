@@ -9,7 +9,7 @@ LDFLAGS= -lm
 EXTRA_INC=../util
 RING_OBJ=denspol_ring.o denspol_init_ring.o denspol_lib_ring.o denspol_io_ring.o timer.o denspol_dbg_ring.o file.o
 LIN_OBJ=denspol_lin.o denspol_init_lin.o denspol_lib_lin.o denspol_io_lin.o denspol_dbg_lin.o timer.o file.o
-$(EXECS): override CFLAGS+= -I$(EXTRA_INC) -std=c99
+$(EXECS): override CFLAGS+= -I$(EXTRA_INC) -std=c99 -DRELEASE=$(RELEASE)
 
 all: $(EXECS)
 

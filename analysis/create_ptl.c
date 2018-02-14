@@ -80,7 +80,7 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 			sprintf(polFile, "%s/ptl/pol=%i_dev=%i.res", sp->sampleDir, iPol, devId);
 			fh.pFilePol[iPol-startPol] = fopen(polFile, "w");
 			if(!fh.pFilePol[iPol-startPol]) printf("Error opening file %s!\n", polFile);
-			fprintf(fh.pFilePol[iPol-startPol], "polId= %i\nnTime= %i\nlen= %i\n", iPol, devId, sp->polSize);
+			fprintf(fh.pFilePol[iPol-startPol], "polId= %i\nnTime= %i\nlen= %li\n", iPol, devId, sp->polSize);
 		}
 		
 		for(int iTime=0; iTime<sp->nTime; iTime++){
@@ -178,9 +178,9 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");
-	fscanf(pFile, "%*s %i", &sp->polSize);
+	fscanf(pFile, "%*s %li", &sp->polSize);
 	printf("nPol = %i\n", sp->nPol);
-	printf("polSize=%i\n", sp->polSize);
+	printf("polSize=%li\n", sp->polSize);
 	fclose(pFile);
 	
 	sprintf(exec, "ls %s | grep 't=' | grep 'dev=0' | wc -w", sampleDir);

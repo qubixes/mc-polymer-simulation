@@ -162,6 +162,12 @@ void WriteSimulationSettings(CurState* cs){
 	fprintf(pFile, "Executable = denspol\n");
 	fprintf(pFile, "Bend_energy = %lf\n", ss->bendEnergy);
 	fprintf(pFile, "HP_strength = %lf\n", ss->hpStrength);
+#ifdef RELEASE
+#define RELEASE_STR TOSTR(RELEASE)
+	fprintf(pFile, "Release = %s\n", RELEASE_STR);
+#else
+	fprintf(pFile, "Release = unknown\n");
+#endif
 	fclose(pFile);
 }
 
