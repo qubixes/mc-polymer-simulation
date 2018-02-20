@@ -14,11 +14,10 @@ POL_TYPE="ring"
 NPC_SAMPLES=""
 EE_TOPO_FILE=./denspol/ee_topo_comp.dat
 
-DIR=""
 HP_STRENGTH=0.35
 
 SEED=12938173
-TIME=2e5
+TIME=1e5
 INTERVAL=1e3
 
 BEND_ENERGY=0.3
@@ -43,13 +42,13 @@ while (( "$#" )); do
 			fi
 			SEED=$2
 			shift;;
-		-r|--dir)
-			if [ $# -lt 2 ]; then
-				echo "Need directory after -r/--dir option"
-				exit 1
-			fi
-			DIR=$2
-			shift;;
+# 		-r|--dir)
+# 			if [ $# -lt 2 ]; then
+# 				echo "Need directory after -r/--dir option"
+# 				exit 1
+# 			fi
+# 			DIR=$2
+# 			shift;;
 		--ring)
 			POL_TYPE="ring" ;;
 		--linear)
@@ -105,7 +104,7 @@ if [ ! -f "$DIR/simulation_settings.txt" ]; then
 	exit 193;
 fi
 
-make all install &> /dev/null || { echo "Error in compilation."; exit 192; }
+#make all install &> /dev/null || { echo "Error in compilation."; exit 192; }
 
 SCRIPT_DIR=`pwd`
 cd $DIR/..
@@ -170,7 +169,7 @@ DENSITY=`echo "$NPOL $START_L $START_LENGTH" | awk '{print $(1)*$(3)/($(2)*$(2)*
 
 ISTEP=0
 
-BASE_DEST_DIR="$BASE_DIR/reconstruction/rec_l${START_LENGTH}_hp${HP_STRENGTH}_t${TIME}_${POL_TYPE}_s${SEED}${TOPO}"
+BASE_DEST_DIR="$BASE_DIR/reconstruction/rec_hp${HP_STRENGTH}_${POL_TYPE}_s${SEED}${TOPO}"
 
 if [ "$NPC_SAMPLES" != "" ]; then
 	BASE_DEST_DIR="${BASE_DEST_DIR}_ns${NPC_SAMPLES}"
@@ -179,19 +178,15 @@ fi
 FIRST_DIR=$BASE_DEST_DIR
 mkdir -p $FIRST_DIR
 SRC_FILE=$DIR/`get_last_tfile $DIR`
-$BIN_DIR/contact_map $SRC_FILE $FIRST_DIR/contact_map.dat $NPC_SAMPLES || exit $?
-# echo "$BIN_DIR/contact_map $SRC_FILE $FIRST_DIR/contact_map.dat $NPC_SAMPLES"; exit 0
+$BIN_DIR/contact_map $SRC_FILE $FIRST_DIR/contact_map.dat $SEED $NPC_SAMPLES || exit $?
 LAST_TFILE=`get_last_tfile $FIRST_DIR`
 LAST_SAVFILE=`get_last_savfile $FIRST_DIR`
 
 # echo "$LAST_TFILE"; exit 192;
 
 if [ $LAST_TFILE == "NOT_FOUND" -o $LAST_TFILE == "t=0_dev=0.res" ]; then
-# 	echo "$EXEC $SEED $FIRST_DIR $DENSITY $TIME $INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 $SHUFFLE $FIRST_DIR/contact_map.dat $HP_STRENGTH"
+	echo "$FIRST_EXEC $SEED $FIRST_DIR $DENSITY $FIRST_TIME $FIRST_INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 $SHUFFLE $FIRST_DIR/contact_map.dat $HP_STRENGTH"
 	$FIRST_EXEC $SEED $FIRST_DIR $DENSITY $FIRST_TIME $FIRST_INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 $SHUFFLE $FIRST_DIR/contact_map.dat $HP_STRENGTH || exit $?
-# 	$EXEC $SEED $FIRST_DIR $DENSITY $FIRST_TIME $FIRST_INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 0 $FIRST_DIR/contact_map.dat $HP_STRENGTH_2 || exit $?
-# 	$EXEC $SEED $FIRST_DIR $DENSITY $FIRST_TIME $FIRST_INTERVAL $START_LENGTH $START_L $EE_TOPO_FILE $BEND_ENERGY 0 0 $FIRST_DIR/contact_map.dat $HP_STRENGTH_3 || exit $?
-# 	exit 0
 	./check_similarity.sh $DIR $FIRST_DIR > "$FIRST_DIR/similarity.dat"
 	$BIN_DIR/contact_map $FIRST_DIR/`get_last_tfile $FIRST_DIR` "$FIRST_DIR/contact_map_new.dat"
 fi

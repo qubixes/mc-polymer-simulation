@@ -23,11 +23,12 @@ typedef struct Data{
 typedef struct RunProperties{
 	char* fileIn;
 	char* fileOut;
+	unsigned int seed;
 	long nSamples;
 }RunProperties;
 
 Data* ReadData(char* file);
-void PrintContactMatrix(Data* data, char* file, long nSamples);
+void PrintContactMatrix(Data* data, RunProperties* rp);
 
 int main(int argc, char** argv){
 	if(argc<3){
@@ -36,18 +37,19 @@ int main(int argc, char** argv){
 	}
 	
 	RunProperties rp;
+	rp.nSamples = (long)1e8;
+	rp.seed     = 1209384;
+	
 	
 	rp.fileIn = argv[1];
 	rp.fileOut = argv[2];
 	if(argc > 3)
-		rp.nSamples = (long)atof(argv[3]);
-	else
-		rp.nSamples = (long)1e8;
+		rp.seed = atoi(argv[3]);
+	if(argc > 4)
+		rp.nSamples = (long)atof(argv[4]);
 	
-// 	printf("nSamples = %li\n", rp.nSamples);
-// 	printf("argc=%i, %s\n", argc, argv[3]);
 	Data* data = ReadData(rp.fileIn);
-	PrintContactMatrix(data, rp.fileOut, rp.nSamples);
+	PrintContactMatrix(data, &rp);
 }
 
 Data* NewData(int polSize, int nPol, int L){
@@ -115,7 +117,7 @@ Data* ReadData(char* file){
 	return data;
 }
 
-void PrintContactMatrix(Data* data, char* file, long nSamples){
+void PrintContactMatrix(Data* data, RunProperties* rp){
 	int L=data->L;
 	
 	int dAlloc = 1000;
@@ -123,7 +125,7 @@ void PrintContactMatrix(Data* data, char* file, long nSamples){
 	Contact* contacts = malloc(sizeof(Contact)*cAlloc);
 	int nContacts=0;
 	unsigned int rng[4];
-	Seed(rng, 1209384);
+	Seed(rng, rp->seed);
 	
 	for(int coor=0; coor<L*L*L; coor++){
 		for(int indexMono=0; indexMono<data->nIdList[coor]; indexMono++){
@@ -141,11 +143,15 @@ void PrintContactMatrix(Data* data, char* file, long nSamples){
 		}
 	}
 	
-	FILE* pFile = fopen(file, "w");
+	FILE* pFile = fopen(rp->fileOut, "w");
+	if(!pFile){
+		printf("Contact_map: error opening file %s for writing\n", rp->fileOut);
+		exit(192);
+	}
 	fprintf(pFile, "#nPol= %i\n", data->nPol);
 	fprintf(pFile, "#len= %i\n", data->N);
-	fprintf(pFile, "#nContacts= %li\n", MIN(nSamples, nContacts));
-	for(long i=0; i<nSamples && i<nContacts; i++){
+	fprintf(pFile, "#nContacts= %li\n", MIN(rp->nSamples, nContacts));
+	for(long i=0; i<rp->nSamples && i<nContacts; i++){
 		long j = DRng(rng)*(nContacts-i);
 		fprintf(pFile, "%i %i %i %i %lf\n", contacts[j].monomers[0].iPol, contacts[j].monomers[0].iMono, contacts[j].monomers[1].iPol, contacts[j].monomers[1].iMono, 1.0);
 		contacts[j] = contacts[nContacts-i-1];

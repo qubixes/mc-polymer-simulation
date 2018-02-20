@@ -1,5 +1,6 @@
 #ifndef __FILE_H_INC__
 #define __FILE_H_INC__
+#define _XOPEN_SOURCE
 #include <sys/stat.h>
 #include <stdio.h>
 #include <errno.h>
