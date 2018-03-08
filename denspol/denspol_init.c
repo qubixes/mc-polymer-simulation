@@ -1,91 +1,248 @@
 #include "denspol.h"
 
+void ReadArgumentsFromFile(SimulationSettings* ss, char* file){
+	FILE* pFile = fopen(file, "r");
+	char strProp[10000], strVal[10000];
+	while(fscanf(pFile, "%s %s", strProp, strVal) == 2){
+		if(!strcmp(strProp, "L"))
+			ss->L = atoi(strVal);
+		else if(!strcmp(strProp, "seed"))
+			ss->seed = (unsigned int)(atol(strVal));
+		else if(!strcmp(strProp, "tmax"))
+			ss->tMax = atof(strVal);
+		else if(!strcmp(strProp, "npol"))
+			ss->nPol = atoi(strVal);
+		else if(!strcmp(strProp, "density"))
+			ss->density = atof(strVal);
+		else if(!strcmp(strProp, "polsize"))
+			ss->polSize = atoi(strVal);
+		else if(!strcmp(strProp, "dblstep"))
+			ss->dblStep = atoi(strVal);
+		else if(!strcmp(strProp, "usetopo"))
+			ss->useTopo = atoi(strVal);
+		else if(!strcmp(strProp, "interval"))
+			ss->interval = atof(strVal);
+		else if(!strcmp(strProp, "bendenergy"))
+			ss->bendEnergy = atof(strVal);
+		else if(!strcmp(strProp, "hpstrength"))
+			ss->hpStrength = atof(strVal);
+		else if(!strcmp(strProp, "dir")){
+			ss->dir = malloc(sizeof(char)*(strlen(strVal)+1));
+			strcpy(ss->dir, strVal);
+		}
+		else if(!strcmp(strProp, "eefile")){
+			ss->eeFile = malloc(sizeof(char)*(strlen(strVal)+1));
+			strcpy(ss->eeFile, strVal);
+		}
+		else if(!strcmp(strProp, "hpfile")){
+			ss->hpFile = malloc(sizeof(char)*(strlen(strVal)+1));
+			strcpy(ss->hpFile, strVal);
+		}
+		else if(!strcmp(strProp, "lengthfile")){
+			ss->lengthFile = malloc(sizeof(char)*(strlen(strVal)+1));
+			strcpy(ss->lengthFile, strVal);
+		}
+		else if(!strcmp(strProp, "poltype")){
+			if(!strcmp(strVal, "lin") || !strcmp(strVal, "linear"))
+				ss->polType = POL_TYPE_LIN;
+			else if(!strcmp(strVal, "ring"))
+				ss->polType = POL_TYPE_RING;
+			else
+				ss->polType = POL_TYPE_MIXED;
+		}
+		else if(!strcmp(strProp, "latticeshape")){
+			if(!strcmp(strVal, "sphere"))
+				ss->latticeShape = LATTICE_SHAPE_SPHERE;
+			else
+				ss->latticeShape = LATTICE_SHAPE_EMPTY;
+		}
+		else if(!strcmp(strProp, "boundarycondition")){
+			if(!strcmp(strVal, "periodic"))
+				ss->boundaryCond = BOUNDARY_PERIODIC;
+			else if(!strcmp(strVal, "static"))
+				ss->boundaryCond = BOUNDARY_STATIC;
+		}
+		else{
+			printf("Warning: unknown argument (%s)\n", strProp);
+		}
+	}
+}
 
-void SimulationInit(CurState* cs, LookupTables* lt, unsigned int seed, double density, int polSize, int L, char* dir){
-	cs->polSize = polSize;
-	int nPol = (int)(L*L*L*density/(double)polSize+0.5);
-	cs->nPol = nPol;
-	
+void SetDefaultSS(SimulationSettings* ss){
+	ss->L            = SS_DEFAULT;
+	ss->polSize      = SS_DEFAULT;
+	ss->density      = SS_DEFAULT;
+	ss->seed         = SS_DEFAULT;
+	ss->tMax         = SS_DEFAULT;
+	ss->interval     = SS_DEFAULT;
+	ss->bendEnergy   = SS_DEFAULT;
+	ss->hpStrength   = SS_DEFAULT;
+// 	ss->polIdShuffle = SS_DEFAULT;
+	ss->hpStrength   = SS_DEFAULT;
+	ss->boundaryCond = SS_DEFAULT;
+	ss->polType      = SS_DEFAULT;
+	ss->dblStep      = SS_DEFAULT;
+	ss->latticeShape = SS_DEFAULT;
+	ss->useTopo      = SS_DEFAULT;
+	ss->hpFile       = NULL;
+	ss->eeFile       = NULL;
+	ss->lengthFile   = NULL;
+	ss->dir          = NULL;
+}
 
+void FillDefaultSS(SimulationSettings* ss){
+	if(ss->L            == SS_DEFAULT) ss->L            = 10;
+	if(ss->polSize      == SS_DEFAULT) ss->polSize      = 200;
+	if(ss->density      == SS_DEFAULT) ss->density      = 7.2;
+	if(ss->seed         == SS_DEFAULT) ss->seed         = 94619234;
+	if(ss->tMax         == SS_DEFAULT) ss->tMax         = 1e4;
+	if(ss->interval     == SS_DEFAULT) ss->interval     = 1e2;
+	if(ss->bendEnergy   == SS_DEFAULT) ss->bendEnergy   = 0.3;
+	if(ss->hpStrength   == SS_DEFAULT) ss->hpStrength   = 0.35;
+// 	if(ss->polIdShuffle == SS_DEFAULT) ss->polIdShuffle = 0;
+	if(ss->boundaryCond == SS_DEFAULT) ss->boundaryCond = BOUNDARY_PERIODIC;
+	if(ss->polType      == SS_DEFAULT) ss->polType      = POL_TYPE_RING;
+	if(ss->dblStep      == SS_DEFAULT) ss->dblStep      = 0;
+	if(ss->latticeShape == SS_DEFAULT) ss->latticeShape = LATTICE_SHAPE_EMPTY;
+	if(ss->useTopo      == SS_DEFAULT) ss->useTopo      = 0;
+}
+
+void SimulationInit(CurState* cs, LookupTables* lt){
 	UnitDotInit(lt, cs->ss.bendEnergy);
 	GenerateMutators(lt);
-#if __FROM_TOPO_COMP__ == TRUE
 	ReadTopComp(lt, cs->ss.eeFile);
-#else
-	TopoMapFromFile(lt, cs->ss.eeFile);
-	SuperTopoInit(lt);
-#endif
 	
-	long lastT = GetLastT(dir);
-	if(lastT<0){
-		cs->curT=0;
-		CSInit(cs, seed, nPol, polSize, L, dir);
-		GeneratePolymers(cs, lt);
-	}
-	else{
+	long lastT = GetLastT(cs->ss.dir);
+	if(lastT>=0){
 		printf("Starting from t=%li\n", lastT);
 		cs->curT=lastT;
-		CSFromFile(cs, dir, lastT);
+		CSFromFile(cs, lt, lastT);
 	}
-#if POL_TYPE == POL_TYPE_RING
-	cs->nMono = cs->polSize;
-#else
-	cs->nMono = cs->polSize+1;
-#endif
+	else{
+		cs->curT=0;
+		if(cs->ss.lengthFile){
+			ReadLengthFile(cs, lt);
+		}
+		else{
+			printf("Error: sorry, creation without a length file currently not supported\n");
+			CSInit(cs);
+		}
+		GeneratePolymers(cs);
+	}
+	
 	if(cs->ss.hpFile) LoadHPFile(cs->ss.hpFile, &lt->hp, cs);
 	else{
-		lt->hp.nInterHP = malloc(sizeof(int)*(polSize+1)*nPol);
-		for(int i=0; i<(polSize+1)*nPol; i++) lt->hp.nInterHP[i]=0;
+		lt->hp.nInter = malloc(sizeof(int*)*cs->nPol);
+		for(int iPol=0; iPol<cs->nPol; iPol++){
+			lt->hp.nInter[iPol] = malloc(sizeof(int)*cs->pol[iPol].nMono);
+			for(int iMono=0; iMono<cs->pol[iPol].nMono; iMono++){
+				lt->hp.nInter[iPol][iMono]=0;
+			}
+		}
 	}
-	lt->hp.distance = GenerateDistanceMatrix(L);
+	lt->hp.distance = GenerateDistanceMatrix(cs->L);
 	
-	if(cs->ss.polIdShuffle){
-		printf("Shuffling polymer\n");
-		ShufflePolymerIds(cs);
-	}
+	lt->nMoveChoice=0;
+	PopulateMoveList(cs, lt);
 	CheckIntegrity(cs, "After construction");
 }
 
-void AddInteraction(HPTable* hp, int iMono, int iPol, int jMono, int jPol, int nMono, double strength, CurState* cs){
-// 	if(iPol != jPol) return;
+
+
+
+void SetLatticeEmpty(CurState* cs, LookupTables *lt){
+	for(int site=0; site<cs->LSize; site++){
+		cs->topoState[site] = 0;
+		cs->bondOcc[site] = 0;
+	}
+	lt->nLatticeUsed = cs->LSize;
+}
+
+void SetLatticeSphere(CurState* cs, LookupTables* lt){
+	int L = cs->L;
+	double r = 0.5*L;
 	
-	double ratio = (cs->nMono)/(double)nMono;
+	double tuvMid[3] = {0.5*(L+1), 0.5*(L+1), 0.5*(L+1)};
+	double xyzMid[3];
+	DTUV2XYZ(tuvMid, xyzMid);
+	
+	lt->nLatticeUsed=0;
+	for(int t=0; t<cs->L; t++){
+		for(int u=0; u<cs->L; u++){
+			for(int v=0; v<cs->L; v++){
+				double dtuv[3] = {t+0.5,u+0.5,v+0.5};
+				double dxyz[3];
+				DTUV2XYZ(dtuv, dxyz);
+				int site = t+u*L+v*L*L;
+				
+				if(Distance(dxyz, xyzMid) < r){
+					cs->topoState[site] = 0;
+					cs->bondOcc[site] = 0;
+					lt->nLatticeUsed++;
+				}
+				else{
+					cs->topoState[site] = -1;
+					cs->bondOcc[site] = 0xffffffff;
+				}
+			}
+		}
+	}
+}
+
+void LatticeInit(CurState* cs, LookupTables* lt){
+	cs->L = cs->ss.L;
+	cs->LSize = cs->ss.L*cs->ss.L*cs->ss.L;
+	cs->topoState = malloc(sizeof(int)*cs->LSize);
+	cs->bondOcc   = malloc(sizeof(int)*cs->LSize);
+	
+	if(cs->ss.latticeShape == LATTICE_SHAPE_SPHERE)
+		SetLatticeSphere(cs, lt);
+	else if(cs->ss.latticeShape == LATTICE_SHAPE_EMPTY)
+		SetLatticeEmpty(cs, lt);
+}
+
+void AddInteraction(HPTable* hp, int iMonoOrig, int iPol, int jMonoOrig, int jPol, double strength, CurState* cs){
 	strength *= cs->ss.hpStrength;
+	Polymer* polI = cs->pol+iPol;
+	Polymer* polJ = cs->pol+jPol;
+	double magRatio = polI->nMono/(double)polI->origNMono;
 	
-	int iMonoId = MonoPol2Id((int)(iMono*ratio+0.5)%cs->polSize, iPol, cs->polSize);
-	int jMonoId = MonoPol2Id((int)(jMono*ratio+0.5)%cs->polSize, jPol, cs->polSize);
-// 	printf("iMonoId = %i, iMono = %i, ratio = %lf\n", iMonoId, iMono, ratio);
+	int iMono = (int)(iMonoOrig*magRatio+0.5)%polI->nMono;
+	int jMono = (int)(jMonoOrig*magRatio+0.5)%polJ->nMono;
 	
-	if(iMonoId == jMonoId) return;
+	if(iMono == jMono && iPol == jPol) return;
 	int exist=0;
-	for(int indexI=0; indexI<hp->nInterHP[iMonoId] && !exist; indexI++){
-		if(hp->monoId[iMonoId][indexI] == jMonoId){
-			hp->HPStrength[iMonoId][indexI] += strength;
+	for(int indexI=0; indexI<hp->nInter[iPol][iMono] && !exist; indexI++){
+		TripleHP* interaction = &hp->inter[iPol][iMono][indexI];
+		if(interaction->iMono == jMono && interaction->iPol == jPol){
+			interaction->strength += strength;
 			exist=1;
 		}
 	}
 	if(!exist){
-		hp->monoId[iMonoId][hp->nInterHP[iMonoId]] = jMonoId;
-		hp->HPStrength[iMonoId][hp->nInterHP[iMonoId]++] = strength;
+		hp->inter[iPol][iMono][hp->nInter[iPol][iMono]  ].iMono     = jMono;
+		hp->inter[iPol][iMono][hp->nInter[iPol][iMono]  ].iPol      = jPol;
+		hp->inter[iPol][iMono][hp->nInter[iPol][iMono]++].strength  = strength;
+		
+		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]  ].iMono     = iMono;
+		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]  ].iPol      = iPol;
+		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]++].strength  = strength;
 	}
-	
-	exist=0;
-	for(int indexJ=0; indexJ<hp->nInterHP[jMonoId] && !exist; indexJ++){
-		if(hp->monoId[jMonoId][indexJ] == iMonoId){
-			hp->HPStrength[jMonoId][indexJ] += strength;
-			exist=1;
+	else{
+		for(int indexJ=0; indexJ<hp->nInter[jPol][jMono]; indexJ++){
+			TripleHP* interaction = &hp->inter[jPol][jMono][indexJ];
+			if(interaction->iMono == iMono && interaction->iPol == iPol){
+				interaction->strength += strength;
+				break;
+			}
 		}
-	}
-	if(!exist){
-		hp->monoId[jMonoId][hp->nInterHP[jMonoId]] = iMonoId;
-		hp->HPStrength[jMonoId][hp->nInterHP[jMonoId]++] = strength;
 	}
 }
 
 void LoadHPFile(char* file, HPTable* hp, CurState* cs){
-	int polSize = cs->polSize;
+// 	int polSize = cs->polSize;
 	FILE* pFile = fopen(file, "r");
-	int nMono;
+	int maxNMono;
 	int nPol;
 	long nContacts=-1;
 	
@@ -94,27 +251,37 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 		exit(192);
 	}
 	fscanf(pFile, "%*s %i", &nPol);
-	fscanf(pFile, "%*s %i", &nMono);
+	fscanf(pFile, "%*s %i", &maxNMono);
 	fscanf(pFile, "%*s %li", &nContacts); 
 	
-	double ratio = cs->nMono/(double)nMono;
 // 	printf("N = (%i %i)\n", cs->nMono, nMono);
+	if(nPol != cs->nPol){
+		printf("Error: wrong number of polymers in contact file (%i vs assumed %i)\n", nPol, cs->nPol);
+		exit(192);
+	}
+	
+	///Assume that linear/ring configuration is okay...
+	for(int iPol=0; iPol<nPol; iPol++){
+		fscanf(pFile, "%*s %i", &cs->pol[iPol].origNMono);
+	}
+	double ratio = cs->pol[0].nMono/(double)cs->pol[0].origNMono;
 	int maxInter = MAX(12, 12/(ratio*ratio));
 	
-	
-	hp->HPStrength = (double**)malloc(sizeof(double*)*(polSize+1)*cs->nPol);
-	hp->monoId     = (int**)malloc(sizeof(int*)*(polSize+1)*cs->nPol);
-	hp->nInterHP   = (int*)malloc(sizeof(int)*(polSize+1)*cs->nPol);
-	for(int monoId=0; monoId<(polSize+1)*cs->nPol; monoId++){
-		hp->HPStrength[monoId] = (double*)malloc(sizeof(double)*maxInter);
-		hp->monoId[monoId]     = (int*)malloc(sizeof(int)*maxInter);
-		hp->nInterHP[monoId]   = 0;
+	hp->inter    = (TripleHP***)malloc(sizeof(TripleHP**)*cs->nPol);
+	hp->nInter   = (int**)      malloc(sizeof(int*)      *cs->nPol);
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		hp->inter[iPol]  = malloc(sizeof(TripleHP*)*cs->pol[iPol].nMono);
+		hp->nInter[iPol] = malloc(sizeof(int)      *cs->pol[iPol].nMono);
+		for(int iMono=0; iMono<cs->pol[iPol].nMono; iMono++){
+			hp->inter[iPol][iMono] = malloc(sizeof(TripleHP)*maxInter);
+			hp->nInter[iPol][iMono]=0;
+		}
 	}
 	int iMono, jMono, iPol, jPol;
 	double strength;
 	long nContactsFound=0;
 	while( !(feof(pFile)) && fscanf(pFile, "%i %i %i %i %lf", &iPol, &iMono, &jPol, &jMono, &strength) == 5){
-		AddInteraction(hp, iMono, iPol, jMono, jPol, nMono, strength, cs);
+		AddInteraction(hp, iMono, iPol, jMono, jPol, strength, cs);
 		nContactsFound++;
 	}
 	
@@ -123,46 +290,113 @@ void LoadHPFile(char* file, HPTable* hp, CurState* cs){
 		exit(192);
 	}
 	
-	double strPrefac = MIN(1, 0.874*cs->nMono*cs->nPol/(double)nContacts);
+	double strPrefac = MIN(1, 0.874*cs->nTotMono/(double)nContacts);
 	
-// 	printf("New vs old: %lf vs %lf, interactions: %li\n", strPrefac, ratio, nContacts);
-// 	exit(0);
-	
-	for(int iMono=0; iMono<cs->nMono*cs->nPol; iMono++){
-		for(int iContact=0; iContact<hp->nInterHP[iMono]; iContact++){
-			hp->HPStrength[iMono][iContact] *= strPrefac;
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		for(int iMono=0; iMono<cs->pol[iPol].nMono; iMono++){
+			for(int iContact=0; iContact<hp->nInter[iPol][iMono]; iContact++){
+				hp->inter[iPol][iMono][iContact].strength *= strPrefac;
+			}
 		}
 	}
 }
 
-void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char* dir){
+void AllocPolymers(CurState* cs){
+	cs->pol       = malloc(sizeof(Polymer)*cs->nPol);
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		cs->pol[iPol].unitPol = malloc(sizeof(int)*(cs->maxNMono));
+		cs->pol[iPol].coorPol = malloc(sizeof(int)*(cs->maxNMono));
+		for(int iMono=0; iMono<cs->maxNMono; iMono++){
+			cs->pol[iPol].unitPol[iMono] = 0xf;
+			cs->pol[iPol].coorPol[iMono] = -1;
+		}
+	}
+}
+
+void CSInit(CurState* cs){
 	char exec[1000];
 	
-	cs->ss.dir = dir;
-	cs->L = L;
-	cs->LSize = L*L*L;
-	cs->nPol = nPol;
-	cs->polSize = polSize;
-	
-	cs->topoState = malloc(sizeof(int)*cs->LSize);
-	cs->bondOcc = malloc(sizeof(int)*cs->LSize);
-	cs->unitPol = malloc(sizeof(int*)*cs->nPol);
-	cs->coorPol = malloc(sizeof(int*)*cs->nPol);
-	
-	for(int iPol=0; iPol<cs->nPol; iPol++){
-		cs->unitPol[iPol] = malloc(sizeof(int)*(cs->polSize+1));
-		cs->coorPol[iPol] = malloc(sizeof(int)*(cs->polSize+1));
-	}
+	cs->L     = cs->ss.L;
+	cs->LSize = cs->L*cs->L*cs->L;
+	cs->nPol  = cs->ss.nPol;
 	
 	for(int i=0; i<cs->LSize; i++){
 		cs->topoState[i]=0;
 		cs->bondOcc[i]=0;
 	}
 	
-	Seed(cs->rngState, seed);
+	Seed(cs->rngState, cs->ss.seed);
 	
-	sprintf(exec, "mkdir -p %s", dir);
+	sprintf(exec, "mkdir -p %s", cs->ss.dir);
 	system(exec);
+}
+
+void PopulateMoveList(CurState* cs, LookupTables* lt){
+	
+	if(!lt->nMoveChoice){
+		lt->nMoveChoice=0;
+		lt->nLatticeUsed=0;
+		for(int coor=0; coor<cs->LSize; coor++){
+			if(cs->topoState[coor] >= 0)
+				lt->nLatticeUsed++;
+		}
+		
+		if(cs->ss.useTopo)
+			lt->nMoveChoice += lt->nLatticeUsed;
+		
+		for(Polymer* pol = cs->pol; pol<cs->pol+cs->nPol; pol++)
+			lt->nMoveChoice += 2*pol->polSize;
+		
+		lt->moveChoiceTable = malloc(sizeof(int*)*lt->nMoveChoice);
+		for(int i=0; i<lt->nMoveChoice; i++)
+			lt->moveChoiceTable[i] = malloc(sizeof(int)*3);
+		lt->latticeUsed = malloc(sizeof(int)*lt->nLatticeUsed);
+	}
+	
+	int curMove=0;
+	int curCoor=0;
+	if(cs->ss.useTopo){
+		for(int coor=0; coor<cs->LSize; coor++){
+			if(cs->topoState[coor] >= 0){
+				lt->moveChoiceTable[curMove  ][0] = MOVE_TOPO;
+				lt->moveChoiceTable[curMove  ][1] = NON_EXISTING;
+				lt->moveChoiceTable[curMove++][2] = NON_EXISTING;
+				lt->latticeUsed[curCoor++] = coor;
+			}
+		}
+	}
+	for(Polymer* pol = cs->pol; pol<cs->pol+cs->nPol; pol++){
+		int iPol = pol-cs->pol;
+		if(pol->polType == POL_TYPE_LIN){
+			for(int iMono=1; iMono<pol->nMono-1; iMono++){
+				lt->moveChoiceTable[curMove  ][0] = MOVE_TRANS_LIN;
+				lt->moveChoiceTable[curMove  ][1] = iPol;
+				lt->moveChoiceTable[curMove++][2] = iMono;
+				
+				lt->moveChoiceTable[curMove  ][0] = MOVE_DIFFUSE;
+				lt->moveChoiceTable[curMove  ][1] = iPol;
+				lt->moveChoiceTable[curMove++][2] = iMono;
+			}
+			lt->moveChoiceTable[curMove  ][0] = MOVE_START;
+			lt->moveChoiceTable[curMove  ][1] = iPol;
+			lt->moveChoiceTable[curMove++][2] = NON_EXISTING;
+			
+			lt->moveChoiceTable[curMove  ][0] = MOVE_END;
+			lt->moveChoiceTable[curMove  ][1] = iPol;
+			lt->moveChoiceTable[curMove++][2] = NON_EXISTING;
+		}
+		else{
+			for(int iMono=0; iMono<pol->nMono; iMono++){
+				lt->moveChoiceTable[curMove  ][0] = MOVE_TRANS_RING;
+				lt->moveChoiceTable[curMove  ][1] = iPol;
+				lt->moveChoiceTable[curMove++][2] = iMono;
+				
+				lt->moveChoiceTable[curMove  ][0] = MOVE_DIFFUSE;
+				lt->moveChoiceTable[curMove  ][1] = iPol;
+				lt->moveChoiceTable[curMove++][2] = iMono;
+			}
+		}
+	}
 }
 
 /// Use a Fisher-Yates shuffle to randomize the polymer ID's.
@@ -171,122 +405,132 @@ void CSInit(CurState* cs, unsigned int seed, int nPol, int polSize, int L, char*
 /// One application is if you want to reconstruct a configuration, but not start
 /// with polymers in the same position, which would be akin to cheating.
 
-void ShufflePolymerIds(CurState* cs){
-	int* tUnit, *tCoor;
+// void ShufflePolymerIds(CurState* cs, LookupTables* lt){
+// 	Polymer tPol;
+// 	for(int i=0; i<cs->nPol-1; i++){
+// 		int j= i+DRng(cs->rngState)*(cs->nPol-i);
+// 		if(i != j){
+// 			tPol = cs->pol[i];
+// 			cs->pol[i] = cs->pol[j];
+// 			cs->pol[j] = tPol;
+// 		}
+// 	}
+// 	PopulateMoveList(cs,lt);
+// }
+
+int CheckPolymerPartition(CurState* cs, int delta){
+	int nFound=0;
 	
+	int units[] = {0x0, 0x4, 0x5};
+	
+	for(int t=0; t+delta/2<cs->L; t+=delta){
+		for(int u=0; u+delta/2<cs->L; u+=delta){
+			for(int v=0; v+delta/2<cs->L; v+=delta){
+				int coor = TUV2Coor(t,u,v,cs->L);
+				int OOB;
+				int available=1;
+				for(int iUnit=0; iUnit<3 && available; iUnit++){
+					int newCoor = cs->AddUnitToCoor(units[iUnit], coor, cs->L, &OOB);
+					if(OOB || cs->topoState[newCoor] <0) available = 0; 
+				}
+				nFound += available;
+			}
+		}
+	}
+	return nFound;
+}
+
+void GeneratePolymers(CurState* cs){
+	int delta;
+	int L = cs->L;
+	
+	for(delta=L; delta>=1; delta--){
+		int nTot = 1;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		if(nTot >= cs->nPol && CheckPolymerPartition(cs, delta) >= cs->nPol){
+			break;
+		}
+	}
+	if(!delta){
+		printf("Error finding polymer partition, too many polymers/too dense.\n");
+		exit(192);
+	}
+	
+	int ringUnits[] = {0x4,0x1,0xa};
+	int linUnits[] = {0x4};
+	
+	int* polOrder = malloc(sizeof(int)*cs->nPol);
+	for(int i=0; i<cs->nPol; i++) polOrder[i]=i;
+	int tPol;
 	for(int i=0; i<cs->nPol-1; i++){
 		int j= i+DRng(cs->rngState)*(cs->nPol-i);
 		if(i != j){
-			tUnit = cs->unitPol[i];
-			cs->unitPol[i] = cs->unitPol[j];
-			cs->unitPol[j] = tUnit;
-			
-			tCoor = cs->coorPol[i];
-			cs->coorPol[i] = cs->coorPol[j];
-			cs->coorPol[j] = tCoor;
+			tPol = polOrder[i];
+			polOrder[i] = polOrder[j];
+			polOrder[j] = tPol;
 		}
 	}
-}
-
-
-void GenerateRingPolymers(CurState* cs, LookupTables* lt){
-	int delta;
-	int L = cs->L;
-	
-	for(delta=L; delta>=1; delta--){
-		int nTot = 1;
-		nTot *= L/delta;
-		nTot *= L/delta;
-		nTot *= L/delta;
-		if(nTot >= cs->nPol){
-			break;
-		}
-	}
-	if(!delta){
-		printf("Failed to find partition for polymers\n");
-		exit(102);
-	}
-	
-	
-	int units[3] = {0x4,0x1,0xa};
-	
-	int iPol=0;
+		
+	int iPol=0; 
+	Polymer* pol;
 	for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
 		for(int u=0; u+delta/2<L && iPol<cs->nPol; u += delta){
 			for(int v=0; v+delta/2<L && iPol<cs->nPol; v += delta){
-				for(int j=0; j<3; j++)
-					cs->unitPol[iPol][j] = units[j];
-				for(int iMono=3; iMono<cs->polSize; iMono++)
-					cs->unitPol[iPol][iMono] = 0;
-				int coor = TUV2Coor(t,u,v,L);
-				for(int iMono=0; iMono<cs->polSize; iMono++){
-					cs->coorPol[iPol][iMono] = coor;
-					coor = AddUnitToCoor(cs->unitPol[iPol][iMono], coor, L);
+				pol = cs->pol+polOrder[iPol];
+				int OOB;
+				int available=1;
+				int coor = TUV2Coor(t,u,v,cs->L);
+				for(int iUnit=0; iUnit<3 && available; iUnit++){
+					int newCoor = cs->AddUnitToCoor(ringUnits[iUnit], coor, cs->L, &OOB);
+					if(OOB || cs->topoState[newCoor] <0) available = 0; 
 				}
+				if(!available) continue;
+// 				printf("polType = %i\n", pol->polType);
 				
-				for(int iMono=0; iMono<3; iMono++){
-					int bondOcc = 1<<cs->unitPol[iPol][(iMono-1+3)%3];
-					bondOcc |= 1<<(cs->unitPol[iPol][iMono]^0xf);
-					cs->bondOcc[cs->coorPol[iPol][iMono]] |= bondOcc;
+				if(pol->polType == POL_TYPE_RING){
+					for(int j=0; j<3; j++)
+						pol->unitPol[j] = ringUnits[j];
+					for(int iMono=3; iMono<pol->polSize; iMono++)
+						pol->unitPol[iMono] = 0;
+					int coor = TUV2Coor(t,u,v,L);
+					for(int iMono=0; iMono<pol->polSize; iMono++){
+						pol->coorPol[iMono] = coor;
+						coor = cs->AddUnitToCoor(pol->unitPol[iMono], coor, L, &OOB);
+					}
+					
+					for(int iMono=0; iMono<3; iMono++){
+						int bondOcc = 1<<pol->unitPol[(iMono-1+3)%3];
+						bondOcc |= 1<<(pol->unitPol[iMono]^0xf);
+						cs->bondOcc[pol->coorPol[iMono]] |= bondOcc;
+					}
+					iPol++;
 				}
-				iPol++;
+				else if(pol->polType == POL_TYPE_LIN){
+					pol->unitPol[0] = linUnits[0];
+				
+					for(int iMono=1; iMono<pol->polSize; iMono++)
+						pol->unitPol[iMono] = 0;
+					pol->unitPol[pol->polSize] = 0xf;
+					
+					int coor = TUV2Coor(t,u,v,L);
+					for(int iMono=0; iMono<=pol->polSize; iMono++){
+						pol->coorPol[iMono] = coor;
+						coor = cs->AddUnitToCoor(pol->unitPol[iMono], coor, L, &OOB);
+					}
+					
+					int bondOcc0 = 1<<(pol->unitPol[0]^0xf);
+					int bondOcc1 = 1<<(pol->unitPol[0]);
+					
+					cs->bondOcc[pol->coorPol[0]] |= bondOcc0;
+					cs->bondOcc[pol->coorPol[1]] |= bondOcc1;
+					
+					iPol++;
+				}
 			}
 		}
 	}
-}
-
-void GenerateLinearPolymers(CurState* cs, LookupTables* lt){
-	int delta;
-	int L = cs->L;
-	
-	for(delta=L; delta>=1; delta--){
-		int nTot = 1;
-		nTot *= L/delta;
-		nTot *= L/delta;
-		nTot *= L/delta;
-		if(nTot >= cs->nPol){
-			break;
-		}
-	}
-	if(!delta){
-		printf("Failed to find partition for polymers\n");
-		exit(102);
-	}
-	
-	int iPol=0;
-	for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
-		for(int u=0; u+delta/2<L && iPol<cs->nPol; u += delta){
-			for(int v=0; v+delta/2<L && iPol<cs->nPol; v += delta){
-				cs->unitPol[iPol][0] = 0x1;
-				
-				for(int iMono=1; iMono<cs->polSize; iMono++)
-					cs->unitPol[iPol][iMono] = 0;
-				cs->unitPol[iPol][cs->polSize] = 0xf;
-				
-				int coor = TUV2Coor(t,u,v,L);
-				for(int iMono=0; iMono<=cs->polSize; iMono++){
-					cs->coorPol[iPol][iMono] = coor;
-					coor = AddUnitToCoor(cs->unitPol[iPol][iMono], coor, L);
-				}
-				
-				int bondOcc0 = 1<<(cs->unitPol[iPol][0]^0xf);
-				int bondOcc1 = 1<<(cs->unitPol[iPol][0]);
-				
-				cs->bondOcc[cs->coorPol[iPol][0]] |= bondOcc0;
-				cs->bondOcc[cs->coorPol[iPol][1]] |= bondOcc1;
-				
-				iPol++;
-			}
-		}
-	}
-}
-
-void GeneratePolymers(CurState* cs, LookupTables* lt){
-#if POL_TYPE == POL_TYPE_LIN
-	GenerateLinearPolymers(cs,lt);
-#elif POL_TYPE == POL_TYPE_RING
-	GenerateRingPolymers(cs,lt);
-#endif
 }
 
 void GenerateMutators(LookupTables* lt){
@@ -438,6 +682,46 @@ void UnitDotInit(LookupTables* lt, double bendEnergy){
 		else
 			lt->bendProb[dBend+BEND_LVL] = 1;
 	}
+}
+
+double*** GenerateBoundedDistanceMatrix(int L){
+	double*** distances = (double***)malloc(sizeof(double**)*(2*L)) + L;
+	for(int i=-L; i<=L-1; i++){
+		distances[i] = (double**) malloc(sizeof(double*)*(2*L)) + L;
+		for(int j=-L; j<=L-1; j++){
+			distances[i][j] = (double*) malloc(sizeof(double)*(2*L)) + L;
+			for(int k=-L; k<=L-1; k++){
+				distances[i][j][k]=-1;
+			}
+		}
+	}
+	
+	double tuv[3];
+	double xyz[3];
+	double xyzZero[3]={0,0,0};
+	
+	for(int t=-L; t<L; t++){
+		for(int u=-L; u<L; u++){
+			for(int v=L; v<L; v++){
+				tuv[0]=t; tuv[1]=u; tuv[2]=v;
+				DTUV2XYZ(tuv,xyz);
+				distances[t][u][v] = Distance(xyz, xyzZero);
+			}
+		}
+	}
+	
+	for(int t=-L; t<L; t++){
+		for(int u=-L; u<L; u++){
+			for(int v=-L; v<L; v++){
+				if(distances[t][u][v] == -1){
+					printf("Error: distance not filled in\n");
+					exit(192);
+				}
+			}
+		}
+	}
+	
+	return distances;
 }
 
 

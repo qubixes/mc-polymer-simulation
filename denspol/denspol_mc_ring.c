@@ -1,29 +1,15 @@
 #include "denspol_mc.h"
 
-int CheckMutation(int mutation, int coor, int* topoState, LookupTables* lt){
-	int topo = topoState[coor];
-	if(lt->mutTopo[topo][mutation]<0) return 1;
-	else return 0;
-}
-
-void PerformMutation(int mutation, int coor, int* topoState, LookupTables* lt){
-	int topo = topoState[coor];
-	topoState[coor] = lt->mutTopo[topo][mutation];
-}
-
 /// Forward transverse move: unit1+unit2 => newUnits[0]+newUnits[1]
 
-int TransStepCompact(CurState* cs, LookupTables* lt){
-	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
-	int iMono = mono%cs->polSize;
-	int iPol = mono/cs->polSize;
+int TransMoveRing(CurState* cs, LookupTables* lt, Polymer* pol, int iMono){
 	int L = cs->L;
 	int* mutations;
 	
 	int mut[3];
-	int unit1 = cs->unitPol[iPol][iMono];
-	int coor[3] = {cs->coorPol[iPol][iMono],-1,-1};
-	int unit2 = cs->unitPol[iPol][(iMono+1)%cs->polSize];
+	int unit1 = pol->unitPol[iMono];
+	int coor[3] = {pol->coorPol[iMono],-1,-1};
+	int unit2 = pol->unitPol[(iMono+1)%pol->polSize];
 	int rand = 4*DRng(cs->rngState);
 	
 	mutations = lt->mutator[unit1][unit2][rand];
@@ -31,12 +17,12 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 	int* newUnits = lt->newUnits[unit1][unit2][rand];
 	
 	///Figure out the bonds outside the two we have.
-	int jMono=(iMono-1+cs->polSize)%cs->polSize;
-	while(!cs->unitPol[iPol][jMono]) jMono = (jMono-1+cs->polSize)%cs->polSize;
-	int unit0=cs->unitPol[iPol][jMono];
-	jMono=(iMono+2)%cs->polSize;
-	while(!cs->unitPol[iPol][jMono]) jMono = (jMono+1)%cs->polSize;
-	int unit3=cs->unitPol[iPol][jMono];
+	int jMono=(iMono-1+pol->polSize)%pol->polSize;
+	while(!pol->unitPol[jMono]) jMono = (jMono-1+pol->polSize)%pol->polSize;
+	int unit0=pol->unitPol[jMono];
+	jMono=(iMono+2)%pol->polSize;
+	while(!pol->unitPol[jMono]) jMono = (jMono+1)%pol->polSize;
+	int unit3=pol->unitPol[jMono];
 	
 	
 	///Forward move
@@ -52,9 +38,11 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		if(lt->bendProb[dBend+BEND_LVL] < 1 && DRng(cs->rngState) > lt->bendProb[dBend+BEND_LVL])
 			return 0;
 	
+		int OOB;
+		coor[1] = cs->AddUnitToCoor(newUnits[0], coor[0], L, &OOB);
+		if(OOB) return 0;
 		
-		coor[1] = AddUnitToCoor(newUnits[0], coor[0], L);
-		coor[2] = cs->coorPol[iPol][(iMono+2)%cs->polSize];
+		coor[2] = pol->coorPol[(iMono+2)%pol->polSize];
 		
 		///Check if new position is empty
 		if(cs->bondOcc[coor[1]]&((1<<newUnits[0])|(1<<(newUnits[1]^0xf)))) return 0;
@@ -78,9 +66,9 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 			return 0;
 		
 #ifdef __HP_ENABLED__
-		int monoMove = (iMono+1)%cs->polSize;
+		int monoMove = (iMono+1)%pol->polSize;
 		int unitMove = unit2?newUnits[0]:(newUnits[1]^0xf);
-		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove)) 
+		if(!TestMoveHP(cs,lt,monoMove, pol, unitMove)) 
 			return 0;
 // 		printf("success forward!\n");
 #endif
@@ -101,13 +89,10 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		cs->bondOcc[coor[2]] ^= 1<<(unit1|unit2);
 		cs->bondOcc[coor[2]] |= 1<< newUnits[1];
 		
-		cs->unitPol[iPol][iMono] = newUnits[0];
-		cs->unitPol[iPol][(iMono+1)%cs->polSize] = newUnits[1];
-		cs->coorPol[iPol][(iMono+1)%cs->polSize] = coor[1];
-// 		if(CheckIntegrity(cs, "After Forward Move")){
-// 			printf("iMono = %i, iPol = %i, coor = (%i,%i,%i)\n", iMono+1, iPol, coor[0], coor[1], coor[2]);
-// 			exit(192);
-// 		}
+		pol->unitPol[iMono] = newUnits[0];
+		pol->unitPol[(iMono+1)%pol->polSize] = newUnits[1];
+		pol->coorPol[(iMono+1)%pol->polSize] = coor[1];
+// 		CheckIntegrity(cs, "After Forward Linear Move");
 		return 1;
 	}
 	///Backward move
@@ -125,8 +110,8 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		
 		
 		
-		coor[1] = cs->coorPol[iPol][(iMono+1)%cs->polSize];
-		coor[2] = cs->coorPol[iPol][(iMono+2)%cs->polSize];
+		coor[1] = pol->coorPol[(iMono+1)%pol->polSize];
+		coor[2] = pol->coorPol[(iMono+2)%pol->polSize];
 		
 		///Check if we can remove the middle monomer
 		if(lt->topComp[cs->topoState[coor[1]]].permBond&(1<<unit1)) return 0;
@@ -154,9 +139,9 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 			return 0;
 		
 #ifdef __HP_ENABLED__
-		int monoMove = ((iMono+1)%cs->polSize);
+		int monoMove = ((iMono+1)%pol->polSize);
 		int unitMove = newUnits[0]?unit2:(unit1^0xf);
-		if(!TestMoveHP(cs,lt,monoMove, iPol, unitMove))
+		if(!TestMoveHP(cs,lt,monoMove, pol, unitMove))
 			return 0;
 // 		printf("success backward!\n");
 #endif
@@ -176,187 +161,12 @@ int TransStepCompact(CurState* cs, LookupTables* lt){
 		cs->bondOcc[coor[2]] |= 1<<(newUnits[0]|newUnits[1]);
 		cs->bondOcc[coor[2]] ^= 1<<unit2;
 		
-		cs->unitPol[iPol][iMono] = newUnits[0];
-		cs->unitPol[iPol][(iMono+1)%cs->polSize] = newUnits[1];
-		cs->coorPol[iPol][(iMono+1)%cs->polSize] = (newUnits[0])?coor[2]:coor[0];
-// 		if(CheckIntegrity(cs, "After backward move")){
-// 			printf("Coor = (%i %i %i)\n", coor[0], coor[1], coor[2]);
-// 			exit(192);
-// 		};
+		pol->unitPol[iMono] = newUnits[0];
+		pol->unitPol[(iMono+1)%pol->polSize] = newUnits[1];
+		pol->coorPol[(iMono+1)%pol->polSize] = (newUnits[0])?coor[2]:coor[0];
+// 		CheckIntegrity(cs, "After Backward Linear Move");
 		return 1;
 	}
 	return 1;
 }
-
-
-int TransStep(CurState* cs, LookupTables* lt){
-	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
-	int iMono = mono%cs->polSize;
-	int iPol = mono/cs->polSize;
-	int L = cs->L;
-	int* mutations;
-	
-	int unit1 = cs->unitPol[iPol][iMono];
-	int coor[3] = {cs->coorPol[iPol][iMono],-1,-1};
-	int unit2 = cs->unitPol[iPol][(iMono+1)%cs->polSize];
-	int rand = 4*DRng(cs->rngState);
-	
-	mutations = lt->mutator[unit1][unit2][rand];
-	if(mutations[0]<0) return 0;
-	int* newUnits = lt->newUnits[unit1][unit2][rand];
-	
-	///Figure out the bonds outside the two we have.
-	int jMono=(iMono-1+cs->polSize)%cs->polSize;
-	while(!cs->unitPol[iPol][jMono]) jMono = (jMono-1+cs->polSize)%cs->polSize;
-	int unit0=cs->unitPol[iPol][jMono];
-	jMono=(iMono+2)%cs->polSize;
-	while(!cs->unitPol[iPol][jMono]) jMono = (jMono+1)%cs->polSize;
-	int unit3=cs->unitPol[iPol][jMono];
-	
-	
-	///Forward move
-	if(!(unit1 && unit2)){
-		
-		int dBend=0;
-		dBend -= lt->unitDot[unit0][unit1|unit2];
-		dBend -= lt->unitDot[unit1|unit2][unit3];
-		dBend += lt->unitDot[unit0][newUnits[0]];
-		dBend += lt->unitDot[newUnits[0]][newUnits[1]];
-		dBend += lt->unitDot[newUnits[1]][unit3];
-		
-		if(lt->bendProb[dBend+BEND_LVL] < 1 && DRng(cs->rngState) > lt->bendProb[dBend+BEND_LVL]) 
-			return 0;
-		
-		
-		coor[1] = AddUnitToCoor(newUnits[0], coor[0], L);
-		coor[2] = cs->coorPol[iPol][(iMono+2)%cs->polSize];
-		
-		for(int k=0; k<3; k++){
-			lt->counts[unit1][unit2][rand][k]++;
-			if(CheckMutation(mutations[k], coor[k], cs->topoState, lt)){
-				return 0;
-			}
-		}
-		for(int k=0; k<3; k++){
-			PerformMutation(mutations[k], coor[k], cs->topoState, lt);
-		}
-		
-		cs->unitPol[iPol][iMono] = newUnits[0];
-		cs->unitPol[iPol][(iMono+1)%cs->polSize] = newUnits[1];
-		cs->coorPol[iPol][(iMono+1)%cs->polSize] = coor[1];
-		return 1;
-	}
-	///Backward move
-	else {
-		
-		int dBend=0;
-		dBend -= lt->unitDot[unit0][unit1];
-		dBend -= lt->unitDot[unit1][unit2];
-		dBend -= lt->unitDot[unit2][unit3];
-		dBend += lt->unitDot[unit0][newUnits[0]|newUnits[1]];
-		dBend += lt->unitDot[newUnits[0]|newUnits[1]][unit3];
-		
-		if(lt->bendProb[dBend+BEND_LVL] < 1 && DRng(cs->rngState) > lt->bendProb[dBend+BEND_LVL]) 
-			return 0;
-		
-		coor[1] = cs->coorPol[iPol][(iMono+1)%cs->polSize];
-		coor[2] = cs->coorPol[iPol][(iMono+2)%cs->polSize];
-		
-		for(int k=0; k<3; k++){
-			lt->counts[unit1][unit2][rand][k]++;
-			if(CheckMutation(mutations[k], coor[k], cs->topoState, lt))
-				return 0;
-		}
-		
-		for(int k=0; k<3; k++){
-			PerformMutation(mutations[k], coor[k], cs->topoState, lt);
-		}
-		
-		cs->unitPol[iPol][iMono] = newUnits[0];
-		cs->unitPol[iPol][(iMono+1)%cs->polSize] = newUnits[1];
-		cs->coorPol[iPol][(iMono+1)%cs->polSize] = (newUnits[0])?coor[2]:coor[0];
-		return 1;
-	}
-	return 0;
-}
-
-int DiffuseStep(CurState* cs, LookupTables* lt){
-	int mono = DRng(cs->rngState)*cs->nPol*cs->polSize;
-	int iMono = mono%cs->polSize;
-	int iPol = mono/cs->polSize;
-	
-	int iPrev = (iMono-1+cs->polSize)%cs->polSize;
-	
-	if(cs->unitPol[iPol][iMono] && !cs->unitPol[iPol][iPrev]){
-#ifdef __HP_ENABLED__
-		int unitMove = cs->unitPol[iPol][iMono];
-		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove))
-			return 0;
-// 		printf("Sucess diffuse 1\n");
-#endif
-		cs->unitPol[iPol][iPrev] = cs->unitPol[iPol][iMono];
-		cs->unitPol[iPol][iMono] = 0;
-		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][(iMono+1)%cs->polSize];
-		return 1;
-	}
-	else if(!cs->unitPol[iPol][iMono] && cs->unitPol[iPol][iPrev]){
-#ifdef __HP_ENABLED__
-		int unitMove = cs->unitPol[iPol][iPrev]^0xf;
-		if(!TestMoveHP(cs,lt,iMono, iPol, unitMove)) 
-			return 0;
-// 		printf("Sucess diffuse 2\n");
-#endif
-		cs->unitPol[iPol][iMono] = cs->unitPol[iPol][iPrev];
-		cs->unitPol[iPol][iPrev] = 0;
-		cs->coorPol[iPol][iMono] = cs->coorPol[iPol][iPrev];
-		return 1;
-	}
-	return 0;
-}
-
-double MeasSl(CurState* cs){
-	long nSl=0;
-	for(int iPol=0; iPol<cs->nPol; iPol++){
-		for(int iBond=0; iBond<cs->polSize; iBond++){
-			if(!cs->unitPol[iPol][iBond]) nSl++;
-		}
-	}
-	return nSl/(double)(cs->nPol*cs->polSize);
-}
-
-void MeasBends(CurState* cs, LookupTables* lt, long counts[4]){
-	for(int iPol=0; iPol<cs->nPol; iPol++){
-		for(int iBond=0; iBond<cs->polSize; iBond++){
-			if(cs->unitPol[iPol][iBond] == 0) continue;
-			int jBond=(iBond+1)%cs->polSize; 
-			while(cs->unitPol[iPol][jBond] == 0) jBond= (jBond+1)%cs->polSize;
-			
-			int unitI = cs->unitPol[iPol][iBond];
-			int unitJ = cs->unitPol[iPol][jBond];
-			int bend = lt->unitDot[unitI][unitJ]+1;
-			if(bend<0 || bend>=4){ printf("Error in bend finding!\n"); exit(0);}
-			counts[bend]++;
-		}
-	}
-}
-
-double DoMCStep(long nStep, CurState* cs, LookupTables* lt){
-	long nAccTrans=0;
-	long nAccDiff=0;
-	long nTopoMove=0;
-	
-	for(long iStep=0; iStep<cs->polSize*cs->nPol*nStep; iStep++){
-		nAccTrans += TransStepCompact(cs, lt);
-		nAccDiff += DiffuseStep(cs, lt);
-		
-#ifdef __TOPO_MOVE_ENABLED__
-		nTopoMove += TopoMove(cs,lt);
-#endif
-	}
-	
-	double ratTrans = nAccTrans/(double)(cs->polSize*cs->nPol*nStep);
-	return ratTrans;
-}
-
-
 

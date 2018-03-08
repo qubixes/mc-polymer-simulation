@@ -22,17 +22,66 @@ int WriteLatticeFile(CurState* cs, char* file){
 	fprintf(pFile, "LU= %i\n", cs->L);
 	fprintf(pFile, "LV= %i\n", cs->L);
 	fprintf(pFile, "np= %i\n", cs->nPol);
-	fprintf(pFile, "maxPolLength= %i\n", cs->nMono);
+	fprintf(pFile, "maxPolLength= %i\n", cs->maxNMono);
 	
 	for(iPol=0; iPol<cs->nPol; iPol++){
-		WritePolymer(cs, iPol, pFile);
+		WritePolymer(cs, cs->pol+iPol, pFile);
 	}
 	fclose(pFile);
 	return 0;
 }
 
-int CSFromFile(CurState* cs, char* dir, long lastT){
+int ReadLengthFile(CurState* cs, LookupTables* lt){
+	char* file = cs->ss.lengthFile;
+	FILE* pFile= fopen(file, "r");
+	char polType[200];
+	int nMono;
+	cs->nPol=0;
+	cs->maxNMono=0;
+	cs->nTotMono=0;
+	while(fscanf(pFile, "%s %i", polType, &nMono) == 2){
+		cs->nTotMono += nMono;
+		cs->maxNMono = MAX(nMono, cs->maxNMono);
+		cs->nPol++;
+	}
+	fclose(pFile);
+	FillDefaultSS(&cs->ss);
+	Seed(cs->rngState, cs->ss.seed);
+	if(cs->ss.boundaryCond == BOUNDARY_PERIODIC)
+		cs->AddUnitToCoor = &AddUnitToCoorPeriod;
+	else if(cs->ss.boundaryCond == BOUNDARY_STATIC)
+		cs->AddUnitToCoor = &AddUnitToCoorWBounds;
+	LatticeInit(cs, lt);
 	
+	int nTotMonoTarget = (int)(cs->ss.density*lt->nLatticeUsed+0.5);
+	cs->maxNMono = cs->maxNMono*(nTotMonoTarget/(double)cs->nTotMono) + 2;
+	
+	AllocPolymers(cs);
+	pFile = fopen(file, "r");
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		Polymer* pol = cs->pol+iPol;
+		fscanf(pFile, "%s %i", polType, &pol->nMono);
+		if(!strcmp(polType, "lin"))
+			pol->polType = POL_TYPE_LIN;
+		else
+			pol->polType = POL_TYPE_RING;
+	}
+	
+	double leftover=0;
+	for(Polymer* pol = cs->pol; pol<cs->pol+cs->nPol; pol++){
+		double dblNewNMono = pol->nMono*(nTotMonoTarget/(double)cs->nTotMono)+leftover;
+		int newNMono = (int)(dblNewNMono+0.5);
+		leftover = dblNewNMono-newNMono;
+		pol->nMono = newNMono;
+		if(pol->polType == POL_TYPE_LIN) pol->polSize = pol->nMono-1;
+		else pol->polSize = pol->nMono;
+	}
+	
+	return 0;
+}
+
+int CSFromFile(CurState* cs, LookupTables* lt, long lastT){
+	char* dir = cs->ss.dir;
 	char file[3000];
 	sprintf(file, "%s/t=%li_dev=0.res", dir, lastT);
 	
@@ -53,33 +102,61 @@ int CSFromFile(CurState* cs, char* dir, long lastT){
 	int nPol, maxLength;
 	fscanf(pFile, "%*s %i", &nPol);
 	fscanf(pFile, "%*s %i", &maxLength);
-	CSInit(cs, 1293744, nPol, maxLength, LX[0], dir);
+	cs->ss.L            = LX[0];
+	cs->ss.seed         = 1294812;
+	cs->ss.nPol         = nPol;
+	cs->maxNMono        = maxLength;
+	cs->ss.latticeShape = LATTICE_SHAPE_CUSTOM;
+	cs->nPol            = cs->ss.nPol;
+	LatticeInit(cs, lt);
+
+	FillDefaultSS(&cs->ss);
+	AllocPolymers(cs);
+	if(cs->ss.boundaryCond == BOUNDARY_PERIODIC)
+		cs->AddUnitToCoor = &AddUnitToCoorPeriod;
+	else if(cs->ss.boundaryCond == BOUNDARY_STATIC)
+		cs->AddUnitToCoor = &AddUnitToCoorWBounds;
+
 	
 	int t,u,v;
 	char* strIn = malloc(sizeof(char)*(maxLength+1));
-	int iPol=0;
-	while(fscanf(pFile, "%*s %i", &cs->polSize)>0){
+	Polymer* pol = cs->pol;
+	while(fscanf(pFile, "%*s %i", &pol->nMono)>0){
 		fscanf(pFile, "%i %i %i", &t, &u, &v);
 		fscanf(pFile, "%s", strIn);
-		if(strlen(strIn) != cs->polSize){
-			printf("Meh: %li vs %i\n", strlen(strIn), cs->polSize);
+		if(strlen(strIn) != pol->nMono){
+			printf("Error in reading polymer: length %li while expecting %i\n", strlen(strIn), pol->nMono);
+			printf("%s\n", strIn);
 			exit(0);
 		}
 		int coor = TUV2Coor(t,u,v, cs->L);
-		for(int iMono=0; iMono<cs->polSize; iMono++){
+		for(int iMono=0; iMono<pol->nMono; iMono++){
 			int unit = CharToHex(strIn[iMono]);
-			cs->coorPol[iPol][iMono] = coor;
-			cs->unitPol[iPol][iMono] = unit;
-			coor = AddUnitToCoor(unit, coor, cs->L);
+			pol->coorPol[iMono] = coor;
+			pol->unitPol[iMono] = unit;
+			int OOB;
+			coor = cs->AddUnitToCoor(unit, coor, cs->L, &OOB);
+			if(OOB){
+				printf("Error: detecting out of bounds while reading file %s. Periodic boundary conditions?\n", file);
+				exit(192);
+			}
 		}
-		cs->coorPol[iPol][cs->polSize] = coor;
-		iPol++;
+		if(pol->unitPol[pol->nMono-1] == 0xf){
+			pol->polType = POL_TYPE_LIN;
+			pol->polSize = pol->nMono-1;
+		}
+		else{
+			pol->polType = POL_TYPE_RING;
+			pol->polSize = pol->nMono;
+		}
+		
+		pol++;
 	}
 	fclose(pFile);
 	
-#if POL_TYPE == POL_TYPE_LIN
-	cs->polSize--;
-#endif
+	cs->nTotMono=0;
+	for(Polymer* pol=cs->pol; pol<cs->pol+cs->nPol; pol++)
+		cs->nTotMono += pol->nMono;
 	
 	char latFile[3000];
 	sprintf(latFile, "%s/sav_t%li_dev=0.res", dir, lastT);
@@ -101,16 +178,15 @@ int CSFromFile(CurState* cs, char* dir, long lastT){
 	return 0;
 }
 
-void WritePolymer(CurState* cs, int iPol, FILE* pFile){
+void WritePolymer(CurState* cs, Polymer* pol, FILE* pFile){
 	int L = cs->L;
-	fprintf(pFile, "len= %i\n", cs->nMono);
-	fprintf(pFile, "%u  %u  %u\t", TCoor(cs->coorPol[iPol][0], L), UCoor(cs->coorPol[iPol][0], L), VCoor(cs->coorPol[iPol][0], L));
+	fprintf(pFile, "len= %i\n", pol->nMono);
+	fprintf(pFile, "%u  %u  %u\t", TCoor(pol->coorPol[0], L), UCoor(pol->coorPol[0], L), VCoor(pol->coorPol[0], L));
 	
-	for(int iMono=0; iMono<cs->polSize; iMono++)
-		fprintf(pFile, "%x", cs->unitPol[iPol][iMono]);
-#if POL_TYPE == POL_TYPE_LIN
-	fprintf(pFile, "f");
-#endif
+	for(int iMono=0; iMono<pol->polSize; iMono++)
+		fprintf(pFile, "%x", pol->unitPol[iMono]);
+	if(pol->polType == POL_TYPE_LIN)
+		fprintf(pFile, "f");
 	fprintf(pFile, "\n");
 }
 
@@ -138,12 +214,13 @@ void WriteSimulationSettings(CurState* cs){
 	sprintf(file, "%s/simulation_settings.txt", ss->dir);
 	FILE* pFile = fopen(file, "w");
 	fprintf(pFile, "Start_seed = %u\n", ss->seed);
-	fprintf(pFile, "Length = %i\n", cs->nMono);
-#if POL_TYPE == POL_TYPE_RING
-	fprintf(pFile, "Polytype = ring\n");
-#else
-	fprintf(pFile, "Polytype = lin\n");
-#endif
+	fprintf(pFile, "Length = %i\n", ss->polSize);
+	if(ss->polType == POL_TYPE_RING)
+		fprintf(pFile, "Polytype = ring\n");
+	else if(ss->polType == POL_TYPE_LIN)
+		fprintf(pFile, "Polytype = lin\n");
+	else
+		fprintf(pFile, "Polytype = mixed\n");
 	fprintf(pFile, "Density = %lf\n", ss->density);
 	fprintf(pFile, "Latsize = %i\n", ss->L);
 	fprintf(pFile, "Start_polysize = %i\n", ss->polSize);
@@ -151,14 +228,6 @@ void WriteSimulationSettings(CurState* cs){
 	fprintf(pFile, "Interval = %li\n", ss->interval);
 	fprintf(pFile, "Equilibrated = 0\n");
 	fprintf(pFile, "Npol = %i\n", cs->nPol);
-// 	if(cfg->polModel == SL_EQUAL)
-// 		fprintf(pFile, "Polymodel = sl_equal\n");
-// 	else if(cfg->polModel == SL_DOUBLE)
-// 		fprintf(pFile, "Polymodel = sl_double\n");
-// 	else if(cfg->polModel == SL_QUAD)
-// 		fprintf(pFile, "Polymodel = sl_quad\n");
-// 	else 
-// 		fprintf(pFile, "Polymodel = ??\n");
 	fprintf(pFile, "Executable = denspol\n");
 	fprintf(pFile, "Bend_energy = %lf\n", ss->bendEnergy);
 	fprintf(pFile, "HP_strength = %lf\n", ss->hpStrength);

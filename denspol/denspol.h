@@ -6,33 +6,43 @@
 
 #define POL_TYPE_RING 0
 #define POL_TYPE_LIN 1
-#ifndef POL_TYPE
-	#define POL_TYPE POL_TYPE_RING
-#endif
+#define POL_TYPE_MIXED 2
+
+#define MOVE_DIFFUSE 0
+#define MOVE_TRANS_RING 1
+#define MOVE_TRANS_LIN 2
+#define MOVE_TOPO 3
+#define MOVE_START 4
+#define MOVE_END 6
+
+#define BOUNDARY_PERIODIC 0 
+#define BOUNDARY_STATIC 1
+#define SS_DEFAULT (-1)
+
+#define LATTICE_SHAPE_EMPTY 0
+#define LATTICE_SHAPE_SPHERE 1
+#define LATTICE_SHAPE_CUSTOM 2
 
 #define TRUE 1
 #define FALSE 0
-// #define TOPO_DENSE TRUE
 
 #define MAX(X,Y) ((X>Y)?X:Y)
 #define MAX_TOPO_STATES 1950238
 #define NMUTATOR 96
 #define BEND_LVL 10
-#ifndef __FROM_TOPO_COMP__
-	#define __FROM_TOPO_COMP__ TRUE
-#endif
+// #ifndef __FROM_TOPO_COMP__
+// 	#define __FROM_TOPO_COMP__ TRUE
+// #endif
 
 #define NON_EXISTING -1
 #define SAME_TOPO -2
 
 /** 
- Notice: the polymer length is from now on defined as the number of bonds. This is different 
- from the GPUpol package, and also previous work. Especially in the context of denspol
- this makes much more sense, since the excluded volume is tested on the bonds, instead of
- the monomers.  
- Notice2: I don't think the above is true!
- Notice3: Yes it is?!
- **/
+  * Notice: the polymer length is from now on defined as the number of bonds. This is different 
+  * from the GPUpol package, and also previous work. Especially in the context of denspol
+  * this makes much more sense, since the excluded volume is tested on the bonds, instead of
+  * the monomers.  
+  **/
 
 typedef struct SimulationSettings{
 	double density;
@@ -40,27 +50,42 @@ typedef struct SimulationSettings{
 	char* dir;
 	char* eeFile;
 	char* hpFile;
+	char* lengthFile;
 	unsigned int seed;
 	long tMax;
 	long interval;
-	int polIdShuffle;
+// 	int polIdShuffle;
 	int L;
+	int nPol;
 	int polSize;
+	int polType;
 	int dblStep;
+	int boundaryCond;
+	int latticeShape;
+	int useTopo;
 	double hpStrength;
 }SimulationSettings;
+
+typedef struct Polymer{
+	int* unitPol;
+	int* coorPol;
+	int polSize;
+	int nMono;
+	int polType;
+	int origNMono;
+}Polymer;
 
 typedef struct CurState{
 	int* topoState;
 	int* bondOcc;
 	
-	int** unitPol;
-	int** coorPol;
-	
+	Polymer* pol;
 	int nPol;
-	int polSize;
-	int nMono; // Ring: nMono=polSize, Lin: nMono=polSize+1;
+	int maxNMono;
+	int nTotMono;
+	int (*AddUnitToCoor)(int,int,int,int*); ///Sometimes C++ is a little nicer...
 	
+// 	int nLatticeUsed;
 	int L;
 	int LSize;
 	long curT;
@@ -101,14 +126,22 @@ typedef struct TopoCompact{
 	int permBond;
 }TopoCompact;
 
+typedef struct TripleHP{
+	int iPol, iMono;
+	double strength;
+}TripleHP;
+
 typedef struct HPTable{
-	double** HPStrength;
 	double*** distance;
-	int** monoId;
-	int* nInterHP;
+	TripleHP*** inter;
+	int** nInter;
 }HPTable;
 
 typedef struct LookupTables{
+	int** moveChoiceTable; // MOVE_TYPE | POLYMER_ID | MONO_ID
+	int nMoveChoice;
+	int* latticeUsed;
+	int nLatticeUsed;
 	int** mutTopo;
 	TopoCompact* topComp;
 	KeyNode* sameTopoTree;

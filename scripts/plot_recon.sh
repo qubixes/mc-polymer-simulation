@@ -52,7 +52,7 @@ for DIR in ${ALL_DIRS[*]}; do
 		for I in `seq 2`; do
 			NEW_DIR=${FIRST_DIR}_b${I}
 			if [ ! -f $NEW_DIR/simulation_settings.txt ]; then break; fi
-			awk '{print $(1)+'$CURT', $(2), $(3), $(4), $(5);}' $NEW_DIR/simila* >> $OUT_FILE
+			awk '{print $(1)+'$CURT', $(2), $(3), $(4), $(5), $(6), $(7);}' $NEW_DIR/simila* >> $OUT_FILE
 			DT=`get_last_t $NEW_DIR`
 			let "CURT += DT"
 		done
@@ -62,16 +62,24 @@ for DIR in ${ALL_DIRS[*]}; do
 done
 
 PLOT="plot "
+PLOT_CONTACT="plot "
 
 for FILE in ${PLOT_FILES[*]}; do 
-	PLOT="${PLOT} \"$FILE\" u 1:5 w l title '`basename $FILE | sed 's/_/ /g'`', "
+	TITLE=`basename $FILE | sed 's/_/ /g'`
+	PLOT="${PLOT} \"$FILE\" u 1:5 w l title '$TITLE', "
+	PLOT_CONTACT="${PLOT_CONTACT} \"$FILE\" u 1:7 w l title '$TITLE', "
 done 
 
 PLOT=${PLOT:0:${#PLOT}-2}
-
+PLOT_CONTACT=${PLOT_CONTACT:0:${#PLOT_CONTACT}-2}
 
 gnuplot -persist <<EOFGNU
 set grid
 $PLOT
 
+EOFGNU
+
+gnuplot -persist <<EOFGNU
+set grid
+$PLOT_CONTACT
 EOFGNU

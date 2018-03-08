@@ -15,8 +15,10 @@ typedef struct Data{
 	DInt** lattice;
 	int* nIdList;
 	char* str;
+	int* polTypes;
+	int* polSizes;
 	int nPol;
-	int N;
+	int maxPolSize;
 	int L;
 }Data;
 
@@ -57,6 +59,8 @@ Data* NewData(int polSize, int nPol, int L){
 	data->str     = malloc(sizeof(char)*(polSize+1));
 	data->nIdList = malloc(sizeof(double)*(L*L*L));
 	data->lattice = malloc(sizeof(DInt*)*(L*L*L));
+	data->polTypes= malloc(sizeof(int)*nPol);
+	data->polSizes= malloc(sizeof(int)*nPol);
 	for(int coor=0; coor<L*L*L; coor++){
 		data->lattice[coor] = malloc(sizeof(DInt)*(100));
 		data->nIdList[coor] = 0;
@@ -67,7 +71,7 @@ Data* NewData(int polSize, int nPol, int L){
 }
 
 Data* ReadData(char* file){
-	int nPol, maxPolSize, L;
+	int nPol, maxLen, L;
 	FILE* pFile = fopen(file, "r");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -79,15 +83,15 @@ Data* ReadData(char* file){
 	
 	fscanf(pFile, "%*s %i", &nPol);
 	
-	fscanf(pFile, "%*s %i", &maxPolSize);
+	fscanf(pFile, "%*s %i", &maxLen);
 // 	printf("maxPolSize = %i\n", maxPolSize);
-	Data* data = NewData(maxPolSize, nPol, L);
+	Data* data = NewData(maxLen, nPol, L);
 	
 	for(int iPol=0; iPol<nPol; iPol++){
-		int polSize;
 		int tuvStart[3];
-		fscanf(pFile, "%*s %i %i %i %i %s", &polSize, tuvStart, tuvStart+1, tuvStart+2, data->str);
-		data->N = polSize;
+		fscanf(pFile, "%*s %i %i %i %i %s", &data->polSizes[iPol], tuvStart, tuvStart+1, tuvStart+2, data->str);
+		int polSize = data->polSizes[iPol];
+		data->polTypes[iPol] = (data->str[polSize-1] == 0xf)?POL_TYPE_LIN:POL_TYPE_RING;
 		int coor = TUV2Coor(tuvStart[0], tuvStart[1], tuvStart[2], L);
 		int bond;
 		int zeroBefore=0;
@@ -109,7 +113,8 @@ Data* ReadData(char* file){
 			data->lattice[coor][data->nIdList[coor]  ].iMono = monoId;
 			data->lattice[coor][data->nIdList[coor]++].iPol  = iPol;
 			
-			coor = AddUnitToCoor(bond, coor, L);
+			int OOB; ///NOTE: please fix this, check out of bounds set boundary conditions.
+			coor = AddUnitToCoorPeriod(bond, coor, L, &OOB);
 			if(bond == 0xf) break;
 		}
 	}
@@ -149,8 +154,18 @@ void PrintContactMatrix(Data* data, RunProperties* rp){
 		exit(192);
 	}
 	fprintf(pFile, "#nPol= %i\n", data->nPol);
-	fprintf(pFile, "#len= %i\n", data->N);
+	fprintf(pFile, "#maxlen= %i\n", data->maxPolSize);
 	fprintf(pFile, "#nContacts= %li\n", MIN(rp->nSamples, nContacts));
+	for(int i=0; i<data->nPol; i++){
+		fprintf(pFile, "%i ", data->polSizes[i]);
+		if(data->polTypes[i] == POL_TYPE_LIN)
+			fprintf(pFile, "lin\n");
+		else if(data->polTypes[i] == POL_TYPE_RING)
+			fprintf(pFile, "ring\n");
+		else
+			fprintf(pFile, "???\n");
+	}
+		
 	for(long i=0; i<rp->nSamples && i<nContacts; i++){
 		long j = DRng(rng)*(nContacts-i);
 		fprintf(pFile, "%i %i %i %i %lf\n", contacts[j].monomers[0].iPol, contacts[j].monomers[0].iMono, contacts[j].monomers[1].iPol, contacts[j].monomers[1].iMono, 1.0);

@@ -34,7 +34,8 @@ int VCoor(int coor, int L){
 	return (coor/(L*L));
 }
 
-int AddUnitToCoor(int unit, int coor, int L){
+int AddUnitToCoorPeriod(int unit, int coor, int L, int* OOB){
+	*OOB = 0; /// Never out of bounds
 	int dw =   unit>>3;
 	int dt = ( unit    &0x1) - dw;
 	int du = ((unit>>1)&0x1) - dw;
@@ -45,6 +46,26 @@ int AddUnitToCoor(int unit, int coor, int L){
 	int v = VCoor(coor, L);
 	
 	return TUV2Coor((t+dt+L)%L, (u+du+L)%L, (v+dv+L)%L, L);
+}
+
+
+int AddUnitToCoorWBounds(int unit, int coor, int L, int* OOB){
+	int dw =   unit>>3;
+	int dt = ( unit    &0x1) - dw;
+	int du = ((unit>>1)&0x1) - dw;
+	int dv = ((unit>>2)&0x1) - dw;
+	
+	int t = TCoor(coor, L)+dt;
+	int u = UCoor(coor, L)+du;
+	int v = VCoor(coor, L)+dv;
+	
+	*OOB  = ((t+L)/L-1);
+	*OOB |= ((u+L)/L-1);
+	*OOB |= ((v+L)/L-1);
+	
+	if(*OOB) return -1;
+	
+	return TUV2Coor(t,u,v,L);
 }
 
 void PrintCoor(int coor, int L){
@@ -65,6 +86,19 @@ void TUV2XYZ(int tuv[3], int xyz[3]){
 	xyz[0] = tuv[0]+tuv[1]-tuv[2];
 	xyz[1] = tuv[0]-tuv[1]       ;
 	xyz[2] =               tuv[2];
+}
+
+void DTUV2XYZ(double tuv[3], double xyz[3]){
+	xyz[0] = tuv[0]+tuv[1]-tuv[2];
+	xyz[1] = tuv[0]-tuv[1]       ;
+	xyz[2] =               tuv[2];
+}
+
+double Distance(double xyz1[3], double xyz2[3]){
+	double rsq=0;
+	for(int k=0; k<3; k++)
+		rsq += (xyz1[k]-xyz2[k])*(xyz1[k]-xyz2[k]);
+	return sqrt(rsq);
 }
 
 void UnitToXYZ(int unit, int xyz[3]){
@@ -98,49 +132,30 @@ int CharToHex(char c){
 	return hex;
 }
 
-int MonoPol2Id(int iMono, int iPol, int polSize){
-#if POL_TYPE == POL_TYPE_RING
-	return iMono+iPol* polSize;
-#else
-	return iMono+iPol*(polSize+1);
-#endif
-}
-
-void Id2MonoPol(int monoId, int* iMono, int* iPol, int polSize){
-#if POL_TYPE == POL_TYPE_RING
-	*iMono = monoId%polSize;
-	*iPol = monoId/polSize;
-#else
-	*iMono = monoId%(polSize+1);
-	*iPol = monoId/(polSize+1);
-#endif
-}
 
 /// Returns 1 if the move is accepted on the grounds of the harmonic potential.
 /// Otherwise returns 0.
 
-int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, int iPol, int newUnit){
-	double** HPStrength = lt->hp.HPStrength;
-	int* nInterHP       = lt->hp.nInterHP;
-	int** monoIdTable   = lt->hp.monoId;
-	int iMonoId         = MonoPol2Id(iMono, iPol, cs->polSize);
-	
+int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, Polymer* pol, int newUnit){
+	int iPol = pol-cs->pol;
 	int ituv[3], newituv[3];
 // 	printf("iMono = %i, iPol = %i\n", iMono, iPol);
-	int newCoor = AddUnitToCoor(newUnit, cs->coorPol[iPol][iMono], cs->L);
-	Coor2TUV(cs->coorPol[iPol][iMono], ituv, cs->L);
+	int OOB;
+	int newCoor = cs->AddUnitToCoor(newUnit, pol->coorPol[iMono], cs->L, &OOB);
+	if(OOB) return 0;
+	
+	Coor2TUV(pol->coorPol[iMono], ituv, cs->L);
 	Coor2TUV(newCoor, newituv, cs->L);
 	double dE=0;
 	
-	for(int jInter=0; jInter<nInterHP[iMonoId]; jInter++){
-		int jMonoId = monoIdTable[iMonoId][jInter];
-		double strength = HPStrength[iMonoId][jInter];
-// 		printf("strength = %lf, hoStrength = %lf\n", strength, cs->ss.hpStrength);
-		int jMono, jPol;
-		Id2MonoPol(jMonoId, &jMono, &jPol, cs->polSize);
+	for(int iInter=0; iInter<lt->hp.nInter[iPol][iMono]; iInter++){
+		int jMono       = lt->hp.inter[iPol][iMono][iInter].iMono;
+		int jPol        = lt->hp.inter[iPol][iMono][iInter].iPol;
+		double strength = lt->hp.inter[iPol][iMono][iInter].strength;
 		
+		Polymer* polJ = cs->pol+jPol;
 		int jtuv[3], dtuv[3];
-		Coor2TUV(cs->coorPol[jPol][jMono], jtuv, cs->L);
+		Coor2TUV(polJ->coorPol[jMono], jtuv, cs->L);
 		
 		for(int k=0; k<3; k++) dtuv[k] = jtuv[k] - ituv[k];
 		double distance = lt->hp.distance[dtuv[0]][dtuv[1]][dtuv[2]];
@@ -152,9 +167,6 @@ int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, int iPol, int newUnit)
 	}
 	
 	double prob = (dE<=0)?1:(exp(-dE));
-// 	if(prob <0.9)
-// 		printf("dE = %lf, prob=%lf\n", dE, prob);
-	
 	double comp = DRng(cs->rngState);
 	if(comp<prob){
 		return 1;
@@ -165,16 +177,3 @@ int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, int iPol, int newUnit)
 	}
 }
 
-int TopoMove(CurState* cs, LookupTables* lt){
-	int coor = cs->LSize*DRng(cs->rngState);
-	
-	int ret=-1;
-	
-	if(lt->topComp[cs->topoState[coor]].sameTopo != cs->topoState[coor])
-		ret=1;
-	else
-		ret=0;
-	
-	cs->topoState[coor] = lt->topComp[cs->topoState[coor]].sameTopo;
-	return ret;
-}
