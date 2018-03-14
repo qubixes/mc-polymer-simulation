@@ -4,6 +4,7 @@
 
 DIR_ORIG=$1
 DIR=$2
+BOUNDARY_COND=$3
 
 # echo $DIR $DIR_ORIG
 
@@ -16,6 +17,7 @@ LAST_T=$(get_last_t $DIR)
 
 while [ $T -le $LAST_T ]; do
 	CUR_FILE="$DIR/t=${T}_dev=0.res"
-	echo $T `./bin/similarity $ORIG_FILE $CUR_FILE` `./bin/sim_contact $CUR_FILE $CONTACT_MAP`
+	echo "./bin/similarity $ORIG_FILE $CUR_FILE $BOUNDARY_COND"
+	echo $T `./bin/similarity $ORIG_FILE $CUR_FILE $BOUNDARY_COND` `./bin/sim_contact $CUR_FILE $CONTACT_MAP`
 	let "T=T+INTERVAL"
 done

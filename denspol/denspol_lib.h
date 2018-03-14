@@ -24,3 +24,5 @@ double Distance(double xyz1[3], double xyz2[3]);
 void Coor2TUV(int coor, int tuv[3], int L);
 int TestMoveHP(CurState* cs, LookupTables* lt, int iMono, Polymer* pol, int newUnit);
 int TopoMove(CurState* cs, LookupTables* lt);
+int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondsUsed);
+int* ComputePolLengths(char* file, int nBondUsed, double density);

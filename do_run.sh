@@ -6,6 +6,7 @@
 USAGE="usage: do_run.sh [OPTIONS]\nAvailable Options:\n\n-s/--seed   Seed\n-n/--nmono  Polymer length\n-t/--time   Simulation time\n-h/--help   Print usage of do_run.sh\n-o/--opencl Use openCL\n-c/--cpu    Use CPU\n-u/--cuda   Use CUDA\n"
 
 
+
 function abs_path {
 	X=`cd $(dirname $1); pwd -P`
 	echo $X
@@ -57,20 +58,42 @@ SCRIPT_DIR="$CUR_DIR/scripts"
 
 . $SCRIPT_DIR/util.sh
 
+CONFIG_TEMPLATE="
+seed SEED
+density DENSITY
+tmax TIME
+interval INTERVAL
+L CURL
+bendenergy BEND_ENERGY
+dblstep DBL_STEP
+hpstrength HP_STRENGTH
+dir DIR
+eefile $CUR_DIR/denspol/ee_topo_comp.dat
+boundarycondition BOUND_CONDITION
+latticeshape LATTICE_SHAPE
+usetopo USE_TOPO
+"
+
 START_TIME=`date`
 SEED="12396143"
 TIME="1e4"
-SIM_TYPE="ring"
+POL_TYPE="ring"
 DENSITY="1.2"
 INTERVAL="1e2"
 FAST_EQ="0"
 NMONO="345"
 MODEL="sl_equal"
-L="96"
+L="16"
 DBL_STEP="0"
 SHORT="0"
 B_EXEC="gpupol3"
 BEND_ENERGY="0.0"
+HP_STRENGTH="0"
+CFG_FILE=""
+USE_TOPO="0"
+OUT_DIR=""
+LATTICE_SHAPE="empty"
+BOUND_CONDITION="periodic"
 
 while (( "$#" )); do
 	case $1 in 
@@ -81,13 +104,21 @@ while (( "$#" )); do
 			fi
 			B_EXEC=$2
 			shift;;
-		-r|--dir)
+		-r|--basedir)
 			if [ $# -lt 2 ]; then
 				echo "need directory after -r/--dir option"
 				exit 2
 			fi
-			echo "Set alternative dir: $2"
+			echo "Set alternative base dir: $2"
 			DATA_DIR=$2
+			shift ;;
+		--outdir)
+			if [ $# -lt 2 ]; then
+				echo "Need directory after --outdir option"
+				exit 3
+			fi
+			echo "Setting output directory to $2"
+			OUT_DIR=$2
 			shift ;;
 		-b|--bend)
 			if [ $# -lt 2 ]; then
@@ -150,7 +181,7 @@ while (( "$#" )); do
 			exit 0 ;;
 		--ring)
 			echo "Doing simulation with only ring polymers"
-			SIM_TYPE="ring" ;;
+			POL_TYPE="ring" ;;
 		-d|--density)
 			if [ $# -lt 2 ]; then
 				echo "Need number after -d/--density option."
@@ -161,15 +192,7 @@ while (( "$#" )); do
 			shift;;
 		-l|--linear)
 			echo "Doing simulation, including linear polymers"
-			SIM_TYPE="lin" ;;
-		-m|--model)
-			if [ $# -lt 2 ]; then
-				echo "Need model after -m/--model option."
-				exit 3
-			fi
-			echo "Using \"$2\" simulation model"
-			MODEL=$2
-			shift;;
+			POL_TYPE="lin" ;;
 		-f|--fast-eq)
 			if [ $# -lt 2 ]; then
 				echo "Need interval after -f/--fast-eq option. It must be smaller than the given interval."
@@ -178,9 +201,30 @@ while (( "$#" )); do
 			echo "Using fast equilibration, using redistribution of stored length."
 			FAST_EQ=$2
 			shift ;;
+		-m|--multilength)
+			if [ $# -lt 2 ]; then
+				echo "Need a polymer configuration file"
+				exit 4
+			fi
+			echo "Using multiple lengths with config file"
+			CFG_FILE=$2
+			shift ;;
 		--short)
 			echo "Doing short time simulations"
 			SHORT="1" ;;
+		--topo|--chain-crossing)
+			echo "Allowing chain crossing"
+			USE_TOPO="1"
+			;;
+		--lattice-sphere)
+			echo "Setting available sites to a sphere."
+			BOUND_CONDITION="static"
+			LATTICE_SHAPE="sphere"
+			;;
+		--hp-strength|--hp)
+			echo "Setting harmonic potential strength"
+			HP_STRENGTH="$2"
+			shift ;;
 		*)
 			echo "Unknown option: $1"
 			exit 3
@@ -204,19 +248,23 @@ if is_num $L ; then
 fi
 
 if [ $B_EXEC == "efpol" ]; then 
-	EXEC="$BIN_DIR/efpol_$SIM_TYPE"
-	DIR="$DATA_DIR/${SIM_TYPE}_efpol_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
+	EXEC="$BIN_DIR/efpol_$POL_TYPE"
+	DIR="$DATA_DIR/${POL_TYPE}_efpol_l${NMONO}_g${L}_b${DBL_STEP}_s${SEED}_d${DENSITY}_t${TIME}"
 	BASE_DIR=$DIR
 elif [ $B_EXEC == "denspol" ]; then
-	EXEC="$BIN_DIR/denspol_$SIM_TYPE"
-	BASE_DIR="$DATA_DIR/${SIM_TYPE}_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_b${BEND_ENERGY}"
+	if [ $HP_STRENGTH == "0" ]; then
+		EXEC="$BIN_DIR/denspol"
+	else
+		EXEC="$BIN_DIR/denspol_hp"
+	fi
+	BASE_DIR="$DATA_DIR/${POL_TYPE}_denspol_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_b${BEND_ENERGY}"
 elif [ $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol" ]; then
-	EXEC="$BIN_DIR/${B_EXEC}_cuda_$SIM_TYPE"
+	EXEC="$BIN_DIR/${B_EXEC}_cuda_$POL_TYPE"
 	
 	if [ $FAST_EQ != "0" ]; then
-	BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_f${FAST_EQ}"
+	BASE_DIR="$DATA_DIR/${POL_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}_f${FAST_EQ}"
 	else 
-		BASE_DIR="$DATA_DIR/${SIM_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
+		BASE_DIR="$DATA_DIR/${POL_TYPE}_${B_EXEC}_l${NMONO}_g${L}_s${SEED}_d${DENSITY}"
 	fi
 # 	DIR="$BASE_DIR/long"
 # 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY 0 $INTERVAL $L $L $L"
@@ -225,7 +273,7 @@ else
 	exit 192
 fi
 
-if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
+if [ $SHORT == "1" -a $B_EXEC != "efpol" -a "$OUT_DIR" == "" ]; then
 	if [ ! -d $BASE_DIR/long ]; then 
 		echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; 
 	fi
@@ -239,9 +287,9 @@ if [ $SHORT == "1" -a $B_EXEC != "efpol" ]; then
 	IN_FILE=`get_last_tfile $BASE_DIR/long/` || { echo "Error finding file in $BASE_DIR/long"; exit $?; }
 	cp "$BASE_DIR/long/$IN_FILE" $DIR/t=0_dev=0.res || exit $?
 	echo "Using file:  $IN_FILE"
-elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" ]; then
+elif [ $DBL_STEP -gt 0 -a $B_EXEC != "efpol" -a "$OUT_DIR" == "" ]; then
 	if [ ! -d $BASE_DIR/long ]; then 
-		echo "Error: running short simulation without the long [$BASE_DIR]"; exit 192; 
+		echo "Error: running short simulation without the long [$BASE_DIR, $OUT_DIR]"; exit 192; 
 	fi
 	
 	DBL_DIRS=(`echo $BASE_DIR/double_*`)
@@ -286,38 +334,53 @@ else
 	DIR=$BASE_DIR/long
 fi
 
+if [ "$OUT_DIR" != "" ]; then
+	DIR=$OUT_DIR
+	BASE_DIR=$DIR/../
+fi
 
 if [ $B_EXEC == "efpol" ]; then
 	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $DBL_STEP $L $MODEL"
 elif [ $B_EXEC == "denspol" ]; then
-	EXEC_LINE="$EXEC $SEED $DIR $DENSITY $TIME $INTERVAL $NMONO $L $CUR_DIR/denspol/ee_topo_comp.dat $BEND_ENERGY $DBL_STEP"
+	if [ "$CFG_FILE" == "" ]; then
+		CONFIG_TEMPLATE="$CONFIG_TEMPLATE polsize $NMONO poltype $POL_TYPE"
+	else 
+		CONFIG_TEMPLATE="$CONFIG_TEMPLATE contactfile $CFG_FILE"
+	fi
+	
+	CONFIG=`echo "$CONFIG_TEMPLATE" | sed "s/SEED/$SEED/" | sed "s/INTERVAL/$INTERVAL/" | sed "s/DENSITY/$DENSITY/" | sed "s/TIME/$TIME/" | sed "s/DBL_STEP/$DBL_STEP/" | sed "s/BEND_ENERGY/$BEND_ENERGY/" | sed "s/CURL/$L/" | sed "s#DIR#$DIR#" | sed "s/HP_STRENGTH/$HP_STRENGTH/" | sed "s/USE_TOPO/$USE_TOPO/" | sed "s/BOUND_CONDITION/$BOUND_CONDITION/" | sed "s/LATTICE_SHAPE/$LATTICE_SHAPE/"`
+	
+	EXEC_LINE="echo \"$CONFIG\" | $EXEC /dev/stdin"
 elif [ $B_EXEC == "gpupol3" -o $B_EXEC == "gpupol2" -o $B_EXEC == "gpupol" ]; then
 	EXEC_LINE="$EXEC $NMONO $TIME $SEED $DIR $DENSITY $FAST_EQ $INTERVAL $L $L $L $SHORT $DBL_STEP"
 fi
-
-# DESTDIR=$DIR
 
 
 echo "Seed           : $SEED"
 echo "Dest dir       : $DIR"
 echo "Max time       : $TIME"
-echo "Polymer type   : $SIM_TYPE"
+echo "Polymer type   : $POL_TYPE"
 echo "Density        : $DENSITY"
 echo "Polymer size   : $NMONO"
 echo "Lattice size   : $L"
 echo "Double count   : $DBL_STEP"
 echo "Interval       : $INTERVAL"
-echo "Command        : $EXEC_LINE"
 
-# exit 0
-$EXEC_LINE || { echo "Error during polymer simulation execution"; exit 192; }
+
+echo "$CONFIG" > t.cfg
+
+if [ "$B_EXEC" == "denspol" ]; then
+	echo "$CONFIG" | $EXEC /dev/stdin || { echo "Error during polymer simulation execution"; exit 192; }
+else
+	$EXEC_LINE || { echo "Error during polymer simulation execution"; exit 192; }
+fi
 
 cat > $BASE_DIR/simulation_settings.txt << EOFCAT
 `grep 'RELEASE=' $CUR_DIR/Makefile | sed 's/=/ = /'`
 Start_seed = $SEED
 Length = $NMONO
 Time = $TIME
-Polytype = $SIM_TYPE
+Polytype = $POL_TYPE
 Start_time = $START_TIME
 End_time = `date`
 Density = $DENSITY

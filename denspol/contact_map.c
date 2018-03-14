@@ -86,11 +86,12 @@ Data* ReadData(char* file){
 	fscanf(pFile, "%*s %i", &maxLen);
 // 	printf("maxPolSize = %i\n", maxPolSize);
 	Data* data = NewData(maxLen, nPol, L);
-	
+	data->maxPolSize=0;
 	for(int iPol=0; iPol<nPol; iPol++){
 		int tuvStart[3];
 		fscanf(pFile, "%*s %i %i %i %i %s", &data->polSizes[iPol], tuvStart, tuvStart+1, tuvStart+2, data->str);
 		int polSize = data->polSizes[iPol];
+		data->maxPolSize = MAX(polSize,data->maxPolSize);
 		data->polTypes[iPol] = (data->str[polSize-1] == 0xf)?POL_TYPE_LIN:POL_TYPE_RING;
 		int coor = TUV2Coor(tuvStart[0], tuvStart[1], tuvStart[2], L);
 		int bond;
@@ -157,13 +158,13 @@ void PrintContactMatrix(Data* data, RunProperties* rp){
 	fprintf(pFile, "#maxlen= %i\n", data->maxPolSize);
 	fprintf(pFile, "#nContacts= %li\n", MIN(rp->nSamples, nContacts));
 	for(int i=0; i<data->nPol; i++){
-		fprintf(pFile, "%i ", data->polSizes[i]);
 		if(data->polTypes[i] == POL_TYPE_LIN)
-			fprintf(pFile, "lin\n");
+			fprintf(pFile, "lin");
 		else if(data->polTypes[i] == POL_TYPE_RING)
-			fprintf(pFile, "ring\n");
+			fprintf(pFile, "ring");
 		else
-			fprintf(pFile, "???\n");
+			fprintf(pFile, "???");
+		fprintf(pFile, " %i\n", data->polSizes[i]);
 	}
 		
 	for(long i=0; i<rp->nSamples && i<nContacts; i++){

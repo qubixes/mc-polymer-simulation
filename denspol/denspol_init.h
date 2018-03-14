@@ -4,7 +4,6 @@
 #include "denspol.h"
 
 void ReadArgumentsFromFile(SimulationSettings* ss, char* file);
-void CSInit(CurState* cs);
 void GeneratePolymers(CurState* cs);
 void PrintMutators(LookupTables* lt);
 void GenerateMutators(LookupTables* lt);
@@ -20,3 +19,4 @@ void FillDefaultSS(SimulationSettings* ss);
 void AllocPolymers(CurState* cs);
 void PopulateMoveList(CurState* cs, LookupTables* lt);
 void LatticeInit(CurState* cs, LookupTables* lt);
+int CSFromParameters(CurState* cs, LookupTables* lt);

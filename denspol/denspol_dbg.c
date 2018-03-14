@@ -1,13 +1,11 @@
 #include "denspol_dbg.h"
 int CheckIntegrity(CurState* cs, char* msg){
 	int L = cs->L;
-// 	PrintSystem(cs);
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		Polymer* polI = cs->pol+iPol;
 		int coor = polI->coorPol[0];
 		for(int iMono=0; iMono<polI->polSize; iMono++){
 			int OOB;
-// 			printf("%i %i\n", iPol, iMono);
 			coor= cs->AddUnitToCoor(polI->unitPol[iMono], coor, L, &OOB);
 			if(OOB){
 				printf("Error detecting Out of Bounds\n");
@@ -16,7 +14,6 @@ int CheckIntegrity(CurState* cs, char* msg){
 			int jMono = (polI->polType==POL_TYPE_LIN)?(iMono+1):((iMono+1)%polI->polSize);
 			if(coor != polI->coorPol[jMono]){
 				printf("Error: coor[%i]+unit[%i] != coor[%i]\n", iMono, iMono, iMono+1);
-// 				printf("%i +%i != %i\n", cs->coorPol
 				printf("At: %s\n", msg);
 				exit(192);
 			}
@@ -68,13 +65,6 @@ int CheckIntegrity(CurState* cs, char* msg){
 		for(int iMono=0; iMono<polI->polSize; iMono++){
 			int iCoor1= polI->coorPol[iMono];
 			int iCoor2= polI->coorPol[(iMono+1)%cycleI];
-// 			if(iPol == 2){
-// 				printf("Comparing %i vs %i (polSize=%i)\n", iMono, (iMono+1)%cycleI, polI->polSize);
-// 				if(polI->polType == POL_TYPE_LIN)
-// 					printf("POL_TYPE_LIN\n");
-// 				else
-// 					printf("POL_TYPE_RING\n");
-// 			}
 			if(iCoor1 == iCoor2) continue;
 			nTrueBonds++;
 			for(int jPol=0; jPol<cs->nPol; jPol++){
@@ -109,7 +99,7 @@ int CheckIntegrity(CurState* cs, char* msg){
 	
 	if(nBondOcc != 2*nTrueBonds){
 		PrintSystem(cs);
-		printf("Error: Number of bonds is not equal to the true number of bonds: bonds in bondOcc: %i vs bonds in unitVectors: %i\n", nBondOcc, nTrueBonds);
+		printf("Error: Number of bonds is not equal to the true number of bonds: bonds in bondOcc: %i vs bonds in unitVectors: %i\n", nBondOcc/2, nTrueBonds);
 		printf("At: %s\n", msg);
 		exit(192);
 	}
@@ -118,8 +108,10 @@ int CheckIntegrity(CurState* cs, char* msg){
 }
 
 void PrintSystem(CurState* cs){
+	printf("Number of polymers = %i\n", cs->nPol);
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		Polymer* polI = cs->pol+iPol;
+		printf("len=%i\n", polI->nMono);
 		for(int iMono=0; iMono<polI->nMono; iMono++){
 			printf("%x", polI->unitPol[iMono]);
 		}
@@ -129,10 +121,10 @@ void PrintSystem(CurState* cs){
 		}
 		printf("\n");
 	}
-	for(int coor=0; coor<cs->LSize; coor++){
-		printf("%i %i\n", cs->topoState[coor], cs->bondOcc[coor]);
-	}
-	printf("\n");
+// 	for(int coor=0; coor<cs->LSize; coor++){
+// 		printf("%i %i\n", cs->topoState[coor], cs->bondOcc[coor]);
+// 	}
+// 	printf("\n");
 }
 
 void PrintMutators(LookupTables* lt){

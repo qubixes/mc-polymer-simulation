@@ -89,10 +89,12 @@ void TUV2XYZ(int tuv[3], int xyz[3]){
 }
 
 void DTUV2XYZ(double tuv[3], double xyz[3]){
-	xyz[0] = tuv[0]+tuv[1]-tuv[2];
-	xyz[1] = tuv[0]-tuv[1]       ;
-	xyz[2] =               tuv[2];
+	double invSqrt2=1./sqrt(2);
+	xyz[0] = (tuv[0]+tuv[1]-tuv[2])*invSqrt2;
+	xyz[1] = (tuv[0]-tuv[1]       )*invSqrt2;
+	xyz[2] = (              tuv[2])*invSqrt2;
 }
+
 
 double Distance(double xyz1[3], double xyz2[3]){
 	double rsq=0;
@@ -130,6 +132,97 @@ int CharToHex(char c){
 	hex = c-'0';
 	if(hex>=10) hex = 10+(int)(c-'a');
 	return hex;
+}
+
+int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondUsed){
+	int nLatticeUsed=0;
+	(*nBondUsed)=0;
+	double r = 0.5*L/sqrt(2);
+	
+	double tuvMid[3] = {0.5*L, 0.5*L, 0.5*L};
+	double xyzMid[3];
+	DTUV2XYZ(tuvMid, xyzMid);
+	
+	for(int t=0; t<L; t++){
+		for(int u=0; u<L; u++){
+			for(int v=0; v<L; v++){
+				int site = t+u*L+v*L*L;
+				double newTuv[3];
+				
+				int inside=1;
+				for(int dt=0; dt<2 && inside; dt++){
+					for(int du=0; du<2 && inside; du++){
+						for(int dv=0; dv<2 && inside; dv++){
+							newTuv[0] = t+dt;
+							newTuv[1] = u+du;
+							newTuv[2] = v+dv;
+							
+							double dxyz[3];
+							DTUV2XYZ(newTuv, dxyz);
+							
+							if(Distance(dxyz, xyzMid) > r)
+								inside=0;
+						}
+					}
+				}
+				
+				if(inside){
+					topo[site] = 0;
+					bondOcc[site] = 0;
+					nLatticeUsed++;
+				}
+				else{
+					topo[site]      = -1;
+					bondOcc[site]   = 0xffffffff;
+				}
+			}
+		}
+	}
+	
+	for(int coor=0; coor<L*L*L; coor++){
+		if(topo[coor]<0) continue;
+		for(int unit=0x1; unit<0xf; unit++){
+			if(!IsValid(unit)) continue;
+			int OOB;
+			int newCoor = AddUnitToCoorWBounds(unit, coor, L, &OOB);
+			if(topo[newCoor] >=0)
+				(*nBondUsed)++;
+		}
+	}
+	(*nBondUsed) /= 2;
+	return nLatticeUsed;
+}
+
+int* ComputePolLengths(char* file, int nBondUsed, double density){
+	FILE* pFile= fopen(file, "r");
+	if(!pFile) printf("Error opening file %s for reading\n", file);
+	
+	int nPol;
+	int nTotMonoOrig = 0;
+	
+	fscanf(pFile, "%*s %i", &nPol);
+	int* origLengths = malloc(sizeof(int)*nPol);
+	int* newLengths = malloc(sizeof(int)*nPol);
+	
+	for(int i=0; i<2; i++) fscanf(pFile, "%*s %*s");
+	for(int iPol=0; iPol<nPol; iPol++){
+		fscanf(pFile, "%*s %i", &origLengths[iPol]);
+		nTotMonoOrig += origLengths[iPol];
+	}
+	fclose(pFile);
+	
+	int nTotMonoTarget = (int)((density/6.0)*nBondUsed+0.5);
+	printf("target = %i, density = %lf\n", nTotMonoTarget, density);
+	
+	double leftover=0;
+	for(int iPol=0; iPol<nPol; iPol++){
+		double dblNewNMono = origLengths[iPol]*(nTotMonoTarget/(double)nTotMonoOrig)+leftover;
+		int newNMono = (int)(dblNewNMono+0.5);
+		leftover = dblNewNMono-newNMono;
+		newLengths[iPol] = MAX(4,newNMono);
+	}
+	free(origLengths);
+	return newLengths;
 }
 
 

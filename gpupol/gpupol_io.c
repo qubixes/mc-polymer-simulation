@@ -93,7 +93,7 @@ int ReadLatticeFile(SimState* ss, SimProperties* sp, char* file){
 	uint i;
 	uint iPol;
 	uint length;
-	int latSide;
+// 	int latSide;
 	char* spol;
 	int* slArray;
 	uint* bonds, *tBonds;

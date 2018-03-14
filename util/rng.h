@@ -1,4 +1,5 @@
-
+#ifndef __RNG_H_INCLUDED__
+#define __RNG_H_INCLUDED__
 #ifndef IS_MAIN
 unsigned int Rng(unsigned int* state);
 void Seed(unsigned int* state, unsigned int seed);
@@ -32,4 +33,5 @@ void Seed(unsigned int* state, unsigned int seed){
 double DRng(unsigned int* state){
 	return (double)(RNG_FAC*Rng(state));
 }
+#endif
 #endif

@@ -32,19 +32,17 @@ int WriteLatticeFile(CurState* cs, char* file){
 }
 
 int ReadLengthFile(CurState* cs, LookupTables* lt){
-	char* file = cs->ss.lengthFile;
+	char* file = cs->ss.contactFile;
 	FILE* pFile= fopen(file, "r");
+	if(!pFile) printf("Error opening file %s for reading\n", file);
+	
 	char polType[200];
-	int nMono;
 	cs->nPol=0;
 	cs->maxNMono=0;
 	cs->nTotMono=0;
-	while(fscanf(pFile, "%s %i", polType, &nMono) == 2){
-		cs->nTotMono += nMono;
-		cs->maxNMono = MAX(nMono, cs->maxNMono);
-		cs->nPol++;
-	}
+	fscanf(pFile, "%*s %i", &cs->nPol);
 	fclose(pFile);
+	
 	FillDefaultSS(&cs->ss);
 	Seed(cs->rngState, cs->ss.seed);
 	if(cs->ss.boundaryCond == BOUNDARY_PERIODIC)
@@ -53,30 +51,27 @@ int ReadLengthFile(CurState* cs, LookupTables* lt){
 		cs->AddUnitToCoor = &AddUnitToCoorWBounds;
 	LatticeInit(cs, lt);
 	
-	int nTotMonoTarget = (int)(cs->ss.density*lt->nLatticeUsed+0.5);
-	cs->maxNMono = cs->maxNMono*(nTotMonoTarget/(double)cs->nTotMono) + 2;
-	
+	int* newNMono = ComputePolLengths(file, lt->nBondUsed, cs->ss.density);
+	for(int iPol=0; iPol<cs->nPol; iPol++) cs->maxNMono = MAX(cs->maxNMono, newNMono[iPol]);
 	AllocPolymers(cs);
+	
 	pFile = fopen(file, "r");
+	for(int i=0; i<6; i++) fscanf(pFile, "%*s");
 	for(int iPol=0; iPol<cs->nPol; iPol++){
 		Polymer* pol = cs->pol+iPol;
-		fscanf(pFile, "%s %i", polType, &pol->nMono);
-		if(!strcmp(polType, "lin"))
+		fscanf(pFile, "%s %*i", polType);
+		pol->nMono = newNMono[iPol];
+		cs->nTotMono += pol->nMono;
+		if(!strcmp(polType, "lin")){
 			pol->polType = POL_TYPE_LIN;
-		else
+			pol->polSize = pol->nMono-1;
+		}
+		else{
 			pol->polType = POL_TYPE_RING;
+			pol->polSize = pol->nMono;
+		}
 	}
-	
-	double leftover=0;
-	for(Polymer* pol = cs->pol; pol<cs->pol+cs->nPol; pol++){
-		double dblNewNMono = pol->nMono*(nTotMonoTarget/(double)cs->nTotMono)+leftover;
-		int newNMono = (int)(dblNewNMono+0.5);
-		leftover = dblNewNMono-newNMono;
-		pol->nMono = newNMono;
-		if(pol->polType == POL_TYPE_LIN) pol->polSize = pol->nMono-1;
-		else pol->polSize = pol->nMono;
-	}
-	
+	fclose(pFile);
 	return 0;
 }
 
@@ -213,6 +208,10 @@ void WriteSimulationSettings(CurState* cs){
 	
 	sprintf(file, "%s/simulation_settings.txt", ss->dir);
 	FILE* pFile = fopen(file, "w");
+	if(!pFile){
+		printf("Error opening file %s\n", file);
+		exit(192);
+	}
 	fprintf(pFile, "Start_seed = %u\n", ss->seed);
 	fprintf(pFile, "Length = %i\n", ss->polSize);
 	if(ss->polType == POL_TYPE_RING)

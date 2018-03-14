@@ -2,6 +2,10 @@
 
 void ReadArgumentsFromFile(SimulationSettings* ss, char* file){
 	FILE* pFile = fopen(file, "r");
+	if(!pFile){
+		printf("Error opening file %s (config)\n", file);
+		exit(192);
+	}
 	char strProp[10000], strVal[10000];
 	while(fscanf(pFile, "%s %s", strProp, strVal) == 2){
 		if(!strcmp(strProp, "L"))
@@ -34,13 +38,9 @@ void ReadArgumentsFromFile(SimulationSettings* ss, char* file){
 			ss->eeFile = malloc(sizeof(char)*(strlen(strVal)+1));
 			strcpy(ss->eeFile, strVal);
 		}
-		else if(!strcmp(strProp, "hpfile")){
-			ss->hpFile = malloc(sizeof(char)*(strlen(strVal)+1));
-			strcpy(ss->hpFile, strVal);
-		}
-		else if(!strcmp(strProp, "lengthfile")){
-			ss->lengthFile = malloc(sizeof(char)*(strlen(strVal)+1));
-			strcpy(ss->lengthFile, strVal);
+		else if(!strcmp(strProp, "contactfile")){
+			ss->contactFile = malloc(sizeof(char)*(strlen(strVal)+1));
+			strcpy(ss->contactFile, strVal);
 		}
 		else if(!strcmp(strProp, "poltype")){
 			if(!strcmp(strVal, "lin") || !strcmp(strVal, "linear"))
@@ -77,16 +77,14 @@ void SetDefaultSS(SimulationSettings* ss){
 	ss->interval     = SS_DEFAULT;
 	ss->bendEnergy   = SS_DEFAULT;
 	ss->hpStrength   = SS_DEFAULT;
-// 	ss->polIdShuffle = SS_DEFAULT;
 	ss->hpStrength   = SS_DEFAULT;
 	ss->boundaryCond = SS_DEFAULT;
 	ss->polType      = SS_DEFAULT;
 	ss->dblStep      = SS_DEFAULT;
 	ss->latticeShape = SS_DEFAULT;
 	ss->useTopo      = SS_DEFAULT;
-	ss->hpFile       = NULL;
 	ss->eeFile       = NULL;
-	ss->lengthFile   = NULL;
+	ss->contactFile  = NULL;
 	ss->dir          = NULL;
 }
 
@@ -99,7 +97,6 @@ void FillDefaultSS(SimulationSettings* ss){
 	if(ss->interval     == SS_DEFAULT) ss->interval     = 1e2;
 	if(ss->bendEnergy   == SS_DEFAULT) ss->bendEnergy   = 0.3;
 	if(ss->hpStrength   == SS_DEFAULT) ss->hpStrength   = 0.35;
-// 	if(ss->polIdShuffle == SS_DEFAULT) ss->polIdShuffle = 0;
 	if(ss->boundaryCond == SS_DEFAULT) ss->boundaryCond = BOUNDARY_PERIODIC;
 	if(ss->polType      == SS_DEFAULT) ss->polType      = POL_TYPE_RING;
 	if(ss->dblStep      == SS_DEFAULT) ss->dblStep      = 0;
@@ -112,6 +109,10 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 	GenerateMutators(lt);
 	ReadTopComp(lt, cs->ss.eeFile);
 	
+	char exec[3000];
+	sprintf(exec, "mkdir -p %s", cs->ss.dir);
+	system(exec);
+	
 	long lastT = GetLastT(cs->ss.dir);
 	if(lastT>=0){
 		printf("Starting from t=%li\n", lastT);
@@ -120,18 +121,19 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 	}
 	else{
 		cs->curT=0;
-		if(cs->ss.lengthFile){
+		if(cs->ss.contactFile){
 			ReadLengthFile(cs, lt);
 		}
 		else{
-			printf("Error: sorry, creation without a length file currently not supported\n");
-			CSInit(cs);
+			CSFromParameters(cs,lt);
 		}
 		GeneratePolymers(cs);
 	}
 	
-	if(cs->ss.hpFile) LoadHPFile(cs->ss.hpFile, &lt->hp, cs);
-	else{
+	if(cs->ss.contactFile){
+		LoadHPFile(cs->ss.contactFile, &lt->hp, cs);
+	}
+	if(!cs->ss.contactFile){
 		lt->hp.nInter = malloc(sizeof(int*)*cs->nPol);
 		for(int iPol=0; iPol<cs->nPol; iPol++){
 			lt->hp.nInter[iPol] = malloc(sizeof(int)*cs->pol[iPol].nMono);
@@ -144,6 +146,8 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 	
 	lt->nMoveChoice=0;
 	PopulateMoveList(cs, lt);
+	
+
 	CheckIntegrity(cs, "After construction");
 }
 
@@ -156,38 +160,9 @@ void SetLatticeEmpty(CurState* cs, LookupTables *lt){
 		cs->bondOcc[site] = 0;
 	}
 	lt->nLatticeUsed = cs->LSize;
+	lt->nBondUsed = cs->LSize*6;
 }
 
-void SetLatticeSphere(CurState* cs, LookupTables* lt){
-	int L = cs->L;
-	double r = 0.5*L;
-	
-	double tuvMid[3] = {0.5*(L+1), 0.5*(L+1), 0.5*(L+1)};
-	double xyzMid[3];
-	DTUV2XYZ(tuvMid, xyzMid);
-	
-	lt->nLatticeUsed=0;
-	for(int t=0; t<cs->L; t++){
-		for(int u=0; u<cs->L; u++){
-			for(int v=0; v<cs->L; v++){
-				double dtuv[3] = {t+0.5,u+0.5,v+0.5};
-				double dxyz[3];
-				DTUV2XYZ(dtuv, dxyz);
-				int site = t+u*L+v*L*L;
-				
-				if(Distance(dxyz, xyzMid) < r){
-					cs->topoState[site] = 0;
-					cs->bondOcc[site] = 0;
-					lt->nLatticeUsed++;
-				}
-				else{
-					cs->topoState[site] = -1;
-					cs->bondOcc[site] = 0xffffffff;
-				}
-			}
-		}
-	}
-}
 
 void LatticeInit(CurState* cs, LookupTables* lt){
 	cs->L = cs->ss.L;
@@ -196,7 +171,7 @@ void LatticeInit(CurState* cs, LookupTables* lt){
 	cs->bondOcc   = malloc(sizeof(int)*cs->LSize);
 	
 	if(cs->ss.latticeShape == LATTICE_SHAPE_SPHERE)
-		SetLatticeSphere(cs, lt);
+		lt->nLatticeUsed = SetLatticeSphere(cs->topoState, cs->bondOcc, cs->L, &lt->nBondUsed);
 	else if(cs->ss.latticeShape == LATTICE_SHAPE_EMPTY)
 		SetLatticeEmpty(cs, lt);
 }
@@ -313,22 +288,27 @@ void AllocPolymers(CurState* cs){
 	}
 }
 
-void CSInit(CurState* cs){
-	char exec[1000];
-	
-	cs->L     = cs->ss.L;
-	cs->LSize = cs->L*cs->L*cs->L;
-	cs->nPol  = cs->ss.nPol;
-	
-	for(int i=0; i<cs->LSize; i++){
-		cs->topoState[i]=0;
-		cs->bondOcc[i]=0;
-	}
-	
+int CSFromParameters(CurState* cs, LookupTables* lt){
+	FillDefaultSS(&cs->ss);
 	Seed(cs->rngState, cs->ss.seed);
+	if(cs->ss.boundaryCond == BOUNDARY_PERIODIC)
+		cs->AddUnitToCoor = &AddUnitToCoorPeriod;
+	else if(cs->ss.boundaryCond == BOUNDARY_STATIC)
+		cs->AddUnitToCoor = &AddUnitToCoorWBounds;
+	LatticeInit(cs, lt);
 	
-	sprintf(exec, "mkdir -p %s", cs->ss.dir);
-	system(exec);
+	int nMono = cs->ss.polSize+((cs->ss.polType == POL_TYPE_LIN)?1:0);
+	cs->nPol = (int)(cs->ss.density*lt->nLatticeUsed/(double)nMono+0.5);
+	cs->maxNMono = nMono;
+	cs->nTotMono = cs->nPol*nMono;
+	AllocPolymers(cs);
+	for(int iPol=0; iPol<cs->nPol; iPol++){
+		Polymer* pol = cs->pol+iPol;
+		pol->polType = cs->ss.polType;
+		pol->nMono = nMono;
+		pol->polSize = cs->ss.polSize;
+	}
+	return 0;
 }
 
 void PopulateMoveList(CurState* cs, LookupTables* lt){
@@ -399,30 +379,10 @@ void PopulateMoveList(CurState* cs, LookupTables* lt){
 	}
 }
 
-/// Use a Fisher-Yates shuffle to randomize the polymer ID's.
-/// 
-/// Obviously, most of the time this is not what you want. 
-/// One application is if you want to reconstruct a configuration, but not start
-/// with polymers in the same position, which would be akin to cheating.
-
-// void ShufflePolymerIds(CurState* cs, LookupTables* lt){
-// 	Polymer tPol;
-// 	for(int i=0; i<cs->nPol-1; i++){
-// 		int j= i+DRng(cs->rngState)*(cs->nPol-i);
-// 		if(i != j){
-// 			tPol = cs->pol[i];
-// 			cs->pol[i] = cs->pol[j];
-// 			cs->pol[j] = tPol;
-// 		}
-// 	}
-// 	PopulateMoveList(cs,lt);
-// }
-
 int CheckPolymerPartition(CurState* cs, int delta){
 	int nFound=0;
 	
 	int units[] = {0x0, 0x4, 0x5};
-	
 	for(int t=0; t+delta/2<cs->L; t+=delta){
 		for(int u=0; u+delta/2<cs->L; u+=delta){
 			for(int v=0; v+delta/2<cs->L; v+=delta){
@@ -458,8 +418,9 @@ void GeneratePolymers(CurState* cs){
 		exit(192);
 	}
 	
+	int availUnits[]= {0x0,0x4,0x5};
 	int ringUnits[] = {0x4,0x1,0xa};
-	int linUnits[] = {0x4};
+	int linUnits[]  = {0x4};
 	
 	int* polOrder = malloc(sizeof(int)*cs->nPol);
 	for(int i=0; i<cs->nPol; i++) polOrder[i]=i;
@@ -472,7 +433,7 @@ void GeneratePolymers(CurState* cs){
 			polOrder[j] = tPol;
 		}
 	}
-		
+	
 	int iPol=0; 
 	Polymer* pol;
 	for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
@@ -483,7 +444,7 @@ void GeneratePolymers(CurState* cs){
 				int available=1;
 				int coor = TUV2Coor(t,u,v,cs->L);
 				for(int iUnit=0; iUnit<3 && available; iUnit++){
-					int newCoor = cs->AddUnitToCoor(ringUnits[iUnit], coor, cs->L, &OOB);
+					int newCoor = cs->AddUnitToCoor(availUnits[iUnit], coor, cs->L, &OOB);
 					if(OOB || cs->topoState[newCoor] <0) available = 0; 
 				}
 				if(!available) continue;
@@ -498,11 +459,18 @@ void GeneratePolymers(CurState* cs){
 					for(int iMono=0; iMono<pol->polSize; iMono++){
 						pol->coorPol[iMono] = coor;
 						coor = cs->AddUnitToCoor(pol->unitPol[iMono], coor, L, &OOB);
+						if(OOB) printf("Error: out of bounds...\n");
 					}
 					
 					for(int iMono=0; iMono<3; iMono++){
 						int bondOcc = 1<<pol->unitPol[(iMono-1+3)%3];
 						bondOcc |= 1<<(pol->unitPol[iMono]^0xf);
+						if(cs->bondOcc[pol->coorPol[iMono]] & bondOcc){
+							printf("Uh oh, iMono = %i\n", iMono);
+							printf("at (t,u,v): "); PrintCoor(pol->coorPol[iMono], cs->L);
+							printf("\ntopo = %i, bondOcc = %i\n", cs->topoState[pol->coorPol[iMono]], cs->bondOcc[pol->coorPol[iMono]]);
+							exit(192);
+						}
 						cs->bondOcc[pol->coorPol[iMono]] |= bondOcc;
 					}
 					iPol++;

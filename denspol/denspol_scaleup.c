@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #define IS_MAIN
 
-#include "lowm_modes.h"
 #include "rng.h"
+#include "denspol_lib.h"
 #define LAT_SHAPE_SPHERE 0
 #define LAT_SHAPE_EMPTY 1
 
@@ -94,22 +94,6 @@ int UpscaleCoor(int pos, int L){
 	
 	t *= 2; u *= 2; v *= 2;
 	return TUV2CoorX(t,u,v,2*L);
-}
-
-double Distance(double xyz1[3], double xyz2[3]){
-	double rsq=0;
-	for(int k=0; k<3; k++)
-		rsq += (xyz1[k]-xyz2[k])*(xyz1[k]-xyz2[k]);
-	return sqrt(rsq);
-}
-
-
-void PrintCoor(int pos, int L){
-	int t = pos%L;
-	int u = (pos/L)%L;
-	int v = pos/(L*L);
-	
-	printf("(%i,%i,%i)", t,u,v);
 }
 
 BoxState* NewBoxState(int L, int nPol, int maxPolSize){
@@ -273,99 +257,7 @@ int* LoadStraightTopo(char* file){
 	return straightTopo;
 }
 
-int SetLatticeSphere(BoxState* box){
-	int L = box->L;
-	
-	int nLatticeUsed=0;
-	double r = 0.5*L/sqrt(2);
-	
-	double tuvMid[3] = {0.5*L, 0.5*L, 0.5*L};
-	double xyzMid[3];
-	DTUV2XYZ(tuvMid, xyzMid);
-	
-	for(int t=0; t<L; t++){
-		for(int u=0; u<L; u++){
-			for(int v=0; v<L; v++){
-				int site = t+u*L+v*L*L;
-				double newTuv[3];
-				
-				int inside=1;
-				for(int dt=0; dt<2 && inside; dt++){
-					for(int du=0; du<2 && inside; du++){
-						for(int dv=0; dv<2 && inside; dv++){
-							newTuv[0] = t+dt;
-							newTuv[1] = u+du;
-							newTuv[2] = v+dv;
-							
-							double dxyz[3];
-							DTUV2XYZ(newTuv, dxyz);
-							
-							if(Distance(dxyz, xyzMid) > r)
-								inside=0;
-						}
-					}
-				}
-				
-				if(inside){
-					box->topo[site] = 0;
-					box->bondOcc[site] = 0;
-					nLatticeUsed++;
-				}
-				else{
-					box->topo[site]      = -1;
-					box->bondOcc[site]   = 0xffffffff;
-				}
-			}
-		}
-	}
-	for(int v=0; v<L; v++){
-		printf("v=%i\n", v);
-		for(int t=0; t<L; t++){
-			for(int u=0; u<L; u++){
-				int site = t+u*L+v*L*L;
-				if(box->topo[site]<0)
-					printf("+");
-				else
-					printf(".");
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
-	printf("\n");
-	return nLatticeUsed;
-}
 
-int* ComputePolLengths(char* file, int nLatticeUsed, double density){
-	FILE* pFile= fopen(file, "r");
-	if(!pFile) printf("Error opening file %s for reading\n", file);
-	
-	int nPol;
-	int nTotMonoOrig = 0;
-	
-	fscanf(pFile, "%*s %i", &nPol);
-	int* origLengths = malloc(sizeof(int)*nPol);
-	int* newLengths = malloc(sizeof(int)*nPol);
-	
-	for(int i=0; i<2; i++) fscanf(pFile, "%*s %*s");
-	for(int iPol=0; iPol<nPol; iPol++){
-		fscanf(pFile, "%*s %i", &origLengths[iPol]);
-		nTotMonoOrig += origLengths[iPol];
-	}
-	fclose(pFile);
-	
-	int nTotMonoTarget = (int)(density*nLatticeUsed+0.5);
-	
-	double leftover=0;
-	for(int iPol=0; iPol<nPol; iPol++){
-		double dblNewNMono = origLengths[iPol]*(nTotMonoTarget/(double)nTotMonoOrig)+leftover;
-		int newNMono = (int)(dblNewNMono+0.5);
-		leftover = dblNewNMono-newNMono;
-		newLengths[iPol] = newNMono;
-	}
-	free(origLengths);
-	return newLengths;
-}
 
 /** Not the normal kind of sorting, since inserting one shifts all the places after.
   * i < j, list[i] > list[j].
@@ -391,10 +283,10 @@ void SwapSort(int* list, int N){
 }
 
 void UpdateWithSphereBoundary(BoxState* box, char* file, double density){
-	
-	int nLatticeUsed = SetLatticeSphere(box);
-	printf("L=%i, nLattice=%i\n", box->L, nLatticeUsed);
-	int* newNMono = ComputePolLengths(file, nLatticeUsed, density);
+	int nBondUsed;
+	int nLatticeUsed = SetLatticeSphere(box->topo, box->bondOcc, box->L, &nBondUsed);
+	printf("L=%i, nLattice=%i, nBondUsed=%i\n", box->L, nLatticeUsed, nBondUsed);
+	int* newNMono = ComputePolLengths(file, nBondUsed, density);
 	for(int i=0; i<box->nPol; i++){
 		printf("%i ", newNMono[i]);
 	}

@@ -49,8 +49,7 @@ typedef struct SimulationSettings{
 	double bendEnergy;
 	char* dir;
 	char* eeFile;
-	char* hpFile;
-	char* lengthFile;
+	char* contactFile;
 	unsigned int seed;
 	long tMax;
 	long interval;
@@ -142,6 +141,7 @@ typedef struct LookupTables{
 	int nMoveChoice;
 	int* latticeUsed;
 	int nLatticeUsed;
+	int nBondUsed;
 	int** mutTopo;
 	TopoCompact* topComp;
 	KeyNode* sameTopoTree;
