@@ -29,16 +29,16 @@ int AddUnitToCoor(int unit, int pos, int L);
 int UpscaleCoor(int coor, int L);
 BoxState* NewBoxState(int L, int nPol, int maxPolSize);
 BoxState* LoadSystem(char* file, char* topoFile);
-BoxState* UpscaleBox(BoxState* bs, int* topoStraight);
+BoxState* UpscaleBox(BoxState* bs, char* lengthFile, int* topoStraight, int latShape, double density);
 int* LoadStraightTopo(char* file);
 void WriteState(BoxState* bs, char* file, char* topoFile);
 void UpdateWithSphereBoundary(BoxState* box, char* file, double density);
 
 
 int main(int argc, char** argv){
-	char* file, *fileOut, *topoFile, *topoFileOut, *strTopoFile, *lengthFile;
+	char* file, *fileOut, *topoFile, *topoFileOut, *strTopoFile, *lengthFile=NULL;
 	int latShape=LAT_SHAPE_EMPTY;
-	double density;
+	double density=0.0;
 	BoxState* bs, *newBs;
 	int* topoStraight;
 	if(argc<6){
@@ -60,9 +60,7 @@ int main(int argc, char** argv){
 	
 	topoStraight = LoadStraightTopo(strTopoFile);
 	bs = LoadSystem(file, topoFile);
-	newBs = UpscaleBox(bs, topoStraight);
-	if(latShape == LAT_SHAPE_SPHERE)
-		UpdateWithSphereBoundary(newBs, lengthFile, density);
+	newBs = UpscaleBox(bs, lengthFile, topoStraight, latShape, density);
 	WriteState(newBs, fileOut, topoFileOut);
 	
 	return 0;
@@ -94,6 +92,17 @@ int UpscaleCoor(int pos, int L){
 	
 	t *= 2; u *= 2; v *= 2;
 	return TUV2CoorX(t,u,v,2*L);
+}
+
+void ResizeBoxState(BoxState* box, int* nMono){
+	int maxMono=0;
+	for(int iPol=0; iPol<box->nPol; iPol++){
+		box->nMono[iPol] = nMono[iPol];
+		box->bonds[iPol] = realloc(box->bonds[iPol], sizeof(int)*nMono[iPol]);
+		box->coor[iPol]  = realloc(box->coor[iPol], sizeof(int)*nMono[iPol]);
+		maxMono = MAX(nMono[iPol], maxMono);
+	}
+	box->maxPolSize = maxMono;
 }
 
 BoxState* NewBoxState(int L, int nPol, int maxPolSize){
@@ -183,48 +192,77 @@ BoxState* LoadSystem(char* file, char* topoFile){
 	return bs;
 }
 
-BoxState* UpscaleBox(BoxState* bs, int* topoStraight){
+BoxState* UpscaleBox(BoxState* bs, char* lengthFile, int* topoStraight, int latShape, double density){
+	BoxState* newBs = NewBoxState(bs->L*2, bs->nPol, bs->maxPolSize*8);
+	int nLatticeUsed, nBondUsed;
+	if(latShape == LAT_SHAPE_SPHERE)
+		nLatticeUsed = SetLatticeSphere(newBs->topo, newBs->bondOcc, newBs->L, &nBondUsed);
+	else
+		nLatticeUsed = SetLatticeEmpty(newBs->topo, newBs->bondOcc, newBs->L, &nBondUsed);
 	
-	BoxState* newBs;
-	
-	newBs = NewBoxState(bs->L*2, bs->nPol, bs->maxPolSize*8);
+	int* newNMono;
+	if(lengthFile)
+		newNMono = ComputePolLengths(lengthFile, nBondUsed, density);
+	else{
+		newNMono = malloc(sizeof(int)*newBs->nPol);
+		for(int iPol=0; iPol<newBs->nPol; iPol++)
+			newNMono[iPol] = 8*bs->nMono[iPol];
+	}
+	ResizeBoxState(newBs, newNMono);
+
+	int maxNMono=0;
+	for(int iPol=0; iPol<bs->nPol; iPol++)
+		maxNMono = MAX(maxNMono, newNMono[iPol]);
 	
 	for(int iPol=0; iPol<bs->nPol; iPol++){
+		double avgSlAdded;
+		if(bs->polTypes[iPol] == POL_TYPE_LIN)
+			avgSlAdded = (newNMono[iPol]-2*((bs->nMono[iPol]-1)+1))/(double)(2*((bs->nMono[iPol]-1)+1));
+		else
+			avgSlAdded = (newNMono[iPol]-2*bs->nMono[iPol])/(double)(2*bs->nMono[iPol]);
+		
+		avgSlAdded = MAX(avgSlAdded, 0);
+		
 		for(int i=0; i<3; i++)
 			newBs->startTUV[iPol][i] = bs->startTUV[iPol][i]*2;
 		
 		int curCoor= TUV2CoorX(newBs->startTUV[iPol][0], newBs->startTUV[iPol][1], newBs->startTUV[iPol][2], newBs->L);
+		
+		double leftover=0;
+		int jBondNew=0;
 		for(int iBond=0; iBond<bs->nMono[iPol]; iBond++){
 			int bond = bs->bonds[iPol][iBond];
 			if(bond == 0xf){
-				newBs->bonds[iPol][iBond*8] = 0xf;
-				newBs->coor[iPol][iBond*8] = 0xf;
+				for(int i=0; i<(int)(leftover+avgSlAdded+0.5); i++)
+					newBs->bonds[iPol][jBondNew++] = 0x0;
+				newBs->bonds[iPol][jBondNew++] = 0xf;
 				break;
 			}
 			
-			for(int i=0; i<3; i++){
-				newBs->bonds[iPol][iBond*8+i] = 0;
-				newBs->coor[iPol][iBond*8+i] = curCoor;
-			}
-			newBs->bonds[iPol][iBond*8+3] = bond;
-			newBs->coor [iPol][iBond*8+3] = curCoor;
+			double dSl = leftover+avgSlAdded;
+			int nSl = (int)(dSl+0.5);
+			leftover = dSl-nSl;
+			for(int i=0; i<nSl; i++)
+				newBs->bonds[iPol][jBondNew++] = 0x0;
+			
+			newBs->bonds[iPol][jBondNew++] = bond;
+			
 			if(bond != 0x0){
 				curCoor = AddUnitToCoor(bond, curCoor, newBs->L);
 				newBs->topo[curCoor]    = topoStraight[bond];
 				newBs->bondOcc[curCoor] = (1<<bond)|(1<<(bond^0xf));
 			}
-			for(int i=4; i<7; i++){
-				newBs->bonds[iPol][iBond*8+i] = 0;
-				newBs->coor[iPol][iBond*8+i] = curCoor;
-			}
-			newBs->bonds[iPol][iBond*8+7] = bs->bonds[iPol][iBond];
-			newBs->coor[iPol][iBond*8+7]  = curCoor;
+			
+			dSl = leftover+avgSlAdded;
+			nSl = (int)(dSl+0.5);
+			leftover = dSl-nSl;
+			for(int i=0; i<nSl; i++)
+				newBs->bonds[iPol][jBondNew++] = 0x0;
+			
+			newBs->bonds[iPol][jBondNew++] = bond;
 			curCoor = AddUnitToCoor(bs->bonds[iPol][iBond], curCoor, newBs->L);
 		}
-		if(bs->polTypes[iPol] == POL_TYPE_RING)
-			newBs->nMono[iPol] = bs->nMono[iPol]*8;
-		else
-			newBs->nMono[iPol] = bs->nMono[iPol]*8-7;
+		newBs->nMono[iPol] = newNMono[iPol];
 	}
 	
 	for(int coor=0; coor<bs->L*bs->L*bs->L; coor++){
@@ -256,71 +294,6 @@ int* LoadStraightTopo(char* file){
 // 	}
 	return straightTopo;
 }
-
-
-
-/** Not the normal kind of sorting, since inserting one shifts all the places after.
-  * i < j, list[i] > list[j].
-  **/
-
-void QSwap(int* list, int i, int j){
-	int temp = list[i];
-	list[i] = list[j];
-	list[j] = temp;
-}
-
-void SwapSort(int* list, int N){
-	int changed=1;
-	for(int i=0; i<N && changed; i++){
-		changed=0;
-		for(int j=0; j<N-1; j++){
-			if(list[j]>list[j+1]){
-				QSwap(list, j, j+1);
-				changed=1;
-			}
-		}
-	}
-}
-
-void UpdateWithSphereBoundary(BoxState* box, char* file, double density){
-	int nBondUsed;
-	int nLatticeUsed = SetLatticeSphere(box->topo, box->bondOcc, box->L, &nBondUsed);
-	printf("L=%i, nLattice=%i, nBondUsed=%i\n", box->L, nLatticeUsed, nBondUsed);
-	int* newNMono = ComputePolLengths(file, nBondUsed, density);
-	for(int i=0; i<box->nPol; i++){
-		printf("%i ", newNMono[i]);
-	}
-	printf("\n");
-	unsigned int rngState[4];
-	int* inserts = malloc(sizeof(int)*box->maxPolSize+1);
-	
-	Seed(rngState, 10948712);
-	
-	for(int iPol=0; iPol<box->nPol; iPol++){
-		if(newNMono[iPol] <= box->nMono[iPol]) continue;
-		
-		int nInserts;
-		for(nInserts=0; nInserts<newNMono[iPol]-box->nMono[iPol]; nInserts++){
-			inserts[nInserts] = (int)(DRng(rngState)*(box->nMono[iPol]+nInserts));
-		}
-		SwapSort(inserts, nInserts);
-		
-		int curInsert=0, curOrig=0;
-		int* newBonds = malloc(sizeof(int)*newNMono[iPol]);
-		for(int iMono=0; iMono<newNMono[iPol]; iMono++){
-			if(curInsert < nInserts && inserts[curInsert] < curOrig){
-				newBonds[iMono] = 0;
-				curInsert++;
-			}
-			else
-				newBonds[iMono] = box->bonds[iPol][curOrig++];
-		}
-		free(box->bonds[iPol]);
-		box->bonds[iPol] = newBonds;
-	}
-}
-
-
 
 void WriteState(BoxState* bs, char* file, char* topoFile){
 	FILE* pFile = fopen(file, "w");

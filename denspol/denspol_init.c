@@ -151,19 +151,6 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 	CheckIntegrity(cs, "After construction");
 }
 
-
-
-
-void SetLatticeEmpty(CurState* cs, LookupTables *lt){
-	for(int site=0; site<cs->LSize; site++){
-		cs->topoState[site] = 0;
-		cs->bondOcc[site] = 0;
-	}
-	lt->nLatticeUsed = cs->LSize;
-	lt->nBondUsed = cs->LSize*6;
-}
-
-
 void LatticeInit(CurState* cs, LookupTables* lt){
 	cs->L = cs->ss.L;
 	cs->LSize = cs->ss.L*cs->ss.L*cs->ss.L;
@@ -173,7 +160,7 @@ void LatticeInit(CurState* cs, LookupTables* lt){
 	if(cs->ss.latticeShape == LATTICE_SHAPE_SPHERE)
 		lt->nLatticeUsed = SetLatticeSphere(cs->topoState, cs->bondOcc, cs->L, &lt->nBondUsed);
 	else if(cs->ss.latticeShape == LATTICE_SHAPE_EMPTY)
-		SetLatticeEmpty(cs, lt);
+		lt->nLatticeUsed = SetLatticeEmpty(cs->topoState, cs->bondOcc, cs->L, &lt->nBondUsed);
 }
 
 void AddInteraction(HPTable* hp, int iMonoOrig, int iPol, int jMonoOrig, int jPol, double strength, CurState* cs){

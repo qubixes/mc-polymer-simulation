@@ -22,6 +22,7 @@ SEED=12938173
 TIME=1e5
 INTERVAL=1e3
 DENSITY=7.2
+START_L=7
 
 BEND_ENERGY=0.3
 SHUFFLE=1
@@ -121,7 +122,7 @@ DENSITY=`get_attr 'Density' $DIR`
 NPOL=`get_attr 'Npol' $DIR`
 
 
-L=5;
+L=$START_L;
 
 
 BASE_DEST_DIR="$BASE_DIR/reconstruction/rec_hp${HP_STRENGTH}_${POL_TYPE}_s${SEED}`echo $TOPO | sed 's/--/_/'`"
@@ -151,8 +152,6 @@ fi
 DBL_STEP=1
 MAX_L=20
 CUR_L=$L
-
-echo "$START_L -lt $MAX_L"
 
 while [ $CUR_L -lt $MAX_L ]; do
 	SECOND_DIR="${BASE_DEST_DIR}_b${DBL_STEP}"

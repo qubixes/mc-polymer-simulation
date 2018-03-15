@@ -193,6 +193,17 @@ int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondUsed){
 	return nLatticeUsed;
 }
 
+int SetLatticeEmpty(int* topo, int* bondOcc, int L, int* nBondUsed){
+	int LSize = L*L*L;
+	
+	for(int site=0; site<LSize; site++){
+		topo[site] = 0;
+		bondOcc[site] = 0;
+	}
+	*nBondUsed = LSize*6;
+	return LSize;
+}
+
 int* ComputePolLengths(char* file, int nBondUsed, double density){
 	FILE* pFile= fopen(file, "r");
 	if(!pFile) printf("Error opening file %s for reading\n", file);
