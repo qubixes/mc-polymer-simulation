@@ -100,8 +100,6 @@ HP_STRENGTH_3=`echo "$HP_STRENGTH+0.10" | bc -l`
 FIRST_TIME=`echo "print $TIME*10" | gnuplot 2> /dev/stdout`
 FIRST_INTERVAL=`echo "print $INTERVAL*10" | gnuplot 2> /dev/stdout`
 
-echo "$FIRST_TIME $FIRST_INTERVAL"
-
 EXEC=$BIN_DIR/denspol_hp
 
 
@@ -151,9 +149,8 @@ fi
 
 DBL_STEP=1
 MAX_L=20
-CUR_L=$L
 
-while [ $CUR_L -lt $MAX_L ]; do
+while [ $L -lt $MAX_L ]; do
 	SECOND_DIR="${BASE_DEST_DIR}_b${DBL_STEP}"
 	mkdir -p ${SECOND_DIR}
 	
@@ -164,10 +161,11 @@ while [ $CUR_L -lt $MAX_L ]; do
 	LAST_SAVFILE=$FIRST_DIR/`get_last_savfile $FIRST_DIR`
 	
 	if [ $CUR_TFILE == "NOT_FOUND" ]; then
-		$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE "$SECOND_DIR/t=0_dev=0.res" "$SECOND_DIR/sav_t0_dev=0.res" ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS && {
-		echo "$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE $SECOND_DIR/t=0_dev=0.res $SECOND_DIR/sav_t0_dev=0.res ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS"
-		 exit $?
-		 }
+		$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE "$SECOND_DIR/t=0_dev=0.res" "$SECOND_DIR/sav_t0_dev=0.res" ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS 
+# 		&& {
+# 		echo "$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE $SECOND_DIR/t=0_dev=0.res $SECOND_DIR/sav_t0_dev=0.res ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS"
+# 		 exit $?
+# 		 }
 		cp $FIRST_DIR/contact_map.dat $SECOND_DIR
 		./do_run.sh $COMMON_OPTS -t $TIME -i $INTERVAL -m $SECOND_DIR/contact_map.dat --outdir $SECOND_DIR -g $L || exit $?
 		$BIN_DIR/contact_map $SECOND_DIR/`get_last_tfile $SECOND_DIR` $SECOND_DIR/contact_map_new.dat

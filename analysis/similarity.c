@@ -15,6 +15,7 @@ typedef struct Data{
 	double (*TUV2Distance) (double*, double*, int);
 	int nPol;
 	int maxNMono;
+	int nTotMono;
 	int L;
 }Data;
 
@@ -40,7 +41,7 @@ int main(int argc, char** argv){
 	
 	rp.fileIn1 = argv[1];
 	rp.fileIn2 = argv[2];
-	if(argc == 3 && !strcmp(argv[3], "static"))
+	if(argc == 4 && !strcmp(argv[3], "static"))
 		rp.boundaryCond = BOUNDARY_STATIC;
 	else 
 		rp.boundaryCond = BOUNDARY_PERIOD;
@@ -108,9 +109,11 @@ Data* ReadData(char* file, int boundaryCond){
 	Data* data = NewData(maxNMono, nPol, L, boundaryCond);
 	char* str  = malloc(sizeof(char)*(maxNMono+1));
 	
+	data->nTotMono=0;
 	for(int iPol=0; iPol<nPol; iPol++){
 		int tuv[3];
 		fscanf(pFile, "%*s %i %i %i %i %s", &data->nMono[iPol], tuv, tuv+1, tuv+2, str);
+		data->nTotMono += data->nMono[iPol];
 		for(int iMono=0; iMono<data->nMono[iPol]; iMono++){
 			for(int k=0; k<3; k++)
 				data->tuv[iPol][iMono][k] = tuv[k];
@@ -183,7 +186,19 @@ double TUV2DistanceStatic(double tuv1[3], double tuv2[3], int L){
 }
 
 double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int jMono1){
-	double ratio = data2->nMono[iPol]/(double)data1->nMono[jPol];
+// 	double ratio = data2->nMono[iPol]/(double)data1->nMono[jPol];
+	double ratioI, ratioJ;
+	
+	if(data1->polTypes[iPol] == POL_TYPE_LIN)
+		ratioI = (data2->nMono[iPol]-1)/(double)(data1->nMono[iPol]-1);
+	else
+		ratioI = data2->nMono[iPol]/(double)data1->nMono[iPol];
+	
+	if(data1->polTypes[jPol] == POL_TYPE_LIN)
+		ratioJ = (data2->nMono[jPol]-1)/(double)(data1->nMono[jPol]-1);
+	else
+		ratioJ = data2->nMono[jPol]/(double)data1->nMono[jPol];
+	
 	double ituv1[3], jtuv1[3];
 	double ituv2[3], jtuv2[3];
 	
@@ -192,8 +207,8 @@ double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int 
 		jtuv1[k] = data1->tuv[jPol][jMono1][k];
 	}
 	
-	double dIMono2 = iMono1*ratio;
-	double dJMono2 = jMono1*ratio;
+	double dIMono2 = iMono1*ratioI;
+	double dJMono2 = jMono1*ratioJ;
 	
 	int iMono2 = (int)dIMono2;
 	int jMono2 = (int)dJMono2;
@@ -201,24 +216,41 @@ double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int 
 	double dI = dIMono2-(int)dIMono2;
 	double dJ = dJMono2-(int)dJMono2;
 	
+// 	if(iMono2+1 >= data2->nMono[iPol]){
+// 		printf("ratioI = %lf\n", ratioI);
+// 		printf("iMono1=%i, nMono1 = %i\n", iMono1,data1->nMono[iPol]); 
+// 		printf("iMono2=%i, dI = %lf, nMono2 = %i\n", iMono2, dI, data2->nMono[iPol]);
+// 		exit(192);
+// 	}
+	
+// 	printf("iPol=%i, jMono2=%i, nMono2=%i\n", jPol, jMono2, data2->nMono[jPol]);
 	for(int k=0; k<3; k++){
 		ituv2[k]  = (1-dI) * data2->tuv[iPol][iMono2  ][k];
-		ituv2[k] +=    dI  * data2->tuv[iPol][iMono2+1][k];
+		ituv2[k] +=    dI  * data2->tuv[iPol][(iMono2+1)%data2->nMono[iPol]][k];
 		jtuv2[k]  = (1-dJ) * data2->tuv[jPol][jMono2  ][k];
-		jtuv2[k] +=    dJ  * data2->tuv[jPol][jMono2+1][k];
+		jtuv2[k] +=    dJ  * data2->tuv[jPol][(jMono2+1)%data2->nMono[jPol]][k];
 	}
 	
 	double dist1 = data1->TUV2Distance(ituv1, jtuv1, data1->L);
 	double dist2 = data1->TUV2Distance(ituv2, jtuv2, data2->L);
 	
-// 	printf("%i %i %i %i %i %i %lf %lf %lf\n", iPol, jPol, iMono1, iMono2, jMono1, jMono2, dist1, dist2, fabs(dist1-dist2*pow(ratio, -2./3.))/pow(data1->L, 2));
+// 	if(!isnormal(fabs(sqrt(dist1)-sqrt(dist2)*pow(sqrt(ratioI*ratioJ), -1./3.))/pow(data1->L, 1))){
+// 	printf("%i %i %i %i %i %i %lf %lf %lf %lf\n", iPol, jPol, iMono1, iMono2, jMono1, jMono2, dist1, dist2, fabs(dist1-dist2*pow(sqrt(ratioI*ratioJ), -2./3.))/pow(data1->L, 2),pow(data1->L, 1));
+// 		printf("???????\n");
+// 		printf("%lf %lf\n", sqrt(dist1),sqrt(dist2));
+// 		printf("%lf %lf %lf %lf\n", pow(sqrt(ratioI*ratioJ), -1./3.), ratioI, ratioJ, sqrt(ratioI*ratioJ));
+// 		printf("%i %i\n", data2->nMono[jPol],data1->nMono[jPol]);
+// 		exit(102);
+// 	}
 	
-	return fabs(sqrt(dist1)-sqrt(dist2)*pow(ratio, -1./3.))/pow(data1->L, 1);
+	double lengthRatio = data1->nTotMono/(double)data2->nTotMono;
+	
+	return fabs(sqrt(dist1)-sqrt(dist2)*pow(lengthRatio, 1./3.))/pow(data1->nTotMono, 1./3.);
 }
 
 double* SystemSimilarity(Data* data1, Data* data2, long maxSamples, unsigned int rng[4]){
 	if(data1->nPol != data2->nPol){
-		printf("Error: cannot compare data files with a different number of polymers.\n");
+// 		printf("Error: cannot compare data files with a different number of polymers.\n");
 		exit(192);
 	}
 	
@@ -318,7 +350,9 @@ double* SystemSimilarity(Data* data1, Data* data2, long maxSamples, unsigned int
 		}
 	}
 	
-	for(int k=0; k<2; k++) similarity[k] /= nSample[k];
+	for(int k=0; k<2; k++){
+		similarity[k] /= nSample[k];
+	}
 	
 	return similarity;
 }

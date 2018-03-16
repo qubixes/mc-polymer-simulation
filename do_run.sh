@@ -222,7 +222,7 @@ while (( "$#" )); do
 			LATTICE_SHAPE="sphere"
 			;;
 		--hp-strength|--hp)
-			echo "Setting harmonic potential strength"
+			echo "Setting harmonic potential strength: $2"
 			HP_STRENGTH="$2"
 			shift ;;
 		*)

@@ -223,7 +223,6 @@ int* ComputePolLengths(char* file, int nBondUsed, double density){
 	fclose(pFile);
 	
 	int nTotMonoTarget = (int)((density/6.0)*nBondUsed+0.5);
-	printf("target = %i, density = %lf\n", nTotMonoTarget, density);
 	
 	double leftover=0;
 	for(int iPol=0; iPol<nPol; iPol++){

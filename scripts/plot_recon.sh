@@ -66,7 +66,9 @@ PLOT_CONTACT="plot "
 
 for FILE in ${PLOT_FILES[*]}; do 
 	TITLE=`basename $FILE | sed 's/_/ /g'`
-	PLOT="${PLOT} \"$FILE\" u 1:5 w l title '$TITLE', "
+	TITLE_EXT="$TITLE (external)"
+	TITLE_INT="$TITLE (internal)"
+	PLOT="${PLOT} \"$FILE\" u 1:5 w l title '$TITLE', \"$FILE\" u 1:4 w l title '$TITLE',"
 	PLOT_CONTACT="${PLOT_CONTACT} \"$FILE\" u 1:7 w l title '$TITLE', "
 done 
 

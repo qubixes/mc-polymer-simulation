@@ -8,14 +8,15 @@
 typedef struct Data{
 	int*** tuv;
 	int nPol;
-	int polSize;
-	int polType;
+	int maxNMono;
+	int* nMono;
+	int* polTypes;
 	int L;
 }Data;
 
 typedef struct ContactData{
 	long nContact;
-	int polSize;
+	int* nMono;
 	int nPol;
 	int** contacts;
 	double* contactStrengths;
@@ -55,28 +56,31 @@ int main(int argc, char** argv){
 	printf("%lf %lf\n", similarity[0], similarity[1]);
 }
 
-Data* NewData(int polSize, int nPol, int L){
+Data* NewData(int maxNMono, int nPol, int L){
 	Data* data    = malloc(sizeof(Data));
 	data->nPol    = nPol;
-	data->polSize = polSize;
+	data->maxNMono= maxNMono;
 	data->L       = L;
 	
+	data->nMono = malloc(sizeof(int)*nPol);
+	data->polTypes = malloc(sizeof(int)*nPol);
 	data->tuv = malloc(sizeof(int**)*nPol);
 	for(int i=0; i<nPol; i++){
-		data->tuv[i] = malloc(sizeof(int*)*(polSize+1));
-		for(int j=0; j<=polSize; j++)
+		data->tuv[i] = malloc(sizeof(int*)*(maxNMono+1));
+		for(int j=0; j<=maxNMono; j++)
 			data->tuv[i][j] = malloc(sizeof(int)*3);
 	}
 	
 	return data;
 }
 
-ContactData* NewContactData(int polSize, int nPol, long nContact){
+ContactData* NewContactData(int nPol, long nContact){
 	ContactData* cData = malloc(sizeof(ContactData));
 	cData->nPol        = nPol;
-	cData->polSize     = polSize;
+// 	cData->maxNMono    = maxNMono;
 	cData->nContact    = nContact;
 	
+	cData->nMono = malloc(sizeof(int)*nPol);
 	cData->contactStrengths = malloc(sizeof(double)*nContact);
 	cData->contacts = malloc(sizeof(int*)*nContact);
 	for(long i=0; i<nContact; i++){
@@ -113,17 +117,17 @@ Data* ReadData(char* file){
 	
 	for(int iPol=0; iPol<nPol; iPol++){
 		int tuv[3];
-		fscanf(pFile, "%*s %i %i %i %i %s", &data->polSize, tuv, tuv+1, tuv+2, str);
-		for(int iMono=0; iMono<data->polSize; iMono++){
+		fscanf(pFile, "%*s %i %i %i %i %s", &data->nMono[iPol], tuv, tuv+1, tuv+2, str);
+		for(int iMono=0; iMono<data->nMono[iPol]; iMono++){
 			for(int k=0; k<3; k++)
 				data->tuv[iPol][iMono][k] = tuv[k];
 			AddCharToTUV(str[iMono], tuv);
 		}
 		for(int k=0; k<3; k++)
-			data->tuv[iPol][data->polSize][k] = tuv[k];
+			data->tuv[iPol][data->nMono[iPol]][k] = tuv[k];
+		if(str[data->nMono[iPol]-1] == 'f') data->polTypes[iPol] = POL_TYPE_LIN;
+		else data->polTypes[iPol] = POL_TYPE_RING;
 	}
-	if(str[data->polSize-1] == 'f') data->polType = POL_TYPE_LIN;
-	else data->polType = POL_TYPE_RING;
 	fclose(pFile);
 	return data;
 }
@@ -141,7 +145,9 @@ ContactData* ReadContactData(char* file){
 	fscanf(pFile, "%*s %i" , &nPol);
 	fscanf(pFile, "%*s %i" , &maxPolSize);
 	fscanf(pFile, "%*s %li", &nContact);
-	ContactData* cData = NewContactData(maxPolSize, nPol, nContact);
+	ContactData* cData = NewContactData(nPol, nContact);
+	for(int iPol=0; iPol<nPol; iPol++)
+		fscanf(pFile, "%*s %i", cData->nMono+iPol);
 	
 	for(long ic=0; ic<nContact; ic++){
 		fscanf(pFile, "%i %i %i %i %lf", cData->contacts[ic], cData->contacts[ic]+1, cData->contacts[ic]+2, cData->contacts[ic]+3, cData->contactStrengths+ic);
@@ -207,7 +213,9 @@ double TUV2Distance(double tuv1[3], double tuv2[3], int L){
 double* SimilarityToContact(Data* simData, ContactData* conData){
 	double* similarity = malloc(sizeof(double)*2);
 	double* nSample = malloc(sizeof(long)*2);
-	double ratio = simData->polSize/(double)conData->polSize;
+	
+	
+// 	double ratio = simData->polSize/(double)conData->polSize;
 	double ituv[3], jtuv[3];
 	
 	for(int i=0; i<2; i++){
@@ -216,9 +224,17 @@ double* SimilarityToContact(Data* simData, ContactData* conData){
 	
 	for(int iCon=0; iCon<conData->nContact; iCon++){
 		int iPol  = conData->contacts[iCon][0];
-		int iMono = (int)(conData->contacts[iCon][1]*ratio+0.5);
 		int jPol  = conData->contacts[iCon][2];
-		int jMono = (int)(conData->contacts[iCon][3]*ratio+0.5);
+		int simPolSizeI = (simData->polTypes[iPol]==POL_TYPE_LIN)?simData->nMono[iPol]-1:simData->nMono[iPol];
+		int simPolSizeJ = (simData->polTypes[jPol]==POL_TYPE_LIN)?simData->nMono[jPol]-1:simData->nMono[jPol];
+		int conPolSizeI = (simData->polTypes[iPol]==POL_TYPE_LIN)?conData->nMono[iPol]-1:conData->nMono[iPol];
+		int conPolSizeJ = (simData->polTypes[jPol]==POL_TYPE_LIN)?conData->nMono[jPol]-1:conData->nMono[jPol];
+		
+		double ratioI = simPolSizeI/(double)conPolSizeI;
+		double ratioJ = simPolSizeJ/(double)conPolSizeJ;
+		
+		int iMono = (int)(conData->contacts[iCon][1]*ratioI+0.5);
+		int jMono = (int)(conData->contacts[iCon][3]*ratioJ+0.5);
 		
 		for(int k=0; k<3; k++){
 			ituv[k] = simData->tuv[iPol][iMono][k];
