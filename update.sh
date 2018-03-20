@@ -36,7 +36,7 @@ for DIR in ${DIRS[*]}; do
 		fi
 	done
 done
-exit 0
+# exit 0
 
 for DIR in ${UPD_DIRS[*]}; do 
 	./bin/create_ptl $DIR || exit $?

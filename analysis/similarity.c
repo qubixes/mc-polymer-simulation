@@ -32,6 +32,10 @@ double* SystemSimilarity(Data* data1, Data* data2, long maxSamples, unsigned int
 double TUV2DistancePeriodic(double tuv1[3], double tuv2[3], int L);
 double TUV2DistanceStatic(double tuv1[3], double tuv2[3], int L);
 
+/** The internal error is in the first and 3rd column.
+  * The external error is in the second and 4th column.
+  **/
+
 int main(int argc, char** argv){
 	if(argc<3){
 		printf("Need two arguments!\n");

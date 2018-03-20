@@ -51,7 +51,7 @@ for DIR in ${ALL_DIRS[*]}; do
 		
 		for I in `seq 2`; do
 			NEW_DIR=${FIRST_DIR}_b${I}
-			if [ ! -f $NEW_DIR/simulation_settings.txt ]; then break; fi
+			if [ ! -f $NEW_DIR/simulation_settings.txt -o ! -f $NEW_DIR/simila* ]; then break; fi
 			awk '{print $(1)+'$CURT', $(2), $(3), $(4), $(5), $(6), $(7);}' $NEW_DIR/simila* >> $OUT_FILE
 			DT=`get_last_t $NEW_DIR`
 			let "CURT += DT"
@@ -64,18 +64,22 @@ done
 PLOT="plot "
 PLOT_CONTACT="plot "
 
+
+I=1
 for FILE in ${PLOT_FILES[*]}; do 
 	TITLE=`basename $FILE | sed 's/_/ /g'`
 	TITLE_EXT="$TITLE (external)"
 	TITLE_INT="$TITLE (internal)"
-	PLOT="${PLOT} \"$FILE\" u 1:5 w l title '$TITLE', \"$FILE\" u 1:4 w l title '$TITLE',"
+	PLOT="${PLOT} \"$FILE\" u 1:5 w l dashtype '-' lt $I title '$TITLE_EXT', \"$FILE\" u 1:4 w l lt $I title '$TITLE_INT',"
 	PLOT_CONTACT="${PLOT_CONTACT} \"$FILE\" u 1:7 w l title '$TITLE', "
+	let "I++"
 done 
 
 PLOT=${PLOT:0:${#PLOT}-2}
 PLOT_CONTACT=${PLOT_CONTACT:0:${#PLOT_CONTACT}-2}
 
 gnuplot -persist <<EOFGNU
+set terminal aqua dashed
 set grid
 $PLOT
 

@@ -11,6 +11,7 @@ void UnitDotInit(LookupTables* lt, double bendEnergy);
 void SuperTopoInit(LookupTables* lt);
 void SimulationInit(CurState* cs, LookupTables* lt);
 void PrintStraightTopo(LookupTables* lt);
+double*** GenerateBoundedDistanceMatrix(int L);
 double*** GenerateDistanceMatrix(int L);
 void LoadHPFile(char* file, HPTable* hp, CurState* cs);
 void ShufflePolymerIds(CurState* cs, LookupTables* lt);

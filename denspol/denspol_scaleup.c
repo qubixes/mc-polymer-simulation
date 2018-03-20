@@ -217,7 +217,7 @@ BoxState* UpscaleBox(BoxState* bs, char* lengthFile, int* topoStraight, int latS
 	for(int iPol=0; iPol<bs->nPol; iPol++){
 		double avgSlAdded;
 		if(bs->polTypes[iPol] == POL_TYPE_LIN)
-			avgSlAdded = (newNMono[iPol]-2*((bs->nMono[iPol]-1)+1))/(double)(2*((bs->nMono[iPol]-1)+1));
+			avgSlAdded = (newNMono[iPol]-(2*bs->nMono[iPol]-1))/(double)(2*bs->nMono[iPol]-1);
 		else
 			avgSlAdded = (newNMono[iPol]-2*bs->nMono[iPol])/(double)(2*bs->nMono[iPol]);
 		

@@ -142,7 +142,10 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 			}
 		}
 	}
-	lt->hp.distance = GenerateDistanceMatrix(cs->L);
+	if(cs->ss.boundaryCond == BOUNDARY_PERIODIC)
+		lt->hp.distance = GenerateDistanceMatrix(cs->L);
+	else
+		lt->hp.distance = GenerateBoundedDistanceMatrix(cs->L);
 	
 	lt->nMoveChoice=0;
 	PopulateMoveList(cs, lt);
@@ -167,10 +170,11 @@ void AddInteraction(HPTable* hp, int iMonoOrig, int iPol, int jMonoOrig, int jPo
 	strength *= cs->ss.hpStrength;
 	Polymer* polI = cs->pol+iPol;
 	Polymer* polJ = cs->pol+jPol;
-	double magRatio = polI->nMono/(double)polI->origNMono;
+	double magRatioI = MagnificationRatio(polI->nMono, polI->origNMono, polI->polType);
+	double magRatioJ = MagnificationRatio(polJ->nMono, polJ->origNMono, polJ->polType);
 	
-	int iMono = (int)(iMonoOrig*magRatio+0.5)%polI->nMono;
-	int jMono = (int)(jMonoOrig*magRatio+0.5)%polJ->nMono;
+	int iMono = (int)(iMonoOrig*magRatioI+0.5)%polI->nMono;
+	int jMono = (int)(jMonoOrig*magRatioJ+0.5)%polJ->nMono;
 	
 	if(iMono == jMono && iPol == jPol) return;
 	int exist=0;
@@ -186,9 +190,9 @@ void AddInteraction(HPTable* hp, int iMonoOrig, int iPol, int jMonoOrig, int jPo
 		hp->inter[iPol][iMono][hp->nInter[iPol][iMono]  ].iPol      = jPol;
 		hp->inter[iPol][iMono][hp->nInter[iPol][iMono]++].strength  = strength;
 		
-		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]  ].iMono     = iMono;
-		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]  ].iPol      = iPol;
-		hp->inter[jPol][jMono][hp->nInter[iPol][iMono]++].strength  = strength;
+		hp->inter[jPol][jMono][hp->nInter[jPol][jMono]  ].iMono     = iMono;
+		hp->inter[jPol][jMono][hp->nInter[jPol][jMono]  ].iPol      = iPol;
+		hp->inter[jPol][jMono][hp->nInter[jPol][jMono]++].strength  = strength;
 	}
 	else{
 		for(int indexJ=0; indexJ<hp->nInter[jPol][jMono]; indexJ++){
@@ -657,10 +661,10 @@ double*** GenerateBoundedDistanceMatrix(int L){
 	
 	for(int t=-L; t<L; t++){
 		for(int u=-L; u<L; u++){
-			for(int v=L; v<L; v++){
+			for(int v=-L; v<L; v++){
 				tuv[0]=t; tuv[1]=u; tuv[2]=v;
 				DTUV2XYZ(tuv,xyz);
-				distances[t][u][v] = Distance(xyz, xyzZero);
+				distances[t][u][v] = DistanceSq(xyz, xyzZero);
 			}
 		}
 	}

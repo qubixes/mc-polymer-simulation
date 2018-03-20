@@ -15,14 +15,14 @@ EE_TOPO_FILE=./denspol/ee_topo_comp.dat
 
 BOUNDARY_COND="periodic"
 LATTICE_SHAPE=""
-LENGTH_FILE=""
 HP_STRENGTH=0.35
 
 SEED=12938173
 TIME=1e5
 INTERVAL=1e3
 DENSITY=7.2
-START_L=7
+START_L=6
+POL_TYPE="original"
 
 BEND_ENERGY=0.3
 SHUFFLE=1
@@ -72,27 +72,20 @@ while (( "$#" )); do
 		--hardsphere)
 			LATTICE_SHAPE="--lattice-sphere"
 			;;
-		-m|--multilength)
-			if [ $# -lt 2 ]; then 
-				echo "Need length file after -m/--multilength option"
-				exit 23;
-			fi
-			LENGTH_FILE=$2
-			shift;;
+		--linear)
+			FORCE_LINEAR="1"
+			POL_TYPE="lin"
+			;;
+		--ring)
+			FORCE_RING="1"
+			POL_TYPE="ring"
+			;;
 		*)
 			echo "Error: unknown option $1"
 			exit 1 ;;
 	esac
 	shift
 done
-
-if [ "$LATTICE_SHAPE" == "--lattice-sphere" ]; then
-	BOUNDARY_COND="static"
-	if [ "$LENGTH_FILE" != "" ]; then
-		EXTRA_SCALEUP_OPTS="sphere $LENGTH_FILE $DENSITY"
-	fi
-	
-fi
 
 HP_STRENGTH_2=`echo "$HP_STRENGTH+0.05" | bc -l`
 HP_STRENGTH_3=`echo "$HP_STRENGTH+0.10" | bc -l`
@@ -130,15 +123,31 @@ if [ "$NPC_SAMPLES" != "" ]; then
 fi
 
 FIRST_DIR=$BASE_DEST_DIR
+CONTACT_FILE="$FIRST_DIR/contact_map.dat"
+T_CONTACT_FILE="$FIRST_DIR/temp_contact_map.dat"
 mkdir -p $FIRST_DIR
 SRC_FILE=$DIR/`get_last_tfile $DIR`
-$BIN_DIR/contact_map $SRC_FILE $FIRST_DIR/contact_map.dat $SEED $NPC_SAMPLES || exit $?
+$BIN_DIR/contact_map $SRC_FILE $T_CONTACT_FILE $SEED $NPC_SAMPLES || exit $?
+
+if [ "$FORCE_LINEAR" == "1" ]; then
+	cat $T_CONTACT_FILE | sed 's/ring/lin/g' > $CONTACT_FILE
+elif [ "$FORCE_RING" == "1" ]; then
+	cat $T_CONTACT_FILE | sed 's/lin/ring/g' > $CONTACT_FILE
+else
+	cp $T_CONTACT_FILE $CONTACT_FILE
+fi
+
+rm $T_CONTACT_FILE
+
+if [ "$LATTICE_SHAPE" == "--lattice-sphere" ]; then
+	BOUNDARY_COND="static"
+	EXTRA_SCALEUP_OPTS="sphere $CONTACT_FILE $DENSITY"
+fi
+
 LAST_TFILE=`get_last_tfile $FIRST_DIR`
 LAST_SAVFILE=`get_last_savfile $FIRST_DIR`
 
 COMMON_OPTS="-x denspol -s $SEED --double 1 --hp $HP_STRENGTH -b $BEND_ENERGY -d $DENSITY $LATTICE_SHAPE"
-
-# echo "$LAST_TFILE"; exit 192;
 
 if [ $LAST_TFILE == "NOT_FOUND" -o $LAST_TFILE == "t=0_dev=0.res" ]; then
 	./do_run.sh $COMMON_OPTS -t $FIRST_TIME -i $FIRST_INTERVAL -m $FIRST_DIR/contact_map.dat --outdir $FIRST_DIR -g $L || exit $?
@@ -149,6 +158,7 @@ fi
 
 DBL_STEP=1
 MAX_L=20
+
 
 while [ $L -lt $MAX_L ]; do
 	SECOND_DIR="${BASE_DEST_DIR}_b${DBL_STEP}"
@@ -162,12 +172,10 @@ while [ $L -lt $MAX_L ]; do
 	
 	if [ $CUR_TFILE == "NOT_FOUND" ]; then
 		$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE "$SECOND_DIR/t=0_dev=0.res" "$SECOND_DIR/sav_t0_dev=0.res" ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS 
-# 		&& {
-# 		echo "$BIN_DIR/denspol_scaleup $LAST_TFILE $LAST_SAVFILE $SECOND_DIR/t=0_dev=0.res $SECOND_DIR/sav_t0_dev=0.res ./denspol/straight_topo.dat $EXTRA_SCALEUP_OPTS"
-# 		 exit $?
-# 		 }
 		cp $FIRST_DIR/contact_map.dat $SECOND_DIR
+		
 		./do_run.sh $COMMON_OPTS -t $TIME -i $INTERVAL -m $SECOND_DIR/contact_map.dat --outdir $SECOND_DIR -g $L || exit $?
+		
 		$BIN_DIR/contact_map $SECOND_DIR/`get_last_tfile $SECOND_DIR` $SECOND_DIR/contact_map_new.dat
 	fi
 	

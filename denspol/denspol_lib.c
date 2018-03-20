@@ -95,12 +95,16 @@ void DTUV2XYZ(double tuv[3], double xyz[3]){
 	xyz[2] = (              tuv[2])*invSqrt2;
 }
 
-
-double Distance(double xyz1[3], double xyz2[3]){
+double DistanceSq(double xyz1[3], double xyz2[3]){
 	double rsq=0;
 	for(int k=0; k<3; k++)
 		rsq += (xyz1[k]-xyz2[k])*(xyz1[k]-xyz2[k]);
-	return sqrt(rsq);
+	return (rsq/2.0);
+}
+
+
+double Distance(double xyz1[3], double xyz2[3]){
+	return sqrt(DistanceSq(xyz1,xyz2));
 }
 
 void UnitToXYZ(int unit, int xyz[3]){
@@ -132,6 +136,13 @@ int CharToHex(char c){
 	hex = c-'0';
 	if(hex>=10) hex = 10+(int)(c-'a');
 	return hex;
+}
+
+double MagnificationRatio(int nMono, int nMonoOrig, int polType){
+	if(polType == POL_TYPE_LIN)
+		return ((nMono-1)/(double)(nMonoOrig-1));
+	else
+		return (nMono/(double)nMonoOrig);
 }
 
 int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondUsed){
@@ -185,7 +196,7 @@ int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondUsed){
 			if(!IsValid(unit)) continue;
 			int OOB;
 			int newCoor = AddUnitToCoorWBounds(unit, coor, L, &OOB);
-			if(topo[newCoor] >=0)
+			if(!OOB && topo[newCoor] >=0)
 				(*nBondUsed)++;
 		}
 	}

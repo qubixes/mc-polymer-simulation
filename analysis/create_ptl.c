@@ -80,7 +80,6 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 			sprintf(polFile, "%s/ptl/pol=%i_dev=%i.res", sp->sampleDir, iPol, devId);
 			fh.pFilePol[iPol-startPol] = fopen(polFile, "w");
 			if(!fh.pFilePol[iPol-startPol]) printf("Error opening file %s!\n", polFile);
-			fprintf(fh.pFilePol[iPol-startPol], "polId= %i\nnTime= %i\nlen= %li\n", iPol, devId, sp->polSize);
 		}
 		
 		for(int iTime=0; iTime<sp->nTime; iTime++){
@@ -88,11 +87,14 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 			timePFile = fopen(fh.timeFNames[iTime], "r");
 			fsetpos(timePFile, &(fh.timeFPos[iTime]));
 			for(int jPol=0; jPol<nPolRead; jPol++){
-				fscanf(timePFile, "%*s %*s");
+				int polSize;
+				fscanf(timePFile, "%*s %i", &polSize);
 				if(fscanf(timePFile, "%i %i %i %s", &t, &u, &v, tString)<=0){
 					printf("\nError reading file at file id %i\n", iTime);
 					exit(192);
 				}
+				if(iTime == 0)
+					fprintf(fh.pFilePol[jPol], "polId= %i\nnTime= %i\nlen= %i\n", jPol, sp->nTime, polSize);
 				fprintf(fh.pFilePol[jPol], "%i %i %i %s\n", t,u,v,tString);
 			}
 			fgetpos(timePFile, &(fh.timeFPos[iTime]));
