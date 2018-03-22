@@ -7,7 +7,6 @@ void ComputeObsPoly(SimProperties* sp, PolyConfig* pcfg){
 
 	if(sp->updUnit)      ComputeUnitCor(sp, pcfg);
 	if(sp->updGyr)       ComputeGyration(sp, pcfg);
-// 	if(sp->updGenom)     ComputeGenom(sp, pcfg);
 	if(sp->updSL)        ComputeSL(sp, pcfg);
 	if(sp->updShearMod)  ComputeShearMod(sp,pcfg);
 	if(sp->updRee)       ComputeRee(sp, pcfg);
@@ -28,8 +27,7 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	if(sp->updRouseStat) AddModesStat(sp,ptl);
 	if(sp->updRouseDyn ) AddModesDyn(sp,ptl);
 	if(sp->updPC)        AddContactProbability(sp,ptl);
-// 	if(sp->updGenom)   AddGenom(sp,ptl);
-	if(sp->updGenom)     AddGenomNew2(sp,ptl);
+	if(sp->updGenom)     AddGenom(sp,ptl);
 	if(sp->updUnit)      AddUnit(sp,ptl);
 	if(sp->updSPRouse)   AddSpaceRouse(sp, ptl);
 	if(sp->updSpacDif)   AddSpacDif(sp,ptl,&sd);
@@ -47,10 +45,10 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 
 void ComputeRee(SimProperties* sp, PolyConfig* pcfg){
 	int monoId;
-	if(sp->polType == POL_TYPE_LIN)
-		monoId = sp->polSize-1;
+	if(pcfg->polType == POL_TYPE_LIN)
+		monoId = pcfg->polSize;
 	else
-		monoId = sp->polSize/2;
+		monoId = pcfg->polSize/2;
 	pcfg->ree[0] = (pcfg->x[0]-pcfg->x[monoId])/sqrt(2);
 	pcfg->ree[1] = (pcfg->y[0]-pcfg->y[monoId])/sqrt(2);
 	pcfg->ree[2] = (pcfg->z[0]-pcfg->z[monoId])/sqrt(2);
@@ -60,10 +58,10 @@ void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg){
 	
 	for(int i=0; i<3; i++) pcfg->stress[i]=0;
 	
-	for(int i=0; i<sp->polSize-1; i++){
-		double dx = pcfg->x[i+1]-pcfg->x[i];
-		double dy = pcfg->y[i+1]-pcfg->y[i];
-		double dz = pcfg->z[i+1]-pcfg->z[i];
+	for(int i=0; i<pcfg->polSize; i++){
+		double dx = pcfg->x[(i+1)%pcfg->nMono]-pcfg->x[i];
+		double dy = pcfg->y[(i+1)%pcfg->nMono]-pcfg->y[i];
+		double dz = pcfg->z[(i+1)%pcfg->nMono]-pcfg->z[i];
 		pcfg->stress[0] += dx*dy;
 		pcfg->stress[1] += dy*dz;
 		pcfg->stress[2] += dx*dz;
@@ -74,43 +72,12 @@ void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg){
 // 	printf("%lf %lf %lf\n", pcfg->stress[0], pcfg->stress[1], pcfg->stress[2]);
 }
 
-void ComputeGenom(SimProperties* sp, PolyConfig* pcfg){
-	int di=20;
-	int dx, dy, dz;
-	int gMax;
-	if(sp->polType == POL_TYPE_LIN) gMax=sp->polSize-1;
-	else gMax = sp->polSize/2;
-	for(int g=1, dg=1; g<=gMax; g+=dg){
-		int num=0;
-		pcfg->genom[g]=0;
-		di = MAX(1,MAX(sp->polSize/100, dg/10));
-		for(int i=0; i<sp->polSize; i+=di){
-			if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
-			int j = (i+g)%sp->polSize;
-			
-			dx = pcfg->x[i]-pcfg->x[j];
-			dy = pcfg->y[i]-pcfg->y[j];
-			dz = pcfg->z[i]-pcfg->z[j];
-			
-			pcfg->genom[g] += (dx*dx+dy*dy+dz*dz)/2.0;
-			num++;
-		}
-		
-		pcfg->genom[g] /= num;
-		if(!num){
-			printf("woops: g = %i, dg=%i\n", g, dg);
-			exit(0);
-		}
-		dg = MAX(1,MIN(gMax/2-g, dg/10));
-	}
-}
-
 void ComputeModes(SimProperties* sp, PolyConfig* pcfg){
 	for(int ip=0; ip<pcfg->nModes; ip++){
 		int p = pcfg->modeList[ip];
 		pcfg->sxmode[p]=0; pcfg->symode[p]=0; pcfg->szmode[p]=0; 
 		pcfg->cxmode[p]=0; pcfg->cymode[p]=0; pcfg->czmode[p]=0;
-		for(int k=0;k<sp->polSize;k++){
+		for(int k=0; k<pcfg->polSize; k++){
 			pcfg->sxmode[p]+=pcfg->sinfac[p][k]*pcfg->x[k];
 			pcfg->symode[p]+=pcfg->sinfac[p][k]*pcfg->y[k];
 			pcfg->szmode[p]+=pcfg->sinfac[p][k]*pcfg->z[k];
@@ -123,20 +90,12 @@ void ComputeModes(SimProperties* sp, PolyConfig* pcfg){
 
 void ComputeSL(SimProperties* sp, PolyConfig* pcfg){
 	int nSl=0;
-	for(int i=0; i<sp->polSize-1; i++){
-		if(pcfg->x[i] == pcfg->x[i+1] && pcfg->y[i] == pcfg->y[i+1] && pcfg->z[i] == pcfg->z[i+1]) 
+	for(int i=0; i<pcfg->polSize; i++){
+		if(pcfg->x[i] == pcfg->x[(i+1)%pcfg->nMono] && pcfg->y[i] == pcfg->y[(i+1)%pcfg->nMono] && pcfg->z[i] == pcfg->z[(i+1)%pcfg->nMono]) 
 			nSl++;
 	}
 	
-	if(sp->polType == POL_TYPE_RING){
-		int i=sp->polSize-1, j=0;
-		if(pcfg->x[i] == pcfg->x[j] && pcfg->y[i] == pcfg->y[j] && pcfg->z[i] == pcfg->z[j])
-			nSl++;
-		pcfg->slRat = nSl/(double)sp->polSize;
-	}
-	else{
-		pcfg->slRat = nSl/(double)(sp->polSize-1);
-	}
+	pcfg->slRat = nSl/(double)pcfg->polSize;
 }
 
 void ComputeUnitCor(SimProperties* sp, PolyConfig* pcfg){
@@ -144,26 +103,26 @@ void ComputeUnitCor(SimProperties* sp, PolyConfig* pcfg){
 	int dxi, dxj, dyi,dyj,dzi,dzj;
 	int gMax;
 	
-	if(sp->polType == POL_TYPE_LIN)
-		gMax =sp->polSize-1;
+	if(pcfg->polType == POL_TYPE_LIN)
+		gMax = pcfg->polSize;
 	else
-		gMax =sp->polSize/2;
+		gMax = pcfg->polSize/2;
 	
 	for(int g=1, dg=1; g<=gMax; g+=dg){
 		int num=0;
 		pcfg->unitCor[g] = 0;
-		di = MAX(1,MAX(sp->polSize/50, dg/10));
-		for(int i=0; i<sp->polSize; i+=di){
-			if(i+g+1 >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
-			int j = (i+g)%sp->polSize;
+		di = MAX(1,MAX(pcfg->polSize/50, dg/10));
+		for(int i=0; i<pcfg->polSize; i+=di){
+			if(i+g+1 >= pcfg->nMono && pcfg->polType == POL_TYPE_LIN) continue;
+			int j = (i+g)%pcfg->nMono;
 			
-			dxi = pcfg->x[i]-pcfg->x[(i+1)%sp->polSize];
-			dyi = pcfg->y[i]-pcfg->y[(i+1)%sp->polSize];
-			dzi = pcfg->z[i]-pcfg->z[(i+1)%sp->polSize];
+			dxi = pcfg->x[i]-pcfg->x[(i+1)%pcfg->nMono];
+			dyi = pcfg->y[i]-pcfg->y[(i+1)%pcfg->nMono];
+			dzi = pcfg->z[i]-pcfg->z[(i+1)%pcfg->nMono];
 			
-			dxj = pcfg->x[j]-pcfg->x[(j+1)%sp->polSize];
-			dyj = pcfg->y[j]-pcfg->y[(j+1)%sp->polSize];
-			dzj = pcfg->z[j]-pcfg->z[(j+1)%sp->polSize];
+			dxj = pcfg->x[j]-pcfg->x[(j+1)%pcfg->nMono];
+			dyj = pcfg->y[j]-pcfg->y[(j+1)%pcfg->nMono];
+			dzj = pcfg->z[j]-pcfg->z[(j+1)%pcfg->nMono];
 			
 			pcfg->unitCor[g] += (dxi*dxj+dyi*dyj+dzi*dzj)/2.0;
 			num++;
@@ -179,13 +138,13 @@ void ComputeGyration(SimProperties* sp, PolyConfig* pcfg){
 	double dx, dy, dz;
 	double rg=0;
 	double invSqrt2=1/sqrt(2.0);
-	for(int i=0; i<sp->polSize; i++){
+	for(int i=0; i<pcfg->nMono; i++){
 		dx = pcfg->x[i]*invSqrt2-pcfg->cms.x;
 		dy = pcfg->y[i]*invSqrt2-pcfg->cms.y;
 		dz = pcfg->z[i]*invSqrt2-pcfg->cms.z;
 		rg += (dx*dx+dy*dy+dz*dz)/2;
 	}
-	rg /= sp->polSize;
+	rg /= pcfg->nMono;
 	pcfg->rGyr = rg;
 }
 
@@ -193,30 +152,25 @@ void ComputeCMS(SimProperties* sp, PolyConfig* pcfg){
 	pcfg->cms.x=0.0; 
 	pcfg->cms.y=0.0; 
 	pcfg->cms.z=0.0;
-	for(int i=0; i<sp->polSize; i++){
+	for(int i=0; i<pcfg->nMono; i++){
 		pcfg->cms.x += pcfg->x[i];
 		pcfg->cms.y += pcfg->y[i];
 		pcfg->cms.z += pcfg->z[i];
 	}
-	pcfg->cms.x /= sp->polSize*sqrt(2);
-	pcfg->cms.y /= sp->polSize*sqrt(2);
-	pcfg->cms.z /= sp->polSize*sqrt(2);
-// 	if(curPolId == 0){
-// 		FILE* pFile = fopen("cmst.dat", "a");
-// 		fprintf(pFile, "%lf %lf %lf\n", pcfg->cms.x, pcfg->cms.y, pcfg->cms.z);
-// 		fclose(pFile);
-// 	}
+	pcfg->cms.x /= pcfg->nMono*sqrt(2);
+	pcfg->cms.y /= pcfg->nMono*sqrt(2);
+	pcfg->cms.z /= pcfg->nMono*sqrt(2);
 }
 
 void ComputeTUVCMS(SimProperties* sp, PolyConfig* pcfg){
 	for(int k=0; k<3; k++) pcfg->tuvCMS[k] = 0.0;
 	
-	for(int i=0; i<sp->polSize; i++){
+	for(int i=0; i<pcfg->nMono; i++){
 		pcfg->tuvCMS[0] += pcfg->t[i];
 		pcfg->tuvCMS[1] += pcfg->u[i];
 		pcfg->tuvCMS[2] += pcfg->v[i];
 	}
-	for(int k=0; k<3; k++) pcfg->tuvCMS[k] /= sp->polSize;
+	for(int k=0; k<3; k++) pcfg->tuvCMS[k] /= pcfg->nMono;
 }
 
 void AddRee(SimProperties* sp, PolyTimeLapse* ptl){
@@ -275,50 +229,12 @@ void AddSL(SimProperties* sp, PolyTimeLapse* ptl){
 }
 
 void AddGenom(SimProperties* sp, PolyTimeLapse* ptl){
-	for(int t=ptl->nTherm; t<sp->nTime; t++){
-		for(int i=0; i<sp->polSize; i++){
-			ptl->avgGenom[i] += ptl->polys[t].genom[i];
-		}
-	}
-}
-
-/*
-void AddGenomNew(SimProperties* sp, PolyTimeLapse* ptl){
 	int dx, dy, dz;
 	int dr;
-	for(int iGenom=0; iGenom<ptl->nGenom; iGenom++){
-		int i=ptl->genomList[iGenom].x;
-		int j=ptl->genomList[iGenom].y;
-		int g = (j-i+sp->polSize)%sp->polSize;
-		for(int t=0; t<ptl->nMeas; t++){
-			PolyConfig* pcfg = ptl->polys+t;
-			
-			dx = pcfg->x[i]-pcfg->x[j];
-			dy = pcfg->y[i]-pcfg->y[j];
-			dz = pcfg->z[i]-pcfg->z[j];
-			dr = (dx*dx+dy*dy+dz*dz);
-			
-			ptl->avgGenom[g] += dr/2.0;
-// 			printf("%i %i\n", g, dr);
-			if(dr>sp->polSize*50) dr = sp->polSize*50-1;
-			ptl->genomProb[g][dr]++;
-			ptl->genomSample[g]++;
-			
-		}
-	}
-}
-*/
-void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
-	int dx, dy, dz;
-	int dr;
-// 	Timer time;
-// 	printf("Doing %i operations\n", ptl->nGenom*ptl->nMeas);
 	for(int iGenom=0; iGenom<ptl->nGenom; iGenom++){
 		int i =ptl->genomList[iGenom].x;
 		int j =ptl->genomList[iGenom].y;
 		int ig=ptl->genomList[iGenom].ig;
-// 		int g = (j-i+sp->polSize)%sp->polSize;
-// 		TimerStart(&time);
 		for(int t=ptl->nTherm; t<sp->nTime; t++){
 			PolyConfig* pcfg = ptl->polys+t;
 			
@@ -328,7 +244,6 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			dr = (dx*dx+dy*dy+dz*dz);
 			
 			ptl->avgGenom[ig] += dr/2.0;
-// 			double sqrtdr = ptl->sqrtList[dr];
 			double sqrtdr = sqrt(dr/2.0);
 			int bin = (int) sqrtdr;
 			
@@ -336,50 +251,13 @@ void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl){
 			ptl->genomProb[ig][bin]++;
 			ptl->genomR[ig][bin]+=sqrtdr;
 			ptl->genomCount[ig]++;
-// 			if(g>=24){
-// 				printf("g=%i, rsq=%.2lf\n", g, sqrtdr);
-// 			}
 		}
-// 		printf("g=%i, took %.2f ms\n", g, TimerElapsed(&time)*1e3);
 	}
-// 	printf("done\n");
 }
-
-
-// 	int di=20;
-// 	int gMax;
-// 			
-// 		if(sp->polType == POL_TYPE_LIN) gMax=sp->polSize-1;
-// 		else gMax = sp->polSize/2;
-// 		for(int g=1, dg=1; g<=gMax; g+=dg){
-// 			int num=0;
-// 			pcfg->genom[g]=0;
-// 			di = MAX(1,MAX(sp->polSize/100, dg/10));
-// 			for(int i=0; i<sp->polSize; i+=di){
-// 				if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
-// 				int j = (i+g)%sp->polSize;
-// 				
-// 				dx = pcfg->x[i]-pcfg->x[j];
-// 				dy = pcfg->y[i]-pcfg->y[j];
-// 				dz = pcfg->z[i]-pcfg->z[j];
-// 				
-// 				pcfg->genom[g] += (dx*dx+dy*dy+dz*dz)/2.0;
-// 				num++;
-// 			}
-// 			
-// 			pcfg->genom[g] /= num;
-// 			if(!num){
-// 				printf("woops: g = %i, dg=%i\n", g, dg);
-// 				exit(0);
-// 			}
-// 			dg = MAX(1,MIN(gMax/2-g, dg/10));
-// 		}
-// 	}
-// }
 
 void AddUnit(SimProperties* sp, PolyTimeLapse* ptl){
 	for(int t=ptl->nTherm; t<sp->nTime; t++){
-		for(int i=0; i<sp->polSize; i++){
+		for(int i=0; i<ptl->polys[0].polSize; i++){
 			ptl->avgUnitCor[i] += ptl->polys[t].unitCor[i];
 		}
 	}
@@ -439,8 +317,11 @@ void AddModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 }
 
 void GetPosImg(int t, int u, int v, PolyTimeLapse* ptl, int* pos, int* img){
-	int L    = ptl->L;
-	int LIMG = ptl->LIMG;
+	/// OK, this is confusing, but it's not actually the size of the lattice...
+	/// It's a helpful lattice size to figure out if the two are on the same actual site, 
+	/// or just through the boundary conditions.
+	int L    = ptl->L; 
+	int LIMG = ptl->LIMG; 
 	
 	int posT = (t+L*LIMG)%L;
 	int posU = (u+L*LIMG)%L;
@@ -457,7 +338,7 @@ void GetPosImg(int t, int u, int v, PolyTimeLapse* ptl, int* pos, int* img){
 void AddSSContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	for(int t=ptl->nTherm; t<sp->nTime; t++){
 		PolyConfig* pcfg = ptl->polys+t;
-		for(int iMono=0; iMono<sp->polSize; iMono++){
+		for(int iMono=0; iMono<pcfg->nMono; iMono++){
 			int pos, img;
 			int dt = pcfg->t[iMono]-pcfg->t[0];
 			int du = pcfg->u[iMono]-pcfg->u[0];
@@ -467,11 +348,11 @@ void AddSSContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 			ptl->ssMonoList[iMono].val = pos+img*sp->LSIZE;
 			ptl->ssMonoList[iMono].id = iMono;
 		}
-		qsort(ptl->ssMonoList, sp->polSize, sizeof(IDouble), &CompareIDouble);
+		qsort(ptl->ssMonoList, pcfg->nMono, sizeof(IDouble), &CompareIDouble);
 		
-		for(int iMono=0; iMono<sp->polSize; ){
+		for(int iMono=0; iMono<pcfg->nMono; ){
 			int jMono;
-			for(jMono=iMono+1; jMono<sp->polSize; jMono++){
+			for(jMono=iMono+1; jMono<pcfg->nMono; jMono++){
 				if(ptl->ssMonoList[iMono].val != ptl->ssMonoList[jMono].val) break;
 			}
 			
@@ -504,7 +385,7 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 		int vs = pcfg->v[0];
 		
 		int t,u,v;
-		for(int iMono=0; iMono<sp->polSize; iMono++){
+		for(int iMono=0; iMono<pcfg->nMono; iMono++){
 			t = pcfg->t[iMono]-ts;
 			u = pcfg->u[iMono]-us;
 			v = pcfg->v[iMono]-vs;
@@ -541,17 +422,6 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 				int newPos, newImg;
 				GetPosImg(t+dt, u+du, v+dv, ptl, &newPos, &newImg);
 				
-// 				int newPos = pos+dt+du*L+dv*L*L;
-// 				if(newPos > ptl->L*ptl->L*ptl->L/2 || newPos<-ptl->L*ptl->L*ptl->L/2){
-// 					printf("Oh dear!\n");
-// 					printf("%i %i %i\n", t,u,v);
-// 					printf("%i %i %i\n", dt, du, dv);
-// 					printf("%i %i\n\n", pos, newPos);
-// 					for(int i=0; i<sp->polSize; i++){
-// 						printf("%i %i %i\n", pcfg->t[i]-ts, pcfg->u[i]-us, pcfg->v[i]-vs);
-// 					}
-// 					exit(192);
-// 				}
 				if(lattice[newPos].nOcc){
 					for(int curMono=lattice[newPos].firstMono; curMono >=0; curMono=ptl->monoList[curMono].next){
 // 						printf("%i %i %i\n", iMono, pos, newPos);
@@ -568,7 +438,7 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 			}
 		}
 // 		exit(0);
-		for(int iMono=0; iMono<sp->polSize; iMono++){
+		for(int iMono=0; iMono<ptl->polys[0].nMono; iMono++){
 			lattice[ptl->monoList[iMono].pos].nOcc=0;
 		}
 	}
@@ -622,9 +492,9 @@ void AddCMS(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 }
 
-void AddMM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, sp->polSize/2, ptl->mmDif);}
+void AddMM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, ptl->polys[0].polSize/2, ptl->mmDif);}
 void AddSM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, 0, ptl->smDif);}
-void AddEM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, sp->polSize-1, ptl->emDif);}
+void AddEM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, ptl->polys[0].polSize-1, ptl->emDif);}
 
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 	double dr[3];
@@ -642,7 +512,7 @@ void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 		for(int k=0; k<3; k++){
 			for(int j=0; j<3; j++){
 				tuv[j] = ptl->polys[t1].tuvCMS[j];
-				for(int p=1; p<sp->polSize/2; p++){
+				for(int p=1; p<ptl->polys[0].polSize/2; p++){
 					ptl->sAvgSpacMode[p][i][k][j] += dr[k]*sin(2*PI*p*tuv[j]/(double)sp->LT);
 					ptl->cAvgSpacMode[p][i][k][j] += dr[k]*cos(2*PI*p*tuv[j]/(double)sp->LT);
 				}
@@ -656,7 +526,7 @@ void AddSpacDif(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	double dr[3];
 	double invSqrt2 = 1/sqrt(2.0);
 	
-	for(int iMono=0; iMono<sp->polSize; iMono++){
+	for(int iMono=0; iMono<ptl->polys[0].nMono; iMono++){
 		for(int itdt=0; itdt<ptl->tTable.nTDT; itdt++){
 			int dt = ptl->tTable.tdt[itdt].dt;
 			int t1 = ptl->tTable.tdt[itdt].t;

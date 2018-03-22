@@ -40,7 +40,7 @@ int main(int argc, char** argv){
 	else{
 		printf("Thermalization: %i x %liM, tau=%lfM\n", sp.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
 	}
-	InitArrays(&sp, &ptl);
+	PTLAllocate(&sp, &ptl);
 	
 	for(int iDev=0; iDev<sp.nDev; iDev++){
 		for(int i=0; i<sp.nPol; i++){
@@ -48,6 +48,7 @@ int main(int argc, char** argv){
 			fflush(pStdout);
 			TimerStart(&tIO);
 			LoadPTL(&sp, &ptl, i, iDev);
+			PTLInit(&sp, &ptl);
 			fprintf(pStdout, "[IO: %.2f ms] ", 1e3*TimerElapsed(&tIO));
 			fflush(pStdout);
 			TimerStart(&tCompute);

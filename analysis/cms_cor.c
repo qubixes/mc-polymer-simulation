@@ -2,6 +2,8 @@
 #include "file.h"
 #include "timer.h"
 
+/** WARNING This program is broken for files with unequal lengths for polymers. **/
+
 typedef struct PartitionTable{
 	int** polList;
 	int* nPol;
@@ -181,7 +183,7 @@ void CreatePartition(PartitionTable* pt, CMSData* cms, SimProperties* sp){
 }
 
 void ComputeCorrelations(SimProperties* sp){
-	int boxL = MIN(LT/2, (int)pow(150*sp->polSize, 1./3.));
+	int boxL = MIN(LT/2, (int)pow(150*sp->maxNMono, 1./3.));
 	while((LT/boxL)*boxL != LT) boxL++;
 	printf("Using boxSize of %i\n", boxL);
 	

@@ -10,10 +10,10 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 	if(sp->updSPRouse)   WriteSpaceRouse(sp, ptl);
 	if(sp->updSpacDif)   WriteSpacDif(sp,ptl);
 	if(sp->updDif) {
-		WriteDiff(sp, ptl->cmsDif, "cms", ptl->nEqd);
-		WriteDiff(sp, ptl->smDif, "sm", ptl->nEqd);
-		WriteDiff(sp, ptl->emDif, "em", ptl->nEqd);
-		WriteDiff(sp, ptl->mmDif, "mm", ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->cmsDif, "cms", ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->smDif, "sm", ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->emDif, "em", ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->mmDif, "mm", ptl->nEqd);
 	}
 	if(sp->updPC){
 		WriteContactProbability(sp, ptl);
@@ -26,18 +26,20 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 
 void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
-	sprintf(file, "%s/pc.dat", sp->sampleDir);
+	sprintf(file, "%s/pc.dat", ptl->resDir);
+	int nMono = ptl->polys[0].nMono;
+	
 	FILE* pFile = fopen(file, "w");
 	fprintf(pFile, "#Bin= %li\n", ptl->pcBins);
-	for(int iMono=0; iMono<(sp->polSize-1)/ptl->pcBins+1; iMono++){
-		for(int jMono=0; jMono<(sp->polSize-1)/ptl->pcBins+1; jMono++){
+	for(int iMono=0; iMono<(nMono-1)/ptl->pcBins+1; iMono++){
+		for(int jMono=0; jMono<(nMono-1)/ptl->pcBins+1; jMono++){
 			if(iMono>jMono)
-				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*ptl->pcBins*ptl->pcBins));
+				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(ptl->nPolAdded*ptl->nEqd*ptl->pcBins*ptl->pcBins));
 			else if(iMono == jMono && ptl->pcBins > 1){
-				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*((ptl->pcBins*ptl->pcBins-ptl->pcBins)/2)));
+				fprintf(pFile, "%le ", ptl->pc[iMono][jMono]/(double)(ptl->nPolAdded*ptl->nEqd*((ptl->pcBins*ptl->pcBins-ptl->pcBins)/2)));
 			}
 			else{
-				fprintf(pFile, "%le ", ptl->pc[jMono][iMono]/(double)(sp->nPol*sp->nDev*ptl->nEqd*ptl->pcBins*ptl->pcBins));
+				fprintf(pFile, "%le ", ptl->pc[jMono][iMono]/(double)(ptl->nPolAdded*ptl->nEqd*ptl->pcBins*ptl->pcBins));
 			}
 		}
 		fprintf(pFile, "\n");
@@ -47,17 +49,18 @@ void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 
 void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
-	sprintf(file, "%s/pc_avg.dat", sp->sampleDir);
+	sprintf(file, "%s/pc_avg.dat", ptl->resDir);
 	FILE* pFile = fopen(file, "w");
-	for(long g=0; g<sp->polSize; g++){
-		fprintf(pFile, "%li %le\n", g, ptl->pcAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
+	int nMono = ptl->polys[0].nMono;
+	for(long g=0; g<nMono; g++){
+		fprintf(pFile, "%li %le\n", g, ptl->pcAvg[g]/(double)(ptl->nPolAdded*ptl->nEqd*(nMono-g)));
 	}
 	fclose(pFile);
 	
-	sprintf(file, "%s/pc_avg_ss.dat", sp->sampleDir);
+	sprintf(file, "%s/pc_avg_ss.dat", ptl->resDir);
 	pFile = fopen(file, "w");
-	for(int g=0; g<sp->polSize; g++){
-		fprintf(pFile, "%i %le\n", g, ptl->pcssAvg[g]/(double)(sp->nPol*sp->nDev*ptl->nEqd*(sp->polSize-g)));
+	for(int g=0; g<nMono; g++){
+		fprintf(pFile, "%i %le\n", g, ptl->pcssAvg[g]/(double)(ptl->nPolAdded*ptl->nEqd*(nMono-g)));
 	}
 	fclose(pFile);
 }
@@ -66,7 +69,7 @@ void WriteRee(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	FILE* pFile;
 // 	printf("Writing shearmod\n");
-	sprintf(file, "%s/ree.dat", sp->sampleDir);
+	sprintf(file, "%s/ree.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -85,7 +88,7 @@ void WriteShearMod(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	FILE* pFile;
 // 	printf("Writing shearmod\n");
-	sprintf(file, "%s/shearmod.dat", sp->sampleDir);
+	sprintf(file, "%s/shearmod.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -104,7 +107,7 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	FILE* pFile;
 	
-	sprintf(file, "%s/rgyr.dat", sp->sampleDir);
+	sprintf(file, "%s/rgyr.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -114,7 +117,7 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 	fprintf(pFile, "%le\n", ptl->avgRGyr/(sp->nPol*ptl->nEqd*sp->nDev));
 	fclose(pFile);
 	
-	sprintf(file, "%s/rgyr_time.dat", sp->sampleDir);
+	sprintf(file, "%s/rgyr_time.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -122,7 +125,7 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	for(int t=0; t<sp->nTime; t++){
-		fprintf(pFile, "%li %le\n", sp->dT*t, ptl->rGyrT[t]/(sp->nPol*sp->nDev));
+		fprintf(pFile, "%li %le\n", sp->dT*t, ptl->rGyrT[t]/ptl->nPolAdded);
 	}
 	fclose(pFile);
 }
@@ -130,9 +133,10 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	int g;
+	int nMono = ptl->polys[0].nMono;
 	FILE* pFile;
 	
-	sprintf(file, "%s/genom.dat", sp->sampleDir);
+	sprintf(file, "%s/genom.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -147,7 +151,7 @@ void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	fclose(pFile);
 	
-	sprintf(file, "%s/pgenom.dat", sp->sampleDir);
+	sprintf(file, "%s/pgenom.dat", ptl->resDir);
 	
 	pFile = fopen(file, "w");
 	if(!pFile){
@@ -156,7 +160,7 @@ void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	fprintf(pFile, "# ");
-	for(int g=0; g<sp->polSize; g++){
+	for(int g=0; g<nMono; g++){
 		if(ptl->avgGenom[g])
 			fprintf(pFile, "%i ", g);
 	}
@@ -185,7 +189,7 @@ void WriteSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 	int count=0;
 	int prevDT=1, dt;
 	double sqModes[SPAC_MODES];
-	sprintf(file, "%s/spac_rouse.dat", sp->sampleDir);
+	sprintf(file, "%s/spac_rouse.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	
 	for(int p=1; p<SPAC_MODES; p++) sqModes[p]=0;
@@ -198,7 +202,7 @@ void WriteSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 			
 			fprintf(pFile, "%li ", prevDT*sp->dT);
 			for(int p=1; p<SPAC_MODES; p++){
-				fprintf(pFile, "%lf ", sqModes[p]/(double)(count*sp->nPol*sp->nDev));
+				fprintf(pFile, "%lf ", sqModes[p]/(double)(count*ptl->nPolAdded));
 				sqModes[p]=0;
 			}
 			fprintf(pFile, "\n");
@@ -225,8 +229,9 @@ void WriteUnitCor(SimProperties* sp, PolyTimeLapse* ptl){
 	int g;
 	FILE* pFile;
 	double* unitCor = ptl->avgUnitCor;
+	int polSize = ptl->polys[0].polSize;
 	
-	sprintf(file, "%s/ucor.dat", sp->sampleDir);
+	sprintf(file, "%s/ucor.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -234,10 +239,10 @@ void WriteUnitCor(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	int gmax;
-	if(sp->polType == POL_TYPE_LIN)
-		gmax = sp->polSize-1;
+	if(ptl->polys[0].polType == POL_TYPE_LIN)
+		gmax = polSize;
 	else
-		gmax = sp->polSize/2;
+		gmax = polSize/2;
 	
 	for(g=1; g<=gmax; g++){
 		if(unitCor[g])
@@ -251,7 +256,7 @@ void WriteModesStat(SimProperties* sp, PolyTimeLapse* ptl){
 	FILE* pFile;
 	char file[1000];
 	
-	sprintf(file, "%s/rouse_stat.dat", sp->sampleDir);
+	sprintf(file, "%s/rouse_stat.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile)
 		return;
@@ -277,7 +282,7 @@ void WriteModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 	FILE* pFile;
 	char file[1000];
 	
-	sprintf(file, "%s/rouse_dyn.dat", sp->sampleDir);
+	sprintf(file, "%s/rouse_dyn.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile) return;
 	
@@ -300,14 +305,14 @@ void WriteModesDyn(SimProperties* sp, PolyTimeLapse* ptl){
 
 
 
-void WriteDiff(SimProperties* sp, double* dif, char* base, long nEqd){
+void WriteDiff(SimProperties* sp, PolyTimeLapse* ptl, double* dif, char* base, long nEqd){
 	char file[1000];
 	FILE* pFile;
 	
 	if(sp->updAvgPos)
-		sprintf(file, "%s/%sdif_raw.dat", sp->sampleDir, base);
+		sprintf(file, "%s/%sdif_raw.dat", ptl->resDir, base);
 	else
-		sprintf(file, "%s/%sdif.dat", sp->sampleDir, base);
+		sprintf(file, "%s/%sdif.dat", ptl->resDir, base);
 	pFile = fopen(file, "w"); if(!pFile) return;
 
 	for(int dt=1; dt<nEqd; dt++){
@@ -325,9 +330,9 @@ void WriteCMSDiff(SimProperties* sp, PolyTimeLapse* ptl){
 	double* cmsDif = ptl->cmsDif;
 	
 	if(sp->updAvgPos)
-		sprintf(file, "%s/cmsdif_raw.dat", sp->sampleDir);
+		sprintf(file, "%s/cmsdif_raw.dat", ptl->resDir);
 	else
-		sprintf(file, "%s/cmsdif.dat", sp->sampleDir);
+		sprintf(file, "%s/cmsdif.dat", ptl->resDir);
 	pFile = fopen(file, "w"); if(!pFile) return;
 	
 	for(int dt=0; dt<ptl->nEqd; dt++){
@@ -342,7 +347,7 @@ void WriteSL(SimProperties* sp, PolyTimeLapse* ptl){
 	FILE* pFile;
 	double* slRat = ptl->avgSL;
 	
-	sprintf(file, "%s/slrat.dat", sp->sampleDir);
+	sprintf(file, "%s/slrat.dat", ptl->resDir);
 	pFile = fopen(file, "w"); if(!pFile) return;
 	
 	for(int t=0; t<sp->nTime; t++){
@@ -354,21 +359,28 @@ void WriteSL(SimProperties* sp, PolyTimeLapse* ptl){
 void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 	char file[1000];
 	int tLast, uLast, vLast, step;
+	long nMono;
 	
 	ptl->polId = polId; ptl->devId = devId;
-	sprintf(file, "%s/ptl/pol=%i_dev=%i.res", sp->sampleDir, polId, devId);
+	sprintf(file, "%s/ptl/pol=%i_dev=%i.res", ptl->resDir, polId, devId);
 	FILE* pFile = fopen(file, "r");
 	if(!pFile){ printf("Error loading file %s\n", file); exit(0);}
 	
-	for(int i=0; i<3; i++) fscanf(pFile, "%*s %*s");
+	for(int i=0; i<2; i++) fscanf(pFile, "%*s %*s");
+	fscanf(pFile, "%*s %li", &nMono);
+	
+	char* strIn = malloc(sizeof(char)*(nMono+1));
+	int* t = malloc(sizeof(int)*nMono);
+	int* u = malloc(sizeof(int)*nMono);
+	int* v = malloc(sizeof(int)*nMono);
 	
 // 	for(int i=0; i<THERM; i++) fscanf(pFile, "%*i %*i %*i %*s");
 	double tAvgLast, uAvgLast, vAvgLast;
-	for(int i=0; i<sp->nTime; i++){
+	for(int iTime=0; iTime<sp->nTime; iTime++){
 		fscanf(pFile, "%d %d %d", t, u, v);
 		fscanf(pFile, "%s", strIn);
 
-		if(i != 0){
+		if(iTime != 0){
 			while(t[0]-tLast >  LT/2) t[0] -= LT;
 			while(t[0]-tLast < -LT/2) t[0] += LT;
 			while(u[0]-uLast >  LU/2) u[0] -= LU;
@@ -380,12 +392,12 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 		uLast = u[0];
 		vLast = v[0];
 		
-		if(strlen(strIn) != sp->polSize){
-			printf("\n\nMeh: %li vs %li\nfile=%s\n\n", strlen(strIn), sp->polSize, file);
+		if(strlen(strIn) != nMono){
+			printf("\n\nMeh: %li vs %li\nfile=%s\n\n", strlen(strIn), nMono, file);
 			exit(0);
 		}
 		
-		for(int iMono=0; iMono<sp->polSize-1; iMono++){
+		for(int iMono=0; iMono<nMono-1; iMono++){
 			step = CharToHex(strIn[iMono]);
 			t[iMono+1] = t[iMono]+((step>>0)&0x1)-((step>>3)&0x1);
 			u[iMono+1] = u[iMono]+((step>>1)&0x1)-((step>>3)&0x1);
@@ -393,14 +405,14 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 		}
 		
 		double tAvg=0, uAvg=0, vAvg=0;
-		for(int iMono=0; iMono<sp->polSize; iMono++){
-			tAvg += t[iMono]/(double)sp->polSize;
-			uAvg += u[iMono]/(double)sp->polSize;
-			vAvg += v[iMono]/(double)sp->polSize;
+		for(int iMono=0; iMono<nMono; iMono++){
+			tAvg += t[iMono]/(double)nMono;
+			uAvg += u[iMono]/(double)nMono;
+			vAvg += v[iMono]/(double)nMono;
 		}
 		
 		int dt=0, du=0, dv=0;
-		if(i != 0){
+		if(iTime != 0){
 			while(tAvg-tAvgLast+dt >  LT/2) dt -= LT;
 			while(tAvg-tAvgLast+dt < -LT/2) dt += LT;
 			while(uAvg-uAvgLast+du >  LU/2) du -= LU;
@@ -413,39 +425,40 @@ void LoadPTL(SimProperties* sp, PolyTimeLapse* ptl, int polId, int devId){
 		uAvgLast = uAvg+du;
 		vAvgLast = vAvg+dv;
 		
-// 		if(curPolId == 0){
-// 			printf("%lf %lf %lf %i %i %i\n", tAvg, uAvg, vAvg, dt, du, dv);
-// 		}
 		
-		for(int iMono=0; iMono<sp->polSize; iMono++){
+		for(int iMono=0; iMono<nMono; iMono++){
 			t[iMono] += dt;
 			u[iMono] += du;
 			v[iMono] += dv;
 		}
-
 		
 		
-		for(int iMono=0; iMono<sp->polSize; iMono++){
-// 			ptl->polys[i-THERM].x[iMono] = v[iMono]-t[iMono];
-// 			ptl->polys[i-THERM].y[iMono] = t[iMono]+v[iMono]-u[iMono];
-// 			ptl->polys[i-THERM].z[iMono] = u[iMono];
+		for(int iMono=0; iMono<nMono; iMono++){
+			ptl->polys[iTime].x[iMono] = t[iMono]+u[iMono]-v[iMono];
+			ptl->polys[iTime].y[iMono] = t[iMono]-u[iMono];
+			ptl->polys[iTime].z[iMono] = v[iMono];
 			
-			ptl->polys[i].x[iMono] = t[iMono]+u[iMono]-v[iMono];
-			ptl->polys[i].y[iMono] = t[iMono]-u[iMono];
-			ptl->polys[i].z[iMono] = v[iMono];
-			
-			ptl->polys[i].t[iMono] = t[iMono];
-			ptl->polys[i].u[iMono] = u[iMono];
-			ptl->polys[i].v[iMono] = v[iMono];
+			ptl->polys[iTime].t[iMono] = t[iMono];
+			ptl->polys[iTime].u[iMono] = u[iMono];
+			ptl->polys[iTime].v[iMono] = v[iMono];
+		}
+		ptl->polys[iTime].nMono = nMono;
+		if(strIn[nMono-1] == 'f'){
+			ptl->polys[iTime].polType = POL_TYPE_LIN;
+			ptl->polys[iTime].polSize = nMono-1;
+		}
+		else{
+			ptl->polys[iTime].polType = POL_TYPE_RING;
+			ptl->polys[iTime].polSize = nMono;
 		}
 	}
 	fclose(pFile);
 }
 
-double** ReadAvgPos(SimProperties* sp){
+double** ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
 	char file[1000];
 	
-	sprintf(file, "%s/avg_pos.dat", sp->sampleDir);
+	sprintf(file, "%s/avg_pos.dat", ptl->resDir);
 	FILE* pFile = fopen(file, "r");
 	double** avgPosition = malloc(sizeof(double*)*sp->nTime);
 	double x,y,z;
@@ -468,7 +481,7 @@ double** ReadAvgPos(SimProperties* sp){
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
 	FILE* pFile;
 	char file[1000];
-	sprintf(file, "%s/avg_pos.dat", sp->sampleDir);
+	sprintf(file, "%s/avg_pos.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	
 	for(int t=0; t<sp->nTime; t++){
@@ -482,7 +495,7 @@ void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl){
 void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl){
 	FILE* pFile;
 	char file[1000];
-	sprintf(file, "%s/spac_dif.dat", sp->sampleDir);
+	sprintf(file, "%s/spac_dif.dat", ptl->resDir);
 	pFile = fopen(file, "w");
 	double difFac, difBox;
 	

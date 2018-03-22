@@ -21,7 +21,7 @@ SEED=12938173
 TIME=1e5
 INTERVAL=1e3
 DENSITY=7.2
-START_L=6
+START_L=5
 POL_TYPE="original"
 
 BEND_ENERGY=0.3
@@ -147,7 +147,7 @@ fi
 LAST_TFILE=`get_last_tfile $FIRST_DIR`
 LAST_SAVFILE=`get_last_savfile $FIRST_DIR`
 
-COMMON_OPTS="-x denspol -s $SEED --double 1 --hp $HP_STRENGTH -b $BEND_ENERGY -d $DENSITY $LATTICE_SHAPE"
+COMMON_OPTS="-x denspol -s $SEED --double 1 --hp $HP_STRENGTH -b $BEND_ENERGY -d $DENSITY $LATTICE_SHAPE $TOPO"
 
 if [ $LAST_TFILE == "NOT_FOUND" -o $LAST_TFILE == "t=0_dev=0.res" ]; then
 	./do_run.sh $COMMON_OPTS -t $FIRST_TIME -i $FIRST_INTERVAL -m $FIRST_DIR/contact_map.dat --outdir $FIRST_DIR -g $L || exit $?

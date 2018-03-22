@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/** WARNING this program is broken for unequal polymer lengths. **/
 
 int main(int argc, char** argv){
 	SimProperties sp;
@@ -20,7 +21,7 @@ int main(int argc, char** argv){
 	printf("Exec: %s\n", exec);
 	system(exec);
 
-	char* str = malloc(sizeof(char)*(sp.polSize+1));
+	char* str = malloc(sizeof(char)*(sp.maxNMono+1));
 	for(int iDev=0; iDev<sp.nDev; iDev++){
 		for(long t=0; t<sp.nTime; t++){
 			sprintf(file, "%s/t=%li_dev=%i.res", destDir, t*sp.dT, iDev);
@@ -29,7 +30,7 @@ int main(int argc, char** argv){
 			fprintf(pFile, "LU= %i\n", LT);
 			fprintf(pFile, "LV= %i\n", LT);
 			fprintf(pFile, "np= %i\n", sp.nPol);
-			fprintf(pFile, "maxPolLength= %li\n", sp.polSize+1);
+			fprintf(pFile, "maxPolLength= %li\n", sp.maxNMono);
 			fclose(pFile);
 		}
 	}
@@ -48,7 +49,7 @@ int main(int argc, char** argv){
 				int t,u,v;
 				fscanf(pFile, "%i %i %i", &t, &u, &v);
 				fscanf(pFile, "%s", str);
-				fprintf(pFileDest, "len= %li\n%i %i %i\n%s\n", sp.polSize, t, u, v, str);
+				fprintf(pFileDest, "len= %li\n%i %i %i\n%s\n", sp.maxNMono, t, u, v, str);
 				fclose(pFileDest);
 			}
 			fclose(pFile);

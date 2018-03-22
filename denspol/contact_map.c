@@ -92,7 +92,7 @@ Data* ReadData(char* file){
 		fscanf(pFile, "%*s %i %i %i %i %s", &data->polSizes[iPol], tuvStart, tuvStart+1, tuvStart+2, data->str);
 		int polSize = data->polSizes[iPol];
 		data->maxPolSize = MAX(polSize,data->maxPolSize);
-		data->polTypes[iPol] = (data->str[polSize-1] == 0xf)?POL_TYPE_LIN:POL_TYPE_RING;
+		data->polTypes[iPol] = (data->str[polSize-1] == 'f')?POL_TYPE_LIN:POL_TYPE_RING;
 		int coor = TUV2Coor(tuvStart[0], tuvStart[1], tuvStart[2], L);
 		int bond;
 		int zeroBefore=0;

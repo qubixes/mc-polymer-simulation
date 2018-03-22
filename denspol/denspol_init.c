@@ -130,6 +130,12 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 		GeneratePolymers(cs);
 	}
 	
+	cs->ss.polType = cs->pol[0].polType;
+	for(Polymer* pol = cs->pol; pol<cs->pol+cs->nPol; pol++)
+		if(pol->polType != cs->ss.polType)
+			cs->ss.polType = POL_TYPE_MIXED;
+	cs->ss.polSize = cs->maxNMono;
+	
 	if(cs->ss.contactFile){
 		LoadHPFile(cs->ss.contactFile, &lt->hp, cs);
 	}
@@ -150,7 +156,6 @@ void SimulationInit(CurState* cs, LookupTables* lt){
 	lt->nMoveChoice=0;
 	PopulateMoveList(cs, lt);
 	
-
 	CheckIntegrity(cs, "After construction");
 }
 
@@ -289,7 +294,7 @@ int CSFromParameters(CurState* cs, LookupTables* lt){
 	LatticeInit(cs, lt);
 	
 	int nMono = cs->ss.polSize+((cs->ss.polType == POL_TYPE_LIN)?1:0);
-	cs->nPol = (int)(cs->ss.density*lt->nLatticeUsed/(double)nMono+0.5);
+	cs->nPol = (int)((cs->ss.density/6.0)*lt->nBondUsed/(double)nMono+0.5);
 	cs->maxNMono = nMono;
 	cs->nTotMono = cs->nPol*nMono;
 	AllocPolymers(cs);
@@ -391,7 +396,114 @@ int CheckPolymerPartition(CurState* cs, int delta){
 	return nFound;
 }
 
+int CheckLinearPolymerPartition(CurState* cs, int delta){
+	int nFound=0;
+	
+	for(int t=0; t+delta/2<cs->L; t+=delta){
+		for(int u=0; u+delta/2<cs->L; u+=delta){
+			for(int v=0; v+delta/2<cs->L; v+=delta){
+				int coor = TUV2Coor(t,u,v,cs->L);
+				int OOB;
+				if(cs->topoState[coor] < 0) continue;
+				
+				for(int unit=0x1; unit<=0x7; unit++){
+					if(!IsValid(unit)) continue;
+					int newCoor = cs->AddUnitToCoor(unit, coor, cs->L, &OOB);
+					if(!(OOB || cs->topoState[newCoor] <0))
+						nFound++;
+				}
+			}
+		}
+	}
+	return nFound;
+}
+
+int* GenerateRandomPolOrder(int nPol, unsigned int rng[4]){
+	int* polOrder = malloc(sizeof(int)*nPol);
+	for(int i=0; i<nPol; i++) polOrder[i]=i;
+	int tPol;
+	for(int i=0; i<nPol-1; i++){
+		int j= i+DRng(rng)*(nPol-i);
+		if(i != j){
+			tPol = polOrder[i];
+			polOrder[i] = polOrder[j];
+			polOrder[j] = tPol;
+		}
+	}
+	return polOrder;
+}
+
+void GenerateLinearPolymers(CurState* cs){
+	int delta;
+	int L = cs->L;
+	
+	for(delta=L; delta>=1; delta--){
+		int nTot = 1;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		nTot *= L/delta;
+		if(nTot >= cs->nPol && CheckLinearPolymerPartition(cs, delta) >= cs->nPol){
+			break;
+		}
+	}
+	if(!delta){
+		printf("Error finding polymer partition, too many polymers/too dense (linear): got %i vs need %i.\n", CheckLinearPolymerPartition(cs, 1), cs->nPol);
+		exit(192);
+	}
+	int iPol=0;
+	int* polOrder = GenerateRandomPolOrder(cs->nPol, cs->rngState);
+	
+	for(int unit=0x1; unit<0x8; unit++){
+		for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
+			for(int u=0; u+delta/2<L && iPol<cs->nPol; u += delta){
+				for(int v=0; v+delta/2<L && iPol<cs->nPol; v += delta){
+					Polymer* pol = cs->pol+polOrder[iPol];
+					
+					int OOB;
+					int available=1;
+					int coor = TUV2Coor(t,u,v,cs->L);
+					if(cs->topoState[coor] < 0) continue;
+					int newCoor = cs->AddUnitToCoor(unit, coor, cs->L, &OOB);
+					if(OOB || cs->topoState[newCoor] <0) available = 0; 
+					
+					if(!available) continue;
+					
+					pol->unitPol[0] = unit;
+					for(int iMono=1; iMono<pol->polSize; iMono++)
+						pol->unitPol[iMono] = 0x0;
+					pol->unitPol[pol->polSize] = 0xf;
+					
+					for(int iMono=0; iMono<=pol->polSize; iMono++){
+						pol->coorPol[iMono] = coor;
+						coor = cs->AddUnitToCoor(pol->unitPol[iMono], coor, L, &OOB);
+					}
+					
+					int bondOcc0 = 1<<(pol->unitPol[0]^0xf);
+					int bondOcc1 = 1<<(pol->unitPol[0]);
+					
+					cs->bondOcc[pol->coorPol[0]] |= bondOcc0;
+					cs->bondOcc[pol->coorPol[1]] |= bondOcc1;
+					
+					iPol++;
+				}
+			}
+		}
+	}
+	free(polOrder);
+}
+
 void GeneratePolymers(CurState* cs){
+	
+	int onlyLinear=1;
+	for(int iPol=0; iPol<cs->nPol && onlyLinear; iPol++){
+		if(cs->pol[iPol].polType != POL_TYPE_LIN) onlyLinear=0;
+	}
+	
+	if(onlyLinear){
+		GenerateLinearPolymers(cs);
+		return;
+	}
+	
 	int delta;
 	int L = cs->L;
 	
@@ -413,18 +525,8 @@ void GeneratePolymers(CurState* cs){
 	int ringUnits[] = {0x4,0x1,0xa};
 	int linUnits[]  = {0x4};
 	
-	int* polOrder = malloc(sizeof(int)*cs->nPol);
-	for(int i=0; i<cs->nPol; i++) polOrder[i]=i;
-	int tPol;
-	for(int i=0; i<cs->nPol-1; i++){
-		int j= i+DRng(cs->rngState)*(cs->nPol-i);
-		if(i != j){
-			tPol = polOrder[i];
-			polOrder[i] = polOrder[j];
-			polOrder[j] = tPol;
-		}
-	}
 	
+	int* polOrder = GenerateRandomPolOrder(cs->nPol, cs->rngState);
 	int iPol=0; 
 	Polymer* pol;
 	for(int t=0; t+delta/2<L && iPol<cs->nPol; t += delta){
@@ -490,6 +592,7 @@ void GeneratePolymers(CurState* cs){
 			}
 		}
 	}
+	free(polOrder);
 }
 
 void GenerateMutators(LookupTables* lt){

@@ -1,143 +1,54 @@
 #include "lowm_modes.h"
 
-void InitArrays(SimProperties* sp, PolyTimeLapse* ptl){
-// 	printf("SD init:\n");
-// 	SpacDifInit(&sd);
-// 	printf("ptl init:\n");
-	PTLInit(sp, ptl, &sd);
-	allFiles = malloc(sizeof(char*)*sp->nTime);
-	filePos = malloc(sizeof(fpos_t*)*sp->nTime);
-	strIn = malloc(sizeof(char)*(sp->polSize+1));
-	t = malloc(sizeof(int)*(sp->polSize));
-	u = malloc(sizeof(int)*(sp->polSize));
-	v = malloc(sizeof(int)*(sp->polSize));
-}
-
-void InitRelPos(){
-	int t,u,v,w, iRel=0;
-	for(int i=0; i<16; i++){
-		if(!IsValid(i)) continue;
-		t = i%2; u=(i/2)%2; v = (i/4)%2; w = i/8;
-		t -= w; u -= w; v -= w;
-		tuvRelPos[iRel][0] = t;
-		tuvRelPos[iRel][1] = u;
-		tuvRelPos[iRel][2] = v;
-// 		printf("[%i %i %i]\n", t,u,v);
-		iRel++;
-	}
-}
-
-void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
-	curPolId=0;
-	ptl->nEqd = sp->nEqd;
-	ptl->nTherm = sp->nTherm;
+void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
+	ptl->sinfac = malloc(sizeof(double*)*(sp->maxNMono/2+1));
+	ptl->cosfac = malloc(sizeof(double*)*(sp->maxNMono/2+1));
+	ptl->modeList = malloc(sizeof(int)*sp->maxNMono/2);
 	
-	ptl->sinfac = malloc(sizeof(double*)*(sp->polSize/2+1));
-	ptl->cosfac = malloc(sizeof(double*)*(sp->polSize/2+1));
-	
-	int step=1; ptl->nModes=0; ptl->modeList = malloc(sizeof(int)*sp->polSize/2);
-	for(int p=0; p<sp->polSize/2; p+=step){
-		ptl->modeList[ptl->nModes++] = p;
+	int step=1, maxModes=0; 
+	for(int p=0; p<sp->maxNMono/2; p+=step){
+		ptl->modeList[maxModes++] = p;
 		step = MAX(1, p/5);
 	}
 	
-	for(int iP=0; iP<ptl->nModes; iP++){
+	for(int iP=0; iP<maxModes; iP++){
 		int p = ptl->modeList[iP];
-		ptl->sinfac[p] = malloc(sizeof(double)*sp->polSize);
-		ptl->cosfac[p] = malloc(sizeof(double)*sp->polSize);
-		for(int n=0;n<sp->polSize;n++){
-			ptl->sinfac[p][n]=sqrt(1.0/sp->polSize)*sin((2*PI*(n+0.25)*p)/(double)sp->polSize);
-			ptl->cosfac[p][n]=sqrt(1.0/sp->polSize)*cos((2*PI*(n+0.25)*p)/(double)sp->polSize);
-		}
-	}
-
-	
-	ptl->pointDensity = malloc(sizeof(int)*sp->polSize);
-	for(int i=0; i<sp->polSize; i++) ptl->pointDensity[i]=0;
-	
-	
-	int maxTUV;
-	
-	maxTUV = MIN(sp->polSize, 2*LT);
-	
-	for(int t=-maxTUV; t<maxTUV; t++){
-		for(int u=-maxTUV; u<maxTUV; u++){
-			for(int v=-maxTUV; v<maxTUV; v++){
-				int x = t+u-v;
-				int y = t-u;
-				int z = v;
-				
-				int rSq = x*x+y*y+z*z;
-				double r = sqrt(rSq/2.0);
-				int bin = (int)r;
-				if(bin<sp->polSize)
-					ptl->pointDensity[bin]++;
-			}
-		}
+		ptl->sinfac[p] = malloc(sizeof(double)*sp->maxNMono);
+		ptl->cosfac[p] = malloc(sizeof(double)*sp->maxNMono);
 	}
 	
-// 	for(int i=0; i<sp->polSize; i++)
-// 		printf("%i %i %lf\n", i, ptl->pointDensity[i], ptl->pointDensity[i]/(double)(i*i));
-// 	exit(0);
+	ptl->pointDensity = malloc(sizeof(int)*sp->maxNMono);
 	
-	int maxGenom=10000000;
-	
-	ptl->genomList = malloc(sizeof(DInt)*maxGenom);
-	ptl->genomIdList = malloc(sizeof(int)*maxGenom);
 	ptl->nGenom = 0;
 	int di=20;
 	int gMax;
-	if(sp->polType == POL_TYPE_LIN) gMax=sp->polSize-1;
-	else gMax = sp->polSize/2;
-// 	ptl->genomIgToG = malloc(sizeof(int)*gMax);
+	gMax=sp->maxNMono;
 	
-	for(int g=1, dg=1, ig=0; g<=gMax; g+=dg, ig++){
-		di = MAX(1,MAX(sp->polSize/30, dg/3));
-// 		ptl->genomIgToG[ig] = g;
-		for(int i=0; i<sp->polSize; i+=di){
-			if(i+g >= sp->polSize && sp->polType == POL_TYPE_LIN) continue;
-			int j = (i+g)%sp->polSize;
-			if(ptl->nGenom >= maxGenom){
-				printf("Error: reached memory storage limit for genom allocation\n");
-				exit(192);
-			}
-			ptl->genomList[ptl->nGenom].ig  = ig;
-			ptl->genomList[ptl->nGenom].x   = i;
-			ptl->genomList[ptl->nGenom++].y = j;
-// 			printf("%i %i %i\n", g, i, j);
-// 			}
-// 			else{
-// 				ptl->genomList[ptl->nGenom].x = j;
-// 				ptl->genomList[ptl->nGenom++].y = i;
-// 			}
+	int nGenom=0;
+	int nIg=0;
+	for(int g=1, dg=1; g<=gMax; g+=dg, nIg++){
+		di = MAX(1,MAX(sp->maxNMono/30, dg/3));
+		for(int i=0; i<sp->maxNMono; i+=di){
+			nGenom++;
 		}
-		ptl->genomIdList[ig] = g;
 		dg = MAX(1,MIN(gMax-g, g/10));
 	}
-// 	exit(0);
-	ptl->nIg = ptl->genomList[ptl->nGenom-1].ig+1;
-	ptl->nGenomBin = 10*sp->LT;
-// 	printf("nGenom=%i, nIg = %i\n", ptl->nGenom, ptl->nIg);
-	ptl->genomProb = malloc(sizeof(long*)*(ptl->nIg));
-	ptl->genomR = malloc(sizeof(double*)*(ptl->nIg));
-	ptl->genomCount = malloc(sizeof(long)*(ptl->nIg));
-	for(int i=0; i<ptl->nIg; i++){
+	
+	ptl->genomList = malloc(sizeof(DInt)*nGenom);
+	ptl->genomIdList = malloc(sizeof(int)*nGenom);
+	
+	ptl->nGenomBin  = 10*sp->LT;
+	ptl->genomProb  = malloc(sizeof(long*)*nIg);
+	ptl->genomR     = malloc(sizeof(double*)*nIg);
+	ptl->genomCount = malloc(sizeof(long)*nIg);
+	for(int i=0; i<nIg; i++){
 		ptl->genomProb[i] = malloc(sizeof(long)  *ptl->nGenomBin);
 		ptl->genomR[i]    = malloc(sizeof(double)*ptl->nGenomBin);
-		ptl->genomCount[i] = 0;
-		for(int j=0; j<ptl->nGenomBin; j++){
-			ptl->genomProb[i][j]=0;
-			ptl->genomR[i][j]=0;
-		}
 	}
-// 	exit(0);
-// 	ptl->sqrtList = malloc(sizeof(double)*sp->polSize*sp->polSize*2);
-// 	for(int i=0; i<sp->polSize*sp->polSize*2; i++)
-// 		ptl->sqrtList[i] = sqrt(i/2.0);
 	
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
-	ptl->avgUnitCor = malloc(sizeof(double)*sp->polSize);
-	ptl->avgGenom = malloc(sizeof(double)*sp->polSize);
+	ptl->avgUnitCor = malloc(sizeof(double)*sp->maxNMono);
+	ptl->avgGenom = malloc(sizeof(double)*sp->maxNMono);
 	if(ptl->nEqd > 0){
 		ptl->cmsDif      = malloc(sizeof(double)*ptl->nEqd);
 		ptl->smDif       = malloc(sizeof(double)*ptl->nEqd);
@@ -156,33 +67,154 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	
 	ptl->avgSL = malloc(sizeof(double)*sp->nTime);
 	ptl->polys = malloc(sizeof(PolyConfig)*sp->nTime);
+		
+	ptl->pcBins = MAX(1, sp->maxNMono/2000);
+	ptl->pc = malloc(sizeof(double*)*(sp->maxNMono/ptl->pcBins+1));
+	ptl->pcss = malloc(sizeof(double*)*(sp->maxNMono/ptl->pcBins+1));
+	ptl->pcAvg = malloc(sizeof(double)*sp->maxNMono);
+	ptl->pcssAvg = malloc(sizeof(double)*sp->maxNMono);
+	
+	ptl->monoList=   malloc(sizeof(PCMonoList)*sp->maxNMono);
+	ptl->ssMonoList= malloc(sizeof(IDouble)*sp->maxNMono);
+	
+	ptl->L = 100;
+	ptl->LIMG = 100; 
+	/// This is not the actual size of the lattice (nor is ptl->L).
+	/// It is used to compute the contact probability in a more efficient way.
+	/// It is the most efficient if ptl->L is approximately the same size as the real lattice,
+	/// but it will work regardless.
+	
+	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L);
+	
+	for(int i=0; i<sp->maxNMono/ptl->pcBins+1; i++){
+		ptl->pc[i] = malloc(sizeof(double)*(sp->maxNMono/ptl->pcBins+1));
+		ptl->pcss[i] = malloc(sizeof(double)*(sp->maxNMono/ptl->pcBins+1));
+	}
+	
+	ptl->avgModesStat = malloc(sizeof(double*)*maxModes);
+	for(int i=0; i<maxModes; i++){
+		ptl->avgModesStat[i] = malloc(sizeof(double)*maxModes);
+	}
+	
+	ptl->avgModesDyn = malloc(sizeof(double*)*maxModes);
+	for(int i=0; i< ptl->nModes; i++){
+		ptl->avgModesDyn[i] = malloc(sizeof(double)*ptl->nEqd);
+	}
+	
+	ptl->tTable = *(TTableNew(sp, 0));
+	
+		
+	if(!sp->updAvgPos)
+		ptl->avgPosition = ReadAvgPos(sp, ptl);
+	else{
+		ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
+		for(int t=0; t<sp->nTime; t++){
+			ptl->avgPosition[t] = malloc(sizeof(double)*3);
+		}
+	}
+	
+	for(int i=0; i<sp->nTime; i++)
+		PCInit(sp, &(ptl->polys[i]), ptl->sinfac, ptl->cosfac, ptl->modeList, maxModes);
+}
+
+
+void InitRelPos(){
+	int t,u,v,w, iRel=0;
+	for(int i=0; i<16; i++){
+		if(!IsValid(i)) continue;
+		t = i%2; u=(i/2)%2; v = (i/4)%2; w = i/8;
+		t -= w; u -= w; v -= w;
+		tuvRelPos[iRel][0] = t;
+		tuvRelPos[iRel][1] = u;
+		tuvRelPos[iRel][2] = v;
+		iRel++;
+	}
+}
+
+void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
+	curPolId=0;
+	ptl->nEqd = sp->nEqd;
+	ptl->nTherm = sp->nTherm;
+	
+	int nMono   = ptl->polys[0].nMono;
+	int polSize = ptl->polys[0].polSize;
+	int polType = ptl->polys[0].polType;
+	
+	int step=1; ptl->nModes=0;
+	for(int p=0; p<polSize/2; p+=step){
+		ptl->modeList[ptl->nModes++] = p;
+		step = MAX(1, p/5);
+	}
+	
+	for(int iP=0; iP<ptl->nModes; iP++){
+		int p = ptl->modeList[iP];
+		for(int n=0;n<nMono;n++){
+			ptl->sinfac[p][n]=sqrt(1.0/nMono)*sin((2*PI*(n+0.25)*p)/(double)nMono);
+			ptl->cosfac[p][n]=sqrt(1.0/nMono)*cos((2*PI*(n+0.25)*p)/(double)nMono);
+		}
+	}
+	
+	for(int i=0; i<nMono; i++) ptl->pointDensity[i]=0;
+	
+	int maxTUV;
+	
+	maxTUV = MIN(nMono, 2*LT);
+	
+	for(int t=-maxTUV; t<maxTUV; t++){
+		for(int u=-maxTUV; u<maxTUV; u++){
+			for(int v=-maxTUV; v<maxTUV; v++){
+				int x = t+u-v;
+				int y = t-u;
+				int z = v;
+				
+				int rSq = x*x+y*y+z*z;
+				double r = sqrt(rSq/2.0);
+				int bin = (int)r;
+				if(bin<nMono)
+					ptl->pointDensity[bin]++;
+			}
+		}
+	}
+	
+	ptl->nGenom = 0;
+	int di=20;
+	int gMax;
+	if(polType == POL_TYPE_LIN) gMax=nMono;
+	else gMax = nMono/2;
+	
+	for(int g=1, dg=1, ig=0; g<=gMax; g+=dg, ig++){
+		di = MAX(1,MAX(nMono/30, dg/3));
+		for(int i=0; i<nMono; i+=di){
+			if(i+g >= nMono && polType == POL_TYPE_LIN) continue;
+			int j = (i+g)%nMono;
+			ptl->genomList[ptl->nGenom].ig  = ig;
+			ptl->genomList[ptl->nGenom].x   = i;
+			ptl->genomList[ptl->nGenom++].y = j;
+		}
+		ptl->genomIdList[ig] = g;
+		dg = MAX(1,MIN(gMax-g, g/10));
+	}
+	for(int i=0; i<ptl->nIg; i++){
+		ptl->genomCount[i] = 0;
+		for(int j=0; j<ptl->nGenomBin; j++){
+			ptl->genomProb[i][j]=0;
+			ptl->genomR[i][j]=0;
+		}
+	}
+	
 	ptl->avgRGyr = 0;
 	
-	
-	ptl->pcBins = MAX(1, sp->polSize/2000);
-	ptl->pc = malloc(sizeof(double*)*(sp->polSize/ptl->pcBins+1));
-	ptl->pcss = malloc(sizeof(double*)*(sp->polSize/ptl->pcBins+1));
-	ptl->pcAvg = malloc(sizeof(double)*sp->polSize);
-	ptl->pcssAvg = malloc(sizeof(double)*sp->polSize);
-	
-	ptl->monoList=   malloc(sizeof(PCMonoList)*sp->polSize);
-	ptl->ssMonoList= malloc(sizeof(IDouble)*sp->polSize);
-	ptl->L = 100;
-	ptl->LIMG = 100; /// This is all not for the original size of the lattice, just the 
-	ptl->lattice = (LatPoint*)malloc(sizeof(LatPoint)*ptl->L*ptl->L*ptl->L);
 	for(int i=0; i<ptl->L*ptl->L*ptl->L; i++)
 		ptl->lattice[i].nOcc=0;
-	for(int i=0; i<sp->polSize; i++){
+	for(int i=0; i<nMono; i++){
 		ptl->avgUnitCor[i] = 0;
 		ptl->avgGenom[i] = 0;
 		ptl->pcAvg[i] = 0;
 		ptl->pcssAvg[i] = 0;
 	}
 	
-	for(int i=0; i<sp->polSize/ptl->pcBins+1; i++){
-		ptl->pc[i] = malloc(sizeof(double)*(sp->polSize/ptl->pcBins+1));
-		ptl->pcss[i] = malloc(sizeof(double)*(sp->polSize/ptl->pcBins+1));
-		for(int j=0; j<sp->polSize/ptl->pcBins+1; j++){
+	for(int i=0; i<nMono/ptl->pcBins+1; i++){
+		for(int j=0; j<nMono/ptl->pcBins+1; j++){
 			ptl->pc[i][j]=0;
 			ptl->pcss[i][j]=0;
 		}
@@ -200,77 +232,16 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd){
 	for(long i=0; i<sp->nTime; i++){
 		ptl->rGyrT[i]=0;
 		ptl->avgSL[i]=0;
-	}		
-
+	}
 	
-	ptl->avgModesStat = malloc(sizeof(double*)*ptl->nModes);
 	for(int i=0; i<ptl->nModes; i++){
-		ptl->avgModesStat[i] = malloc(sizeof(double)*ptl->nModes);
 		for(int j=0; j<ptl->nModes; j++)
 			ptl->avgModesStat[i][j] = 0;
 	}
 	
-	ptl->avgModesDyn = malloc(sizeof(double*)*ptl->nModes);
 	for(int i=0; i< ptl->nModes; i++){
-		ptl->avgModesDyn[i] = malloc(sizeof(double)*ptl->nEqd);
 		for(int j=0; j<ptl->nEqd; j++)
 			ptl->avgModesDyn[i][j] = 0;
-	}
-	
-	
-	for(int i=0; i<sp->nTime; i++) 
-		PCInit(sp, &(ptl->polys[i]), ptl->sinfac, ptl->cosfac, ptl->modeList, ptl->nModes);
-	
-	ptl->tTable = *(TTableNew(sp, 0));
-	/*
-	printf("Need an approximate %.2lf GB of memory\n", (double)sd->nSDPoints*sp->nDev*ptl->tTable.nTDT*3*sizeof(double)*1e-9); 
-	long nAlloc=0;
-	ptl->avgSpacDif = malloc(sizeof(double***)*sd->nSDPoints);
-	for(int i=0; i<sd->nSDPoints; i++){
-		ptl->avgSpacDif[i] = malloc(sizeof(double**)*sp->nDev);
-		for(int j=0; j<sp->nDev; j++){
-			ptl->avgSpacDif[i][j] = malloc(sizeof(double*)*ptl->tTable.nTDT);
-			for(int k=0; k<ptl->tTable.nTDT; k++){
-				ptl->avgSpacDif[i][j][k]=malloc(sizeof(double)*3);
-				nAlloc += sizeof(double)*3;
-				for(int l=0; l<3; l++)
-					ptl->avgSpacDif[i][j][k][l]=0;
-			}
-		}
-// 		printf("%i/%i: %.1lf MB allocated vs %.1lf MB\n", i, sd->nSDPoints, 1e-6*nAlloc, sp->nDev*ptl->tTable.nTDT*3*sizeof(double)*1e-6);
-	}
-	*/
-// 	exit(0);
-	/*
-	ptl->sAvgSpacMode = malloc(sizeof(double***)*SPAC_MODES);
-	ptl->cAvgSpacMode = malloc(sizeof(double***)*SPAC_MODES);
-	for(int p=0; p<SPAC_MODES; p++){
-		ptl->sAvgSpacMode[p] = malloc(sizeof(double**)*ptl->tTable.nTDT);
-		ptl->cAvgSpacMode[p] = malloc(sizeof(double**)*ptl->tTable.nTDT);
-		for(int i=0; i<ptl->tTable.nTDT; i++){
-			ptl->sAvgSpacMode[p][i] = malloc(sizeof(double*)*3);
-			ptl->cAvgSpacMode[p][i] = malloc(sizeof(double*)*3);
-			for(int k=0; k<3; k++){
-				ptl->sAvgSpacMode[p][i][k] = malloc(sizeof(double)*3);
-				ptl->cAvgSpacMode[p][i][k] = malloc(sizeof(double)*3);
-				for(int j=0; j<3; j++){
-					ptl->sAvgSpacMode[p][i][k][j] = 0;
-					ptl->cAvgSpacMode[p][i][k][j] = 0;
-				}
-			}
-		}
-	}
-	*/
-	
-	if(!sp->updAvgPos)
-		ptl->avgPosition = ReadAvgPos(sp);
-	else{
-		ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
-		for(int t=0; t<sp->nTime; t++){
-			ptl->avgPosition[t] = malloc(sizeof(double)*3);
-			for(int i=0; i<3; i++)
-				ptl->avgPosition[t][i] = 0;
-		}
 	}
 }
 
@@ -377,23 +348,23 @@ void TTableDestr(SimProperties* sp, PolyTimeLapse* ptl){
 }
 
 void PCInit(SimProperties* sp,  PolyConfig* pc, double** sinfac, double** cosfac, int* modeList, int nModes){
-	pc->x = malloc(sizeof(int)*sp->polSize);
-	pc->y = malloc(sizeof(int)*sp->polSize);
-	pc->z = malloc(sizeof(int)*sp->polSize);
+	pc->x = malloc(sizeof(int)*sp->maxNMono);
+	pc->y = malloc(sizeof(int)*sp->maxNMono);
+	pc->z = malloc(sizeof(int)*sp->maxNMono);
 	
-	pc->t = malloc(sizeof(int)*sp->polSize);
-	pc->u = malloc(sizeof(int)*sp->polSize);
-	pc->v = malloc(sizeof(int)*sp->polSize);
+	pc->t = malloc(sizeof(int)*sp->maxNMono);
+	pc->u = malloc(sizeof(int)*sp->maxNMono);
+	pc->v = malloc(sizeof(int)*sp->maxNMono);
 	
-	pc->sxmode = malloc(sizeof(double)*(sp->polSize/2+1));
-	pc->symode = malloc(sizeof(double)*(sp->polSize/2+1));
-	pc->szmode = malloc(sizeof(double)*(sp->polSize/2+1));
-	pc->cxmode = malloc(sizeof(double)*(sp->polSize/2+1));
-	pc->cymode = malloc(sizeof(double)*(sp->polSize/2+1));
-	pc->czmode = malloc(sizeof(double)*(sp->polSize/2+1));
+	pc->sxmode = malloc(sizeof(double)*(sp->maxNMono/2+1));
+	pc->symode = malloc(sizeof(double)*(sp->maxNMono/2+1));
+	pc->szmode = malloc(sizeof(double)*(sp->maxNMono/2+1));
+	pc->cxmode = malloc(sizeof(double)*(sp->maxNMono/2+1));
+	pc->cymode = malloc(sizeof(double)*(sp->maxNMono/2+1));
+	pc->czmode = malloc(sizeof(double)*(sp->maxNMono/2+1));
 	
-	pc->unitCor = malloc(sizeof(double)*sp->polSize);
-	pc->genom = malloc(sizeof(double)*sp->polSize);
+	pc->unitCor = malloc(sizeof(double)*sp->maxNMono);
+	pc->genom = malloc(sizeof(double)*sp->maxNMono);
 	pc->rGyr=0;
 	
 	pc->sinfac = sinfac;
@@ -415,7 +386,7 @@ void PTLDestr(SimProperties* sp, PolyTimeLapse* ptl){
 		PCDestr(sp, &(ptl->polys[i]));
 	free(ptl->polys);
 	
-	for(int i=0; i<sp->polSize/2; i++){
+	for(int i=0; i<sp->maxNMono/2; i++){
 		free(ptl->sinfac[i]); free(ptl->cosfac[i]);
 		free(ptl->avgModesDyn[i]);
 		free(ptl->avgModesStat[i]);
@@ -427,7 +398,7 @@ void PTLDestr(SimProperties* sp, PolyTimeLapse* ptl){
 	free(ptl->avgRee);
 	free(ptl->modeList);
 	
-	for(int i=0; i<sp->polSize; i++){
+	for(int i=0; i<sp->maxNMono; i++){
 		free(ptl->pc[i]);
 	}
 	free(ptl->pc);
@@ -530,9 +501,9 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");
-	fscanf(pFile, "%*s %li", &sp->polSize);
+// 	fscanf(pFile, "%*s %li", &sp->polSize);
 	printf("nPol = %i\n", sp->nPol);
-	printf("polSize=%li\n", sp->polSize);
+// 	printf("polSize=%li\n", sp->polSize);
 	fclose(pFile);
 	
 	sprintf(exec, "ls %s | grep 't=' | grep 'dev=0' | wc -w", sampleDir);
@@ -610,11 +581,13 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	}
 	
 	if(!strcmp(polType, "ring")){
-		sp->polType = POL_TYPE_RING;
+		sp->polTypeMelt = POL_TYPE_RING;
 	}
 	else if (!strcmp(polType, "lin")){
-		sp->polType = POL_TYPE_LIN;
+		sp->polTypeMelt = POL_TYPE_LIN;
 	}
+	else if(!strcmp(polType, "mixed"))
+		sp->polTypeMelt = POL_TYPE_MIXED;
 	else{
 		printf("Error: unknown polymer type %s\n", polType);
 		exit(192);
@@ -634,23 +607,23 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 // 	exit(0);
 }
 
-void InitFilePos(SimProperties* sp, int devId){
-	char file[10000];
-	FILE* pFile;
-	
-	for(int i=0; i<sp->nTime; i++){
-		sprintf(file, "%s/t=%li_dev=%i.res", sp->sampleDir, i*sp->dT, devId);
-		allFiles[i] = malloc(sizeof(char)*(strlen(file)+1));
-		strcpy(allFiles[i], file);
-		pFile = fopen(file, "r");
-		if(!pFile) printf("woops: not opening file %s (%i)\n", allFiles[i], sp->nTime);
-		
-		for(int i=0; i<5; i++) fscanf(pFile, "%*s %*s");
-		
-		fgetpos(pFile, &(filePos[i]));
-		fclose(pFile);
-	}
-}
+// void InitFilePos(SimProperties* sp, int devId){
+// 	char file[10000];
+// 	FILE* pFile;
+// 	
+// 	for(int i=0; i<sp->nTime; i++){
+// 		sprintf(file, "%s/t=%li_dev=%i.res", sp->sampleDir, i*sp->dT, devId);
+// 		allFiles[i] = malloc(sizeof(char)*(strlen(file)+1));
+// 		strcpy(allFiles[i], file);
+// 		pFile = fopen(file, "r");
+// 		if(!pFile) printf("woops: not opening file %s (%i)\n", allFiles[i], sp->nTime);
+// 		
+// 		for(int i=0; i<5; i++) fscanf(pFile, "%*s %*s");
+// 		
+// 		fgetpos(pFile, &(filePos[i]));
+// 		fclose(pFile);
+// 	}
+// }
 
 void SpacDifInit(SpacDif* sd){
 	int balVol;
@@ -778,7 +751,7 @@ double TRelax(SimProperties* sp){
 	double Ne = sp->Ne;
 	double tFac = sp->tFac;
 	
-	double Z = sp->polSize/Ne;
+	double Z = sp->maxNMono/Ne;
 	
 	double tConst = sp->LT*sp->LT*2;
 	double tRouseZ = 1.4*pow(Z, 2.2);

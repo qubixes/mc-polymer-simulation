@@ -3,6 +3,9 @@
 #include "timer.h"
 #include <sys/resource.h>
 
+/** WARNING this program is not properly updated for unequal lengths. **/
+
+
 void ConvertData(SimProperties* sp, int devId);
 
 int main(int argc, char** argv){
@@ -39,7 +42,7 @@ void ConvertData(SimProperties* sp, int devId){
 	Timer timer;
 	
 // 	PolyConfig* pcfg[2];
-	char* str = malloc(sizeof(char)*(sp->polSize+2));
+	char* str = malloc(sizeof(char)*(sp->maxNMono+2));
 	double* t[2], *u[2], *v[2];
 	for(int i=0; i<2; i++){
 		t[i] = malloc(sizeof(double)*sp->nPol);
@@ -81,7 +84,7 @@ void ConvertData(SimProperties* sp, int devId){
 			
 			Coor cms={0,0,0};
 			
-			for(int iMono=0; iMono<sp->polSize; iMono++){
+			for(int iMono=0; iMono<sp->maxNMono; iMono++){
 // 				cms.x += curT+curU-curV;
 // 				cms.y += curT-curU;
 // 				cms.z += curV;
@@ -94,9 +97,9 @@ void ConvertData(SimProperties* sp, int devId){
 				curU += ((step>>1)&0x1) - ((step>>3)&0x1);
 				curV += ((step>>2)&0x1) - ((step>>3)&0x1);
 			}
-			cms.x /= sp->polSize;
-			cms.y /= sp->polSize;
-			cms.z /= sp->polSize;
+			cms.x /= sp->maxNMono;
+			cms.y /= sp->maxNMono;
+			cms.z /= sp->maxNMono;
 			
 			fprintf(pFileOut, "%lf %lf %lf\n", cms.x, cms.y, cms.z);
 		}

@@ -48,7 +48,7 @@ void ConvertData(SimProperties* sp, int devId, int nPolOpen){
 	
 	char file[10000];
 	char polFile[1000];
-	char* tString = malloc(sizeof(char)*(sp->polSize+1));
+	char* tString = malloc(sizeof(char)*(sp->maxNMono+1));
 	FileHandles fh;
 	FILE* timePFile;
 	Timer timer;
@@ -180,9 +180,9 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
 	fscanf(pFile, "%*s %*i");
-	fscanf(pFile, "%*s %li", &sp->polSize);
+	fscanf(pFile, "%*s %li", &sp->maxNMono);
 	printf("nPol = %i\n", sp->nPol);
-	printf("polSize=%li\n", sp->polSize);
+	printf("polSize=%li\n", sp->maxNMono);
 	fclose(pFile);
 	
 	sprintf(exec, "ls %s | grep 't=' | grep 'dev=0' | wc -w", sampleDir);
@@ -208,11 +208,13 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	fscanf(pFile, "%*s %*s %s", polType);
 	pclose(pFile);
 	if(!strcmp(polType, "ring")){
-		sp->polType = POL_TYPE_RING;
+		sp->polTypeMelt = POL_TYPE_RING;
 	}
 	else if (!strcmp(polType, "lin")){
-		sp->polType = POL_TYPE_LIN;
+		sp->polTypeMelt = POL_TYPE_LIN;
 	}
+	else if (!strcmp(polType, "mixed"))
+		sp->polTypeMelt = POL_TYPE_MIXED;
 	else{
 		printf("Error: unknown polymer type %s\n", polType);
 		exit(192);

@@ -225,10 +225,16 @@ int* ComputePolLengths(char* file, int nBondUsed, double density){
 	fscanf(pFile, "%*s %i", &nPol);
 	int* origLengths = malloc(sizeof(int)*nPol);
 	int* newLengths = malloc(sizeof(int)*nPol);
+	int* polTypes = malloc(sizeof(int)*nPol);
+	char* pt = malloc(sizeof(char)*300);
 	
 	for(int i=0; i<2; i++) fscanf(pFile, "%*s %*s");
 	for(int iPol=0; iPol<nPol; iPol++){
-		fscanf(pFile, "%*s %i", &origLengths[iPol]);
+		fscanf(pFile, "%s %i", pt, &origLengths[iPol]);
+		if(!strcmp(pt, "lin"))
+			polTypes[iPol] = POL_TYPE_LIN;
+		else
+			polTypes[iPol] = POL_TYPE_RING;
 		nTotMonoOrig += origLengths[iPol];
 	}
 	fclose(pFile);
@@ -240,9 +246,13 @@ int* ComputePolLengths(char* file, int nBondUsed, double density){
 		double dblNewNMono = origLengths[iPol]*(nTotMonoTarget/(double)nTotMonoOrig)+leftover;
 		int newNMono = (int)(dblNewNMono+0.5);
 		leftover = dblNewNMono-newNMono;
-		newLengths[iPol] = MAX(4,newNMono);
+		if(polTypes[iPol] == POL_TYPE_LIN)
+			newLengths[iPol] = MAX(3,newNMono);
+		else
+			newLengths[iPol] = MAX(4,newNMono);
 	}
 	free(origLengths);
+	free(pt); free(polTypes);
 	return newLengths;
 }
 

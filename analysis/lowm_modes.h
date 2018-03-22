@@ -20,6 +20,7 @@
 #define MAX(X,Y) ((X>Y)?X:Y)
 #define POL_TYPE_LIN 1
 #define POL_TYPE_RING 2
+#define POL_TYPE_MIXED 3
 
 int tuvRelPos[12][3];
 
@@ -58,12 +59,11 @@ typedef struct IDouble{
 }IDouble;
 
 typedef struct SimProperties{
-	long polSize;
+	long maxNMono;
 	int nTime, nEqd, nTherm;
 	long dT, tStart;
 	int nPol;
 	int nDev;
-	int polType;
 	char* sampleDir;
 	char* neFile;
 	char exec[100];
@@ -75,6 +75,7 @@ typedef struct SimProperties{
 	int LT, LU, LV, LSIZE;
 	int updRouseStat, updRouseDyn, updGenom, updUnit, updSPRouse, updSL, updDif, updGyr;
 	int updSpacDif, updShearMod, updRee, updPC, updAvgPos;
+	int polTypeMelt;
 }SimProperties;
 
 
@@ -88,6 +89,7 @@ typedef struct PolyConfig{
 	double** sinfac, **cosfac;
 	int* modeList;
 	int nModes;
+	long nMono, polSize, polType;
 	double rGyr;
 	double slRat;
 	Coor cms;
@@ -135,6 +137,7 @@ typedef struct PolyTimeLapse{
 	int* pointDensity;
 	
 	int nModes;
+	int nPolAdded;
 	long pcBins;
 	double** avgPosition;
 	double* rGyrT;
@@ -162,6 +165,7 @@ typedef struct PolyTimeLapse{
 	TDTTable tTable;
 	int polId, devId;
 	int nTherm, nEqd;
+	char* resDir;
 // 	int nMeas;
 }PolyTimeLapse;
 
@@ -201,9 +205,10 @@ void DTUV2XYZ(double tuv[3], double xyz[3]);
 double DRXYZ(double xyz[3], double xyz2[3]);
 
 
+void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl);
 int GetNUpdates(SimProperties* sp, char* sampleDir);
 void InitArrays(SimProperties* sp, PolyTimeLapse* ptl);
-void PTLInit(SimProperties* sp, PolyTimeLapse* ptl, SpacDif* sd);
+void PTLInit(SimProperties* sp, PolyTimeLapse* ptl);
 void PCInit(SimProperties* sp,  PolyConfig* pc, double** sinfac, double** cosfac, int* modeList, int nModes);
 void DestrArrays(SimProperties* sp, PolyTimeLapse* ptl);
 void PTLDestr(SimProperties* sp, PolyTimeLapse* ptl);
@@ -261,7 +266,7 @@ void WriteModesStat(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteModesDyn(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteCMSDiff(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteSL(SimProperties* sp, PolyTimeLapse* ptl);
-void WriteDiff(SimProperties* sp, double* dif, char* base, long nEqd);
+void WriteDiff(SimProperties* sp, PolyTimeLapse* ptl, double* dif, char* base, long nEqd);
 void WriteSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteShearMod(SimProperties* sp, PolyTimeLapse* ptl);
@@ -271,5 +276,5 @@ void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 int CharToHex(char c);
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 void LoadPol(SimProperties* sp, PolyTimeLapse* pt);
-double** ReadAvgPos(SimProperties* sp);
+double** ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 
