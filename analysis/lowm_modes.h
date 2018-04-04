@@ -64,6 +64,8 @@ typedef struct SimProperties{
 	long dT, tStart;
 	int nPol;
 	int nDev;
+	int equalLengths;
+	char* resDir;
 	char* sampleDir;
 	char* neFile;
 	char exec[100];
@@ -165,7 +167,6 @@ typedef struct PolyTimeLapse{
 	TDTTable tTable;
 	int polId, devId;
 	int nTherm, nEqd;
-	char* resDir;
 // 	int nMeas;
 }PolyTimeLapse;
 

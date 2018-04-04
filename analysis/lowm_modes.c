@@ -25,12 +25,6 @@ int main(int argc, char** argv){
 	if(GetNUpdates(&sp, sampleDir)==0) return 0;
 	SetSimProps(&sp, sampleDir);
 	
-// 	if(sp.doubleStep)
-// 		ptl.nTherm = sp.nTime/2;
-// 	else if(!sp.equilibrated)
-// 		ptl.nTherm = 
-// 	else
-// 		ptl.nTherm = 0;
 	if(sp.dT < 1000){
 		printf("Thermalization: %i x %li, tau=%lf\n", sp.nTherm, sp.dT, TRelax(&sp)/1e3);
 	}
@@ -41,14 +35,16 @@ int main(int argc, char** argv){
 		printf("Thermalization: %i x %liM, tau=%lfM\n", sp.nTherm, sp.dT/1000000, TRelax(&sp)/1e6);
 	}
 	PTLAllocate(&sp, &ptl);
+	sprintf(sp.resDir, "%s", sp.sampleDir);
 	
-	for(int iDev=0; iDev<sp.nDev; iDev++){
-		for(int i=0; i<sp.nPol; i++){
-			fprintf(pStdout, "\rPolymer %i/%i [%.1f%%]", i+iDev*sp.nPol+1, sp.nDev*sp.nPol, 100.0*(i+iDev*sp.nPol+1)/(double)(sp.nDev*sp.nPol)); 
+	for(int iPol=0; iPol<sp.nPol; iPol++){
+		for(int iDev=0; iDev<sp.nDev; iDev++){
+			fprintf(pStdout, "\rPolymer %i/%i [%.1f%%]", iPol*sp.nDev+iDev+1, sp.nDev*sp.nPol, 100.0*(iPol*sp.nDev+iDev+1)/(double)(sp.nDev*sp.nPol)); 
 			fflush(pStdout);
 			TimerStart(&tIO);
-			LoadPTL(&sp, &ptl, i, iDev);
-			PTLInit(&sp, &ptl);
+			LoadPTL(&sp, &ptl, iPol, iDev);
+			if(!sp.equalLengths || (iPol==0 && iDev==0))
+				PTLInit(&sp, &ptl);
 			fprintf(pStdout, "[IO: %.2f ms] ", 1e3*TimerElapsed(&tIO));
 			fflush(pStdout);
 			TimerStart(&tCompute);
@@ -56,9 +52,17 @@ int main(int argc, char** argv){
 			fprintf(pStdout, "[Compute: %.2f ms]", 1e3*TimerElapsed(&tCompute));
 			fflush(pStdout);
 		}
+		if(!sp.equalLengths){
+			sprintf(sp.resDir, "%s/pol_%i", sp.sampleDir, iPol);
+			char exec[20000];
+			sprintf(exec, "mkdir -p %s", sp.resDir);
+			system(exec);
+			WriteAllFiles(&sp, &ptl);
+		}
 	}
+	if(sp.equalLengths)
+		WriteAllFiles(&sp, &ptl);
 	printf("\n");
-	WriteAllFiles(&sp, &ptl);
 	return 0;
 }
 

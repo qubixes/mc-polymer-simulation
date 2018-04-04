@@ -40,6 +40,7 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	if(sp->updAvgPos) AddAvgPos(sp,ptl);
 	if(sp->updShearMod) AddShearMod(sp,ptl);
 	if(sp->updRee) AddRee(sp, ptl);
+	ptl->nPolAdded++;
 	printf("[Add: %.2lf ms]", 1e3*TimerElapsed(&time)); fflush(NULL);
 }
 

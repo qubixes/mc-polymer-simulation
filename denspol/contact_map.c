@@ -42,7 +42,6 @@ int main(int argc, char** argv){
 	rp.nSamples = (long)1e8;
 	rp.seed     = 1209384;
 	
-	
 	rp.fileIn = argv[1];
 	rp.fileOut = argv[2];
 	if(argc > 3)

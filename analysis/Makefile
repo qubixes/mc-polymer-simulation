@@ -2,7 +2,7 @@
 
 VPATH=../util
 
-EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms cms_cor ptl2t scaleup similarity mobility sim_contact 
+EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms cms_cor ptl2t scaleup similarity mobility sim_contact pascal_contact_map similarity_pascal
 EXTRA_INC=../util
 BIN_DIR=../bin
 # CFLAGS= -Wall -O2
@@ -28,6 +28,10 @@ scaleup: scaleup.o timer.o file.o mode_util.o
 similarity: similarity.o mode_util.o
 
 sim_contact: sim_contact.o mode_util.o
+
+pascal_contact_map: pascal_contact_map.o  pascal_lib.o
+
+similarity_pascal: similarity_pascal.o pascal_lib.o mode_util.o
 
 install:
 	cp $(EXECS) $(BIN_DIR)

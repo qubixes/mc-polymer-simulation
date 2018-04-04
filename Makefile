@@ -1,6 +1,6 @@
 .PHONY: clean tar all gpupol analysis cpupol util gpupol2 denspol secstruct gpupol
 
-RELEASE=1.0.5
+RELEASE=1.0.6
 PROJECT=conring
 TAR_DIR=../tar
 TAR_FILE="$(TAR_DIR)/$(PROJECT)-v$(RELEASE).tar.gz"

@@ -179,7 +179,6 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 // 	}
 	
 	fscanf(pFile, "%*s %i", &sp->nPol);
-	fscanf(pFile, "%*s %*i");
 	fscanf(pFile, "%*s %li", &sp->maxNMono);
 	printf("nPol = %i\n", sp->nPol);
 	printf("polSize=%li\n", sp->maxNMono);

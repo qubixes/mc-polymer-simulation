@@ -97,8 +97,11 @@ EXEC=$BIN_DIR/denspol_hp
 
 
 if [ ! -f "$DIR/simulation_settings.txt" ]; then
-	echo "Directory $DIR is not a valid directory (missing simulation_settings.txt)"
-	exit 193;
+	if [ ! -f $DIR/config*  -o ! -f $DIR/bins* ]; then
+		echo "Directory $DIR is not a valid directory (missing simulation_settings.txt)"
+		exit 193;
+	fi
+	PASCAL_DATA="y"
 fi
 
 #make all install &> /dev/null || { echo "Error in compilation."; exit 192; }
@@ -126,8 +129,15 @@ FIRST_DIR=$BASE_DEST_DIR
 CONTACT_FILE="$FIRST_DIR/contact_map.dat"
 T_CONTACT_FILE="$FIRST_DIR/temp_contact_map.dat"
 mkdir -p $FIRST_DIR
-SRC_FILE=$DIR/`get_last_tfile $DIR`
-$BIN_DIR/contact_map $SRC_FILE $T_CONTACT_FILE $SEED $NPC_SAMPLES || exit $?
+if [ "$PASCAL_DATA" == "y" ]; then
+	SRC_FILES=$DIR/bins* $DIR/config*
+	CM_EXEC=$BIN_DIR/pascal_contact_map
+else
+	SRC_FILES=$DIR/`get_last_tfile $DIR`
+	CM_EXEC=$BIN_DIR/contac_map
+fi
+
+$CM_EXEC $SRC_FILES $T_CONTACT_FILE $SEED $NPC_SAMPLES || exit $?
 
 if [ "$FORCE_LINEAR" == "1" ]; then
 	cat $T_CONTACT_FILE | sed 's/ring/lin/g' > $CONTACT_FILE

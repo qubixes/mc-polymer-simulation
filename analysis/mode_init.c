@@ -1,10 +1,13 @@
 #include "lowm_modes.h"
 
 void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
+	ptl->nEqd = sp->nEqd;
+	ptl->nTherm = sp->nTherm;
+	
 	ptl->sinfac = malloc(sizeof(double*)*(sp->maxNMono/2+1));
 	ptl->cosfac = malloc(sizeof(double*)*(sp->maxNMono/2+1));
 	ptl->modeList = malloc(sizeof(int)*sp->maxNMono/2);
-	
+	sp->resDir = malloc(sizeof(char)*200000);
 	int step=1, maxModes=0; 
 	for(int p=0; p<sp->maxNMono/2; p+=step){
 		ptl->modeList[maxModes++] = p;
@@ -97,7 +100,7 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	ptl->avgModesDyn = malloc(sizeof(double*)*maxModes);
-	for(int i=0; i< ptl->nModes; i++){
+	for(int i=0; i<maxModes; i++){
 		ptl->avgModesDyn[i] = malloc(sizeof(double)*ptl->nEqd);
 	}
 	
@@ -110,6 +113,8 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->avgPosition = malloc(sizeof(double*)*sp->nTime);
 		for(int t=0; t<sp->nTime; t++){
 			ptl->avgPosition[t] = malloc(sizeof(double)*3);
+			for(int k=0; k<3; k++)
+				ptl->avgPosition[t][k]=0.0;
 		}
 	}
 	
@@ -133,12 +138,11 @@ void InitRelPos(){
 
 void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 	curPolId=0;
-	ptl->nEqd = sp->nEqd;
-	ptl->nTherm = sp->nTherm;
 	
 	int nMono   = ptl->polys[0].nMono;
 	int polSize = ptl->polys[0].polSize;
 	int polType = ptl->polys[0].polType;
+	ptl->nPolAdded=0;
 	
 	int step=1; ptl->nModes=0;
 	for(int p=0; p<polSize/2; p+=step){
@@ -182,7 +186,8 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 	if(polType == POL_TYPE_LIN) gMax=nMono;
 	else gMax = nMono/2;
 	
-	for(int g=1, dg=1, ig=0; g<=gMax; g+=dg, ig++){
+	ptl->nIg=0;
+	for(int g=1, dg=1, ig=0; g<gMax; g+=dg, ig++){
 		di = MAX(1,MAX(nMono/30, dg/3));
 		for(int i=0; i<nMono; i+=di){
 			if(i+g >= nMono && polType == POL_TYPE_LIN) continue;
@@ -193,6 +198,7 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 		}
 		ptl->genomIdList[ig] = g;
 		dg = MAX(1,MIN(gMax-g, g/10));
+		ptl->nIg++;
 	}
 	for(int i=0; i<ptl->nIg; i++){
 		ptl->genomCount[i] = 0;
@@ -435,6 +441,20 @@ void PCDestr(SimProperties* sp, PolyConfig* pc){
 	free(pc->unitCor); free(pc->genom);
 }
 
+int GetEqualLengths(char* file){
+	char exec[10000];
+	
+	sprintf(exec, "grep 'len=' %s | uniq | wc -l", file);
+	
+	FILE* pPipe = popen(exec, "r");
+	int nNonEqual=0;
+	fscanf(pPipe, "%i", &nNonEqual);
+	if(nNonEqual > 1)
+		return 0;
+	else 
+		return 1;
+}
+
 long GetDT(char* sampleDir, char** firstFile, long* firstT){
 	char exec[10000];
 	char* file = malloc(10000*sizeof(char));
@@ -550,6 +570,12 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	}
 	pclose(pFile);
 	
+	sprintf(exec, "grep 'Length' %s/simulation_settings.txt", sampleDir);
+	pFile = popen(exec, "r");
+	fscanf(pFile, "%*s %*s %li", &sp->maxNMono);
+	pclose(pFile);
+	printf("maxPolSize = %li\n", sp->maxNMono);
+	
 	sp->Ne=0;
 	if(sp->neFile){
 		sprintf(exec, "grep '^'\"%s %.1lf\" %s", sp->exec, sp->density, sp->neFile);
@@ -603,8 +629,8 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 		sp->nTherm=0;
 	}
 	sp->nEqd = sp->nTime - sp->nTherm;
-// 	printf("NEq=%i, nTime=%i, nTherm=%i\n", sp->nEqd, sp->nTime, sp->nTherm);
-// 	exit(0);
+	
+	sp->equalLengths = GetEqualLengths(filename);
 }
 
 // void InitFilePos(SimProperties* sp, int devId){
