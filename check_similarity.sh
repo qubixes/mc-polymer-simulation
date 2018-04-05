@@ -11,7 +11,9 @@ BOUNDARY_COND=$3
 ORIG_FILES=$DIR_ORIG/`get_last_tfile $DIR_ORIG`
 if [ `get_last_tfile $DIR_ORIG` == "NOT_FOUND" ]; then
 	SIM_EXEC=./bin/similarity_pascal
-	ORIG_FILES=$DIR_ORIG/bins* $DIR_ORIG/config*
+	BIN_FILE=$DIR_ORIG/bins*
+	CONFIG_FILE=$DIR_ORIG/config*
+	ORIG_FILES="$BIN_FILE $CONFIG_FILE"
 else
 	SIM_EXEC=./bin/similarity
 fi

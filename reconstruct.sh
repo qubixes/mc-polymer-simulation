@@ -42,7 +42,7 @@ while (( "$#" )); do
 		-s|--seed)
 			if [ $# -lt 2 ]; then
 				echo "Need seed after -s/--seed option"
-				exit 1
+				exit 1grep 
 			fi
 			SEED=$2
 			shift;;
@@ -90,8 +90,8 @@ done
 HP_STRENGTH_2=`echo "$HP_STRENGTH+0.05" | bc -l`
 HP_STRENGTH_3=`echo "$HP_STRENGTH+0.10" | bc -l`
 
-FIRST_TIME=`echo "print $TIME*10" | gnuplot 2> /dev/stdout`
-FIRST_INTERVAL=`echo "print $INTERVAL*10" | gnuplot 2> /dev/stdout`
+FIRST_TIME=`echo "print $TIME" | gnuplot 2> /dev/stdout`
+FIRST_INTERVAL=`echo "print $INTERVAL" | gnuplot 2> /dev/stdout`
 
 EXEC=$BIN_DIR/denspol_hp
 
@@ -110,10 +110,6 @@ SCRIPT_DIR=`pwd`
 cd $DIR/..
 BASE_DIR=`pwd`
 cd $SCRIPT_DIR
-LENGTH=`get_attr 'Length' $DIR`
-L=`get_attr 'Latsize' $DIR`
-DENSITY=`get_attr 'Density' $DIR`
-NPOL=`get_attr 'Npol' $DIR`
 
 
 L=$START_L;
@@ -130,11 +126,13 @@ CONTACT_FILE="$FIRST_DIR/contact_map.dat"
 T_CONTACT_FILE="$FIRST_DIR/temp_contact_map.dat"
 mkdir -p $FIRST_DIR
 if [ "$PASCAL_DATA" == "y" ]; then
-	SRC_FILES=$DIR/bins* $DIR/config*
+	BIN_FILE=$DIR/bins*
+	CONFIG_FILE=$DIR/config*
+	SRC_FILES="$BIN_FILE $CONFIG_FILE"
 	CM_EXEC=$BIN_DIR/pascal_contact_map
 else
 	SRC_FILES=$DIR/`get_last_tfile $DIR`
-	CM_EXEC=$BIN_DIR/contac_map
+	CM_EXEC=$BIN_DIR/contact_map
 fi
 
 $CM_EXEC $SRC_FILES $T_CONTACT_FILE $SEED $NPC_SAMPLES || exit $?

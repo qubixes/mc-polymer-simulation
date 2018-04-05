@@ -220,14 +220,6 @@ double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int 
 	double dI = dIMono2-(int)dIMono2;
 	double dJ = dJMono2-(int)dJMono2;
 	
-// 	if(iMono2+1 >= data2->nMono[iPol]){
-// 		printf("ratioI = %lf\n", ratioI);
-// 		printf("iMono1=%i, nMono1 = %i\n", iMono1,data1->nMono[iPol]); 
-// 		printf("iMono2=%i, dI = %lf, nMono2 = %i\n", iMono2, dI, data2->nMono[iPol]);
-// 		exit(192);
-// 	}
-	
-// 	printf("iPol=%i, jMono2=%i, nMono2=%i\n", jPol, jMono2, data2->nMono[jPol]);
 	for(int k=0; k<3; k++){
 		ituv2[k]  = (1-dI) * data2->tuv[iPol][iMono2  ][k];
 		ituv2[k] +=    dI  * data2->tuv[iPol][(iMono2+1)%data2->nMono[iPol]][k];
@@ -238,15 +230,6 @@ double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int 
 	double dist1 = data1->TUV2Distance(ituv1, jtuv1, data1->L);
 	double dist2 = data1->TUV2Distance(ituv2, jtuv2, data2->L);
 	
-// 	if(!isnormal(fabs(sqrt(dist1)-sqrt(dist2)*pow(sqrt(ratioI*ratioJ), -1./3.))/pow(data1->L, 1))){
-// 	printf("%i %i %i %i %i %i %lf %lf %lf %lf\n", iPol, jPol, iMono1, iMono2, jMono1, jMono2, dist1, dist2, fabs(dist1-dist2*pow(sqrt(ratioI*ratioJ), -2./3.))/pow(data1->L, 2),pow(data1->L, 1));
-// 		printf("???????\n");
-// 		printf("%lf %lf\n", sqrt(dist1),sqrt(dist2));
-// 		printf("%lf %lf %lf %lf\n", pow(sqrt(ratioI*ratioJ), -1./3.), ratioI, ratioJ, sqrt(ratioI*ratioJ));
-// 		printf("%i %i\n", data2->nMono[jPol],data1->nMono[jPol]);
-// 		exit(102);
-// 	}
-	
 	double lengthRatio = data1->nTotMono/(double)data2->nTotMono;
 	
 	return fabs(sqrt(dist1)-sqrt(dist2)*pow(lengthRatio, 1./3.))/pow(data1->nTotMono, 1./3.);
@@ -254,7 +237,7 @@ double Similarity(Data* data1, Data* data2, int iPol, int jPol, int iMono1, int 
 
 double* SystemSimilarity(Data* data1, Data* data2, long maxSamples, unsigned int rng[4]){
 	if(data1->nPol != data2->nPol){
-// 		printf("Error: cannot compare data files with a different number of polymers.\n");
+		printf("Error: cannot compare data files with a different number of polymers.\n");
 		exit(192);
 	}
 	

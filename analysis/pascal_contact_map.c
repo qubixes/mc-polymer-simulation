@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 	PasData* pData = PascalDataInit(infoFile, configFile);
 	PCMatrix* pcm  = GeneratePCMatrix(pData);
 	PrintContactMatrix(pcm, pData, outFile, rng, nSamples);
-	PrintPasData(pData);
+// 	PrintPasData(pData);
 }
 
 double ComputePC(PasData* pData, int iPol, int iMono, int jPol, int jMono){
@@ -114,7 +114,7 @@ void PrintContactMatrix(PCMatrix* pcm, PasData* pData, char* file, unsigned int 
 	
 	fprintf(pFile, "#nPol= %i\n", pData->nPol);
 	fprintf(pFile, "#maxLen= %i\n", pData->maxNMono);
-	fprintf(pFile, "#nContacts = %li\n", nContacts);
+	fprintf(pFile, "#nContacts= %li\n", nContacts);
 	for(int iPol=0; iPol<pData->nPol; iPol++)
 		fprintf(pFile, "lin %i\n", pData->nMono[iPol]);
 	

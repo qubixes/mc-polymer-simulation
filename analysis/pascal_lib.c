@@ -19,7 +19,6 @@ PasData* ReadInfoFile(char* infoFile){
 		}
 	}
 	nPol *= 2;
-	printf("nPol = %i\n", nPol);
 	rewind(pFile);
 	pData->nPol = nPol;
 	pData->nMono = malloc(sizeof(int)*nPol);
@@ -46,7 +45,6 @@ PasData* ReadInfoFile(char* infoFile){
 		else if( abs(curPol) != abs(lastPol)){
 			pData->nMono[iPol] = nCurBonds+1;
 			pData->polId[iPol] = abs(lastPol);
-			printf("nCurBonds = %i\n", nCurBonds);
 			nCurBonds=1;
 			iPol++;
 			lastPol = curPol;

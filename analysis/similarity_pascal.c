@@ -38,8 +38,8 @@ double TUV2DistanceStatic(double tuv1[3], double tuv2[3], int L);
   **/
 
 int main(int argc, char** argv){
-	if(argc<3){
-		printf("Need two arguments!\n");
+	if(argc<4){
+		printf("Need three arguments!\n");
 		return 192;
 	}
 	RunProperties rp;
@@ -205,7 +205,7 @@ double Similarity(PasData* pData, Data* simData, int iPol, int jPol, int iMono1,
 	double pDxyz[3];
 	
 	for(int k=0; k<3; k++){
-		pDxyz[k] += pData->pos[iPol][iMono1][k] - pData->pos[jPol][jMono1][k];
+		pDxyz[k] = pData->pos[iPol][iMono1][k] - pData->pos[jPol][jMono1][k];
 	}
 	
 	double dIMono2 = iMono1*ratioI;
@@ -224,11 +224,13 @@ double Similarity(PasData* pData, Data* simData, int iPol, int jPol, int iMono1,
 		jtuv2[k] +=    dJ  * simData->tuv[jPol][(jMono2+1)%simData->nMono[jPol]][k];
 	}
 	
-	double pDist = Squabs(pDxyz);
-	double simDist = simData->TUV2Distance(ituv2, jtuv2, simData->L);
+	double pDist = sqrt(Squabs(pDxyz));
+	double simDist = sqrt(simData->TUV2Distance(ituv2, jtuv2, simData->L));
 	
 	pDist   /= pow(pData->nTotMono/4.87, 1./3.);
 	simDist /= pow(simData->nTotMono/10.18, 1./3.);
+	
+// 	printf("%le %le %le %le %le\n", pDist, Squabs(pDxyz), simDist, pow(pData->nTotMono/4.87, 1./3.), pow(simData->nTotMono/10.18, 1./3.));
 	
 	return fabs(pDist-simDist);
 }
