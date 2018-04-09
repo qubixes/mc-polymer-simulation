@@ -148,7 +148,7 @@ double MagnificationRatio(int nMono, int nMonoOrig, int polType){
 int SetLatticeSphere(int* topo, int* bondOcc, int L, int* nBondUsed){
 	int nLatticeUsed=0;
 	(*nBondUsed)=0;
-	double r = 0.5*L/sqrt(2);
+	double r = L/sqrt(12);
 	
 	double tuvMid[3] = {0.5*L, 0.5*L, 0.5*L};
 	double xyzMid[3];

@@ -37,6 +37,7 @@ else
  override TARGETS=$(CUDA_EXECS)
  $(OCL_EXECS): override LDFLAGS+= -lOpenCL
  $(CUDA_EXECS): override LDFLAGS+= -L$(CUDA_HOME)/lib64
+ override NVCC+= -ccbin clang-3.8
 endif
 
 

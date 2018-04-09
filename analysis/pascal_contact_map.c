@@ -114,7 +114,7 @@ void PrintContactMatrix(PCMatrix* pcm, PasData* pData, char* file, unsigned int 
 	
 	fprintf(pFile, "#nPol= %i\n", pData->nPol);
 	fprintf(pFile, "#maxLen= %i\n", pData->maxNMono);
-	fprintf(pFile, "#nContacts= %li\n", nContacts);
+	fprintf(pFile, "#nContacts= %li\n", MIN(nContacts,nSamples));
 	for(int iPol=0; iPol<pData->nPol; iPol++)
 		fprintf(pFile, "lin %i\n", pData->nMono[iPol]);
 	

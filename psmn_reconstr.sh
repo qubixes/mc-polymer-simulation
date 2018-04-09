@@ -7,7 +7,7 @@ cat << EOFCAT
 #!/bin/bash
 
 CUR_DIR=/home/rschram/conring
-REC_DIR=/home/rschram/data/ring_denspol_l400_g20_s12396143_d7.2_b0.3/long/
+REC_DIR=/home/rschram/conring/data/pascal_data/long/
 
 #$ -S /bin/bash
 #$ -N denspol_ring
@@ -24,7 +24,7 @@ REC_DIR=/home/rschram/data/ring_denspol_l400_g20_s12396143_d7.2_b0.3/long/
 
 #SEEDS=("191823" "1298401" "12083701" "1947613" "61928" "16284712" "32948710" "2794812")
 SEEDS="191823 1298401 12083701 1947613 61928 16284712 32948710 2794812"
-COMMON="-t 1e5 -i 1e3"
+COMMON="-t 1e5 -i 1e3 --hardsphere"
 EXTRA_OPTS="$*"
 
 cd \$CUR_DIR
