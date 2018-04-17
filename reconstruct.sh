@@ -164,11 +164,14 @@ if [ $LAST_TFILE == "NOT_FOUND" -o $LAST_TFILE == "t=0_dev=0.res" ]; then
 	$BIN_DIR/contact_map $FIRST_DIR/`get_last_tfile $FIRST_DIR` "$FIRST_DIR/contact_map_new.dat"
 fi
 
+MAX_LENGTH=(`grep '#maxLen' "$FIRST_DIR/contact_map.dat"`)
+MAX_LENGTH=${MAX_LENGTH[1]}
+CUR_LENGTH=`get_attr 'Length' $FIRST_DIR`
 DBL_STEP=1
 MAX_L=20
 
 
-while [ $L -lt $MAX_L ]; do
+while [ $CUR_LENGTH -lt $MAX_LENGTH ]; do
 	SECOND_DIR="${BASE_DEST_DIR}_b${DBL_STEP}"
 	mkdir -p ${SECOND_DIR}
 	
@@ -194,5 +197,6 @@ while [ $L -lt $MAX_L ]; do
 	fi
 	
 	FIRST_DIR=$SECOND_DIR
+	CUR_LENGTH=`get_attr 'Length' $FIRST_DIR`
 	let "DBL_STEP++"
 done

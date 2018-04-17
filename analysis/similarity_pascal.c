@@ -3,22 +3,10 @@
 #include <math.h>
 #define IS_MAIN
 #include "pascal_lib.h"
-#include "lowm_modes.h"
 #include "rng.h"
 
 #define BOUNDARY_PERIOD 0
 #define BOUNDARY_STATIC 1
-
-typedef struct Data{
-	int*** tuv;
-	int* nMono;
-	int* polTypes;
-	double (*TUV2Distance) (double*, double*, int);
-	int nPol;
-	int maxNMono;
-	int nTotMono;
-	int L;
-}Data;
 
 typedef struct RunProperties{
 	char* pasConfigFile;
@@ -26,12 +14,8 @@ typedef struct RunProperties{
 	char* recFile;
 }RunProperties;
 
-Data* ReadData(char* file, int boundaryCond);
 double Similarity(PasData* pData, Data* simData, int iPol, int jPol, int iMono1, int jMono1);
 double* SystemSimilarity(PasData* pData, Data* simData, long maxSamples, unsigned int rng[4]);
-
-double TUV2DistancePeriodic(double tuv1[3], double tuv2[3], int L);
-double TUV2DistanceStatic(double tuv1[3], double tuv2[3], int L);
 
 /** The internal error is in the first and 3rd column.
   * The external error is in the second and 4th column.
@@ -60,134 +44,8 @@ int main(int argc, char** argv){
 	printf("%lf %lf %lf %lf\n", simForw[0], simForw[1], simForw[0], simForw[1]);
 }
 
-Data* NewData(int maxNMono, int nPol, int L, int boundaryCond){
-	Data* data    = malloc(sizeof(Data));
-	data->nPol    = nPol;
-	data->maxNMono= maxNMono;
-	data->L       = L;
-	
-	data->tuv = malloc(sizeof(int**)*nPol);
-	for(int i=0; i<nPol; i++){
-		data->tuv[i] = malloc(sizeof(int*)*maxNMono);
-		for(int j=0; j<maxNMono; j++)
-			data->tuv[i][j] = malloc(sizeof(int)*3);
-	}
-	
-	data->nMono    = malloc(sizeof(int)*nPol);
-	data->polTypes = malloc(sizeof(int)*nPol);
-	
-	if(boundaryCond == BOUNDARY_PERIOD)
-		data->TUV2Distance = &TUV2DistancePeriodic;
-	else
-		data->TUV2Distance = &TUV2DistanceStatic;
-	
-	return data;
-}
-
-void AddCharToTUV(char c, int tuv[3]){
-	int bond = CharToHex(c);
-	
-	for(int i=0; i<3; i++){
-		tuv[i] += (bond>>i)&0x1;
-		tuv[i] -= (bond>>3)&0x1;
-	}
-}
-
-Data* ReadData(char* file, int boundaryCond){
-	int nPol, maxNMono, L;
-	FILE* pFile = fopen(file, "r");
-	if(!pFile){
-		printf("Error opening file %s\n", file);
-		exit(192);
-	}
-	
-	for(int i=0; i<3; i++)
-		fscanf(pFile, "%*s %i", &L);
-	
-	fscanf(pFile, "%*s %i", &nPol);
-	
-	fscanf(pFile, "%*s %i", &maxNMono);
-	Data* data = NewData(maxNMono, nPol, L, boundaryCond);
-	char* str  = malloc(sizeof(char)*(maxNMono+1));
-	
-	data->nTotMono=0;
-	for(int iPol=0; iPol<nPol; iPol++){
-		int tuv[3];
-		fscanf(pFile, "%*s %i %i %i %i %s", &data->nMono[iPol], tuv, tuv+1, tuv+2, str);
-		data->nTotMono += data->nMono[iPol];
-		for(int iMono=0; iMono<data->nMono[iPol]; iMono++){
-			for(int k=0; k<3; k++)
-				data->tuv[iPol][iMono][k] = tuv[k];
-			AddCharToTUV(str[iMono], tuv);
-		}
-		if(str[data->nMono[iPol]] == 'f') data->polTypes[iPol] = POL_TYPE_LIN;
-		else data->polTypes[iPol] = POL_TYPE_RING;
-	}
-	fclose(pFile);
-	return data;
-}
-
-void DblTUV2XYZ(double tuv[3], double xyz[3]){
-	xyz[0] = (tuv[0]+tuv[1]-tuv[2])/sqrt(2);
-	xyz[1] = (tuv[0]-tuv[1]       )/sqrt(2);
-	xyz[2] = (              tuv[2])/sqrt(2);
-}
-
-double Squabs(double xyz[3]){
-	int tot=0;
-	for(int k=0; k<3; k++) tot += xyz[k]*xyz[k];
-	return tot;
-}
-
-/// Calculate the distance between two points on the lattice with periodic boundary conditions.
-/// 
-/// It's looks a bit weird, but dtuv starts at the (-L,-L,-L) - (0,0,0) periodic box 
-/// for slightly easier indexing.
-
-double TUV2DistancePeriodic(double tuv1[3], double tuv2[3], int L){
-	double dxyz[3];
-	
-	double dtuv[3], newtuv[3];
-	
-	
-	
-	for(int k=0; k<3; k++){
-		while(tuv1[k] <  0) tuv1[k] += L;
-		while(tuv1[k] >= L) tuv1[k] -= L;
-		while(tuv2[k] <  0) tuv2[k] += L;
-		while(tuv2[k] >= L) tuv2[k] -= L;
-		dtuv[k] = tuv1[k]-tuv2[k]-L;
-	}
-	
-	double minDist=L*L*L*L;
-	
-	newtuv[0]=dtuv[0];
-	for(int dt=-L; dt <= L; dt += L, newtuv[0] += L){
-		newtuv[1]=dtuv[1];
-		for(int du=-L; du <= L; du += L, newtuv[1] += L){
-			newtuv[2]=dtuv[2];
-			for(int dv=-L; dv <= L; dv += L, newtuv[2] += L){
-				DblTUV2XYZ(newtuv, dxyz);
-				double newDist = Squabs(dxyz);
-				minDist = MIN(minDist, newDist);
-			}
-		}
-	}
-	
-	return minDist;
-}
-
-double TUV2DistanceStatic(double tuv1[3], double tuv2[3], int L){
-	double dtuv[3], dxyz[3];
-	
-	for(int k=0; k<3; k++)
-		dtuv[k] = tuv1[k]-tuv2[k];
-	DblTUV2XYZ(dtuv, dxyz);
-	return Squabs(dxyz);
-}
 
 double Similarity(PasData* pData, Data* simData, int iPol, int jPol, int iMono1, int jMono1){
-// 	double ratio = simData->nMono[iPol]/(double)pData->nMono[jPol];
 	double ratioI, ratioJ;
 	
 	if(simData->polTypes[iPol] == POL_TYPE_LIN)
