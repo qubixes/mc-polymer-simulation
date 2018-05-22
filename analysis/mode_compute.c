@@ -10,6 +10,7 @@ void ComputeObsPoly(SimProperties* sp, PolyConfig* pcfg){
 	if(sp->updSL)        ComputeSL(sp, pcfg);
 	if(sp->updShearMod)  ComputeShearMod(sp,pcfg);
 	if(sp->updRee)       ComputeRee(sp, pcfg);
+	if(sp->updMagDip)    ComputeMagDip(sp, pcfg);
 }
 
 
@@ -33,6 +34,7 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	if(sp->updSpacDif)   AddSpacDif(sp,ptl,&sd);
 	if(sp->updSL)        AddSL(sp,ptl);
 	if(sp->updGyr)       AddRGyr(sp,ptl);
+	if(sp->updMagDip)    AddMagDip(sp,ptl);
 	if(sp->updDif){
 		AddEM(sp,ptl); AddCMS(sp,ptl); 
 		AddSM(sp,ptl); AddMM(sp,ptl); 
@@ -53,6 +55,38 @@ void ComputeRee(SimProperties* sp, PolyConfig* pcfg){
 	pcfg->ree[0] = (pcfg->x[0]-pcfg->x[monoId])/sqrt(2);
 	pcfg->ree[1] = (pcfg->y[0]-pcfg->y[monoId])/sqrt(2);
 	pcfg->ree[2] = (pcfg->z[0]-pcfg->z[monoId])/sqrt(2);
+}
+
+void VectorProduct(double u[3], double v[3], double res[3]){
+	for(int i=0; i<3; i++) res[i]=0;
+	
+	res[0]=  u[1]*v[2]-u[2]*v[1];
+	res[1]= -u[0]*v[2]+u[2]*v[0];
+	res[2]=  u[0]*v[1]+u[1]*v[0];
+}
+
+void ComputeMagDip(SimProperties* sp, PolyConfig* pcfg){
+	double r[3];
+	double tang[3];
+	for(int k=0; k<3; k++) pcfg->magDip[k]=0;
+	
+	for(int iMono=0; iMono<pcfg->nMono; iMono++){
+		int jMono = (iMono+1)%pcfg->nMono;
+		if(pcfg->x[iMono] == pcfg->x[jMono] && pcfg->y[iMono] == pcfg->y[jMono] && pcfg->z[iMono] == pcfg->z[jMono]) continue;
+		
+		r[0] = pcfg->x[iMono]/sqrt(2); 
+		r[1] = pcfg->y[iMono]/sqrt(2); 
+		r[2] = pcfg->z[iMono]/sqrt(2);
+		
+		tang[0] = pcfg->x[jMono]/sqrt(2)-r[0]; 
+		tang[1] = pcfg->y[iMono]/sqrt(2)-r[1];
+		tang[2] = pcfg->z[iMono]/sqrt(2)-r[2];
+		
+		double newMag[3];
+		VectorProduct(r,tang,newMag);
+		for(int k=0; k<3; k++)
+			pcfg->magDip[k] += newMag[k];
+	}
 }
 
 void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg){
@@ -496,6 +530,42 @@ void AddCMS(SimProperties* sp, PolyTimeLapse* ptl){
 void AddMM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, ptl->polys[0].polSize/2, ptl->mmDif);}
 void AddSM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, 0, ptl->smDif);}
 void AddEM(SimProperties* sp, PolyTimeLapse* ptl){AddMono(sp, ptl, ptl->polys[0].polSize-1, ptl->emDif);}
+
+void AddMagDip(SimProperties* sp, PolyTimeLapse* ptl){
+	int dtStep=1, num;
+	double magDipAdd;
+	for(int dt=0; dt<ptl->nEqd; dt+=dtStep){
+		num=0; magDipAdd=0;
+		for(int t=ptl->nTherm; t<sp->nTime-dt; t+= MAX(1,dt/10)){
+			int t2 = t+dt;
+			
+			for(int k=0; k<3; k++)
+				magDipAdd += ptl->polys[t].magDip[k]*ptl->polys[t2].magDip[k];
+			num++;
+		}
+		ptl->magDipCor[dt] += magDipAdd/num;
+		dtStep = MAX(1, dt/10);
+	}
+	
+	magDipAdd=0;
+	for(int t=0; t<sp->nTime; t++){
+		double magDip=0;
+		
+		for(int k=0; k<3; k++)
+			magDip += ptl->polys[t].magDip[k]*ptl->polys[t].magDip[k];
+		magDip = sqrt(magDip);
+		ptl->magDipTime[t] += magDip;
+		int iBin = (int) (magDip/ptl->magDipHist->dBin);
+// 		printf("iBin = %i, time=%i\n", iBin, t);
+		ptl->magDipHist[t].count[iBin]++;
+		ptl->magDipHist[t].avgVal[iBin] += magDip;
+		ptl->magDipHist[t].totCount++;
+		if(t>=ptl->nTherm)
+			magDipAdd += magDip;
+	}
+	
+	ptl->avgMagDip += magDipAdd/(double)(sp->nTime-ptl->nTherm);
+}
 
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl){
 	double dr[3];

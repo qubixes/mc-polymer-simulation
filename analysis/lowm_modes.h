@@ -58,6 +58,14 @@ typedef struct IDouble{
 	int id; double val;
 }IDouble;
 
+typedef struct Histogram{
+	double dBin;
+	int nBin;
+	double* avgVal;
+	long* count;
+	long totCount;
+}Histogram;
+
 typedef struct SimProperties{
 	long maxNMono;
 	int nTime, nEqd, nTherm;
@@ -76,7 +84,7 @@ typedef struct SimProperties{
 	int equilibrated;
 	int LT, LU, LV, LSIZE;
 	int updRouseStat, updRouseDyn, updGenom, updUnit, updSPRouse, updSL, updDif, updGyr;
-	int updSpacDif, updShearMod, updRee, updPC, updAvgPos;
+	int updSpacDif, updShearMod, updRee, updPC, updAvgPos, updMagDip;
 	int polTypeMelt;
 }SimProperties;
 
@@ -98,6 +106,7 @@ typedef struct PolyConfig{
 	double tuvCMS[3];
 	double stress[3];
 	double ree[3];
+	double magDip[3];
 }PolyConfig;
 
 typedef struct TDT{
@@ -133,7 +142,8 @@ typedef struct PolyTimeLapse{
 	int nGenomBin;
 	int* genomIdList;
 	long* genomCount;
-// 	int* genomIg
+	
+	Histogram* magDipHist;
 	double** genomR;
 	double* sqrtList;
 	int* pointDensity;
@@ -143,6 +153,7 @@ typedef struct PolyTimeLapse{
 	long pcBins;
 	double** avgPosition;
 	double* rGyrT;
+	double* magDipTime;
 	double** avgModesStat;
 	double** avgModesDyn;
 	double* cmsDif;
@@ -160,15 +171,17 @@ typedef struct PolyTimeLapse{
 	double* pcAvg;
 	double* pcssAvg;
 	double avgRGyr;
+	double avgMagDip;
+	double* magDipCor;
 	double**** sAvgSpacMode;
 	double**** cAvgSpacMode;
 	double**** avgSpacDif;
-// 	double*** numSpacDif;
 	TDTTable tTable;
 	int polId, devId;
 	int nTherm, nEqd;
-// 	int nMeas;
 }PolyTimeLapse;
+
+
 
 typedef struct SpacDifPoint{
 // 	double radius;
@@ -204,6 +217,7 @@ void Coor2TUV(int coor, int tuv[3]);
 int AddCoor2TUV(int coor1, int tuv[3]);
 void DTUV2XYZ(double tuv[3], double xyz[3]);
 double DRXYZ(double xyz[3], double xyz2[3]);
+Histogram* HistogramSum(Histogram* hist, int nHist);
 
 
 void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl);
@@ -224,6 +238,10 @@ void InitRelPos();
 int GetNClosestNeigh(int* occLat, int* retList, int tuv[3], int volume);
 double TRelaxStretched(int polSize, int polType, double nTau);
 double TRelax(SimProperties* sp);
+void HistogramAlloc(Histogram* hist, double dBin, int nBin);
+Histogram* NewHistogram(double dBin, int nBin);
+void HistogramReset(Histogram* hist);
+
 
 void AddAverages(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);
@@ -238,6 +256,7 @@ void ComputeSL(SimProperties* sp, PolyConfig* pcfg);
 void ComputeTUVCMS(SimProperties* sp, PolyConfig* pcfg);
 void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg);
 void ComputeRee(SimProperties* sp, PolyConfig* pcfg);
+void ComputeMagDip(SimProperties* sp, PolyConfig* pcfg);
 
 void AddRGyr(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSL(SimProperties* sp, PolyTimeLapse* ptl);
@@ -257,6 +276,7 @@ void AddContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 void AddGenomNew(SimProperties* sp, PolyTimeLapse* ptl);
 void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl);
 void AddAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
+void AddMagDip(SimProperties* sp, PolyTimeLapse* ptl);
 
 void SetSimProps(SimProperties* sp, char* sampleDir);
 void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl);
@@ -272,6 +292,7 @@ void WriteSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteShearMod(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl);
+void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 int CharToHex(char c);

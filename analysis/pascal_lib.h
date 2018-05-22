@@ -21,6 +21,7 @@ typedef struct PasData {
 
 typedef struct Data{
 	int*** tuv;
+	double*** xyz;
 	int* nMono;
 	int* polTypes;
 	double (*TUV2Distance) (double*, double*, int);
@@ -29,6 +30,14 @@ typedef struct Data{
 	int nTotMono;
 	int L;
 }Data;
+
+/// Histogram that starts at 0;
+// typedef struct Histogram{
+// 	int nBins;
+// 	double dBin;
+// 	int* counts;
+// 	int nCounts;
+// }Histogram;
 
 Data* NewData(int maxNMono, int nPol, int L, int boundaryCond);
 PasData* ReadInfoFile(char* infoFile);

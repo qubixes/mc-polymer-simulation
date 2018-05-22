@@ -55,14 +55,14 @@ while (( "$#" )); do
 			shift;;
 		--phantom|--topo)
 			TOPO="--topo" ;;
-		-n|--samples)
+		--nsamples)
 			if [ $# -lt 2 ]; then
 				echo "Need number of samples after -n/--samples option"
 				exit 1
 			fi
 			NPC_SAMPLES=$2
 			shift;;
-		-e|--hpstrength)
+		--hp|--hpstrength)
 			if [ $# -lt 2 ]; then
 				echo "Need attraction strength after -e/--hpstrength option"
 				exit 1

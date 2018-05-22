@@ -24,5 +24,5 @@ set log y
 set xlabel "N"
 set ylabel "r_g^2"
 set key bottom right
-plot "$RGYR_FILE" u 1:(\$2/\$1) w l lt 1 lw 2, 0.042, 0.3*x**-(1./3.), 0.183*x**-0.27
+plot "$RGYR_FILE" u 1:(\$2/\$1**(2./3.)) w l lt 1 lw 2, 0.042, 0.3*x**-(1./3.), 0.183*x**-0.27
 EOF

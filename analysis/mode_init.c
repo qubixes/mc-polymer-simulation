@@ -1,5 +1,40 @@
 #include "lowm_modes.h"
 
+Histogram* HistogramSum(Histogram* hist, int nHist){
+	Histogram* newHist = NewHistogram(hist->dBin, hist->nBin);
+	
+	for(int iHist=0; iHist<nHist; iHist++){
+		for(int iBin=0; iBin<hist->nBin; iBin++){
+			newHist->count[iBin] += hist[iHist].count[iBin];
+			newHist->avgVal[iBin] += hist[iHist].avgVal[iBin];
+		}
+		newHist->totCount+=hist[iHist].totCount;
+	}
+	return newHist;
+}
+
+Histogram* NewHistogram(double dBin, int nBin){
+	Histogram* hist = malloc(sizeof(Histogram));
+	HistogramAlloc(hist, dBin, nBin);
+	HistogramReset(hist);
+	return hist;
+}
+
+void HistogramAlloc(Histogram* hist, double dBin, int nBin){
+	hist->nBin = nBin;
+	hist->dBin = dBin;
+	hist->avgVal = malloc(sizeof(double)*nBin);
+	hist->count = malloc(sizeof(long)*nBin);
+}
+
+void HistogramReset(Histogram* hist){
+	for(int iBin=0; iBin<hist->nBin; iBin++){
+		hist->avgVal[iBin] = 0;
+		hist->count[iBin] = 0;
+	}
+	hist->totCount = 0;
+}
+
 void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 	ptl->nEqd = sp->nEqd;
 	ptl->nTherm = sp->nTherm;
@@ -50,6 +85,9 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
+	ptl->magDipTime = malloc(sizeof(double)*sp->nTime);
+	ptl->magDipHist = malloc(sizeof(Histogram)*sp->nTime);
+	for(int iTime=0; iTime<sp->nTime; iTime++) HistogramAlloc(ptl->magDipHist+iTime, 1, sp->maxNMono);
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->maxNMono);
 	ptl->avgGenom = malloc(sizeof(double)*sp->maxNMono);
 	if(ptl->nEqd > 0){
@@ -59,6 +97,7 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->emDif       = malloc(sizeof(double)*ptl->nEqd);
 		ptl->avgRee      = malloc(sizeof(double)*ptl->nEqd);
 		ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
+		ptl->magDipCor   = malloc(sizeof(double)*ptl->nEqd);
 	} else {
 		ptl->cmsDif      = malloc(sizeof(double));
 		ptl->smDif       = malloc(sizeof(double));
@@ -66,6 +105,7 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->emDif       = malloc(sizeof(double));
 		ptl->avgRee      = malloc(sizeof(double));
 		ptl->avgShearMod = malloc(sizeof(double));
+		ptl->magDipCor   = malloc(sizeof(double));
 	}
 	
 	ptl->avgSL = malloc(sizeof(double)*sp->nTime);
@@ -209,6 +249,8 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	ptl->avgRGyr = 0;
+	ptl->avgMagDip = 0;
+
 	
 	for(int i=0; i<ptl->L*ptl->L*ptl->L; i++)
 		ptl->lattice[i].nOcc=0;
@@ -233,11 +275,14 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->mmDif[i]=0;
 		ptl->avgShearMod[i]=0;
 		ptl->avgRee[i]=0;
+		ptl->magDipCor[i]=0;
 	}
 
 	for(long i=0; i<sp->nTime; i++){
 		ptl->rGyrT[i]=0;
 		ptl->avgSL[i]=0;
+		ptl->magDipTime[i]=0;
+		HistogramReset(&ptl->magDipHist[i]);
 	}
 	
 	for(int i=0; i<ptl->nModes; i++){
@@ -294,6 +339,12 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	
 	sp->updRee = NeedsUpdatePath("ptl/pol=0_dev=0.res", "ree.dat", sampleDir);
 	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
+	
+	sp->updMagDip = NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip.dat", sampleDir);
+	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_time.dat", sampleDir);
+	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_hist.dat", sampleDir);
+	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_hist_time.dat", sampleDir);
+	if(sp->updMagDip){ nUpd++; printf("Updating magnetic dipole\n");}
 	
 	sp->updPC  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc.dat", sampleDir);
 	sp->updPC |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc_avg.dat", sampleDir);
@@ -611,9 +662,12 @@ void SetSimProps(SimProperties* sp, char* sampleDir){
 	}
 	else if (!strcmp(polType, "lin")){
 		sp->polTypeMelt = POL_TYPE_LIN;
+		sp->maxNMono++;
 	}
-	else if(!strcmp(polType, "mixed"))
+	else if(!strcmp(polType, "mixed")){
 		sp->polTypeMelt = POL_TYPE_MIXED;
+		sp->maxNMono++;
+	}
 	else{
 		printf("Error: unknown polymer type %s\n", polType);
 		exit(192);

@@ -2,11 +2,11 @@
 
 VPATH=../util
 
-EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms cms_cor ptl2t scaleup similarity mobility sim_contact pascal_contact_map similarity_pascal tuv2pov detailed_comp_pascal
+EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms ptl2t scaleup similarity mobility sim_contact pascal_contact_map similarity_pascal tuv2pov detailed_comp_pascal
 EXTRA_INC=../util
 BIN_DIR=../bin
-# CFLAGS= -Wall -O2
-CFLAGS=-g -Wall
+CFLAGS= -Wall -O2
+# CFLAGS=-g -Wall
 LDFLAGS= -lm
 
 

@@ -17,7 +17,7 @@ for HP_STRENGTH in ${HP_STRENGTHS[*]}; do
 			let "NTOP_M_ONE=${#TOPO_TYPES[*]}-1"
 			for ITOP in `seq 0 $NTOP_M_ONE`; do
 				BATCH_FILE=`echo "./batch/batch_ns${NS}_${HP_STRENGTH}$(echo ${TOPO_TYPES[ITOP]}| sed 's/ //g')" | sed 's/--/_/g'`.sh
-				./psmn_reconstr.sh $QUEUE -n $NS ${TOPO_TYPES[ITOP]} --hpstrength ${HP_STRENGTH} > $BATCH_FILE
+				./psmn_reconstr.sh $QUEUE --nsamples $NS ${TOPO_TYPES[ITOP]} --hpstrength ${HP_STRENGTH} > $BATCH_FILE
 				echo $BATCH_FILE
 			done
 	done

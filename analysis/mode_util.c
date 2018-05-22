@@ -1,5 +1,28 @@
 #include "lowm_modes.h"
 
+/** Assume that dBin is equal for all histograms **/
+
+/*
+void HistogramRebin(Histogram* hist, int nHist, double avgCount){
+	/// Get the maximum bin first
+	int maxBin=0;
+	long nTotCount=0;
+	for(int iHist=0; iHist<nHist; iHist++){
+		for(int iBin=hist[iHist]->nBin-1; iBin>=maxBin; iBin--){
+			if(hist[iHist]->count[iBin]){
+				maxBin=iBin+1;
+				break;
+			}
+		}
+		nTotCount += hist[iHist]->nTotCount;
+	}
+	
+	
+	
+	
+	
+}*/
+
 double RSQ(Coor c){
 	return (c.x*c.x+c.y*c.y+c.z*c.z);
 }

@@ -7,10 +7,14 @@ Data* NewData(int maxNMono, int nPol, int L, int boundaryCond){
 	data->L       = L;
 	
 	data->tuv = malloc(sizeof(int**)*nPol);
+	data->xyz = malloc(sizeof(double**)*nPol);
 	for(int i=0; i<nPol; i++){
 		data->tuv[i] = malloc(sizeof(int*)*maxNMono);
-		for(int j=0; j<maxNMono; j++)
+		data->xyz[i] = malloc(sizeof(double*)*maxNMono);
+		for(int j=0; j<maxNMono; j++){
 			data->tuv[i][j] = malloc(sizeof(int)*3);
+			data->xyz[i][j] = malloc(sizeof(double)*3);
+		}
 	}
 	
 	data->nMono    = malloc(sizeof(int)*nPol);
@@ -44,11 +48,15 @@ Data* ReadData(char* file, int boundaryCond){
 	data->nTotMono=0;
 	for(int iPol=0; iPol<nPol; iPol++){
 		int tuv[3];
+		double dtuv[3];
 		fscanf(pFile, "%*s %i %i %i %i %s", &data->nMono[iPol], tuv, tuv+1, tuv+2, str);
 		data->nTotMono += data->nMono[iPol];
 		for(int iMono=0; iMono<data->nMono[iPol]; iMono++){
-			for(int k=0; k<3; k++)
+			for(int k=0; k<3; k++){
 				data->tuv[iPol][iMono][k] = tuv[k];
+				dtuv[k] = tuv[k];
+			}
+			DblTUV2XYZ(dtuv, data->xyz[iPol][iMono]);
 			AddCharToTUV(str[iMono], tuv);
 		}
 		if(str[data->nMono[iPol]] == 'f') data->polTypes[iPol] = POL_TYPE_LIN;

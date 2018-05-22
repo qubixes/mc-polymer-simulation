@@ -15,24 +15,31 @@ else
 	BDIR="./data"
 fi
 
-DIRS=($BDIR/*/*/);
+DIRS=($BDIR/*/long/);
 
 UPD_DIRS=();
 NUPD=0
 
 MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat")
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat" "magdip.dat" "magdip_time.dat" "magdip_hist.dat" "magdip_hist_time.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 
 
 for DIR in ${DIRS[*]}; do
+
+	if [ ! -f "$DIR/t=0_dev=0.res" ]; then
+		continue;
+	fi
+	
 	for FILE in ${ALL_FILES[*]}; do 
 		if needs_update $DIR/simulation_settings.txt $DIR/$FILE; then
-			UPD_DIRS[NUPD]=$DIR
-			let "NUPD++"
-			echo "$DIR $FILE"
-			break
+			if needs_update $DIR/simulation_settings.txt $DIR/pol_0/$FILE; then
+				UPD_DIRS[NUPD]=$DIR
+				let "NUPD++"
+				echo "$DIR $FILE"
+				break
+			fi
 		fi
 	done
 done
@@ -51,11 +58,12 @@ for DIR in ${UPD_DIRS[*]}; do
 	let "I++"
 done
 
-echo ${ARGS[*]} | xargs -n 2 -P $NPROC ./bin/lowm_modes
-echo ${ARGS[*]} | xargs -n 2 -P 1 ./bin/lowm_modes
+# echo ${ARGS[*]} | xargs -n 2 -P $NPROC ./bin/lowm_modes
+# echo ${ARGS[*]} | xargs -n 2 -P 1 ./bin/lowm_modes
+#wait
 # exit 0
 
-# parallel -j $NPROC ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
+parallel -j $NPROC ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
 # parallel -j 1 ./bin/lowm_modes ::: ${UPD_DIRS[*]} ::: $NE_FILE
 
 for DIR in ${UPD_DIRS[*]}; do 
@@ -79,13 +87,13 @@ for DIR in ${UPD_DIRS[*]}; do
 # 	fi
 done
 
-for DIR in ${UPD_DIRS[*]}; do 
-	./bin/create_cms $DIR || exit $?
-done
+# for DIR in ${UPD_DIRS[*]}; do 
+# 	./bin/create_cms $DIR || exit $?
+# done
 
-if [ "${UPD_DIRS[*]}" != "" ]; then 
-	parallel -j $NPROC ./bin/cms_cor ::: ${UPD_DIRS[*]}
-fi
+# if [ "${UPD_DIRS[*]}" != "" ]; then 
+# 	parallel -j $NPROC ./bin/cms_cor ::: ${UPD_DIRS[*]}
+# fi
 
 BASE_DIRS=(`echo $BDIR/*{gpupol,denspol}*`);
 

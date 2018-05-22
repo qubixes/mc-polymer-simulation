@@ -38,7 +38,7 @@ for DIR in ${ALL_DIRS[*]}; do
 	if ! pattern_match `basename $DIR` $*; then 
 		continue
 	fi
-	if [[ ! $DIR =~ _b[1,2] ]]; then
+	if [[ ! $DIR =~ _b[1,2,3] ]]; then
 		FIRST_DIR=${DIR%*/}
 		BASE_TITLE=${FIRST_DIR##*_hp}
 		
@@ -49,7 +49,7 @@ for DIR in ${ALL_DIRS[*]}; do
 		DT=`get_last_t $FIRST_DIR`
 		CURT=$DT
 		
-		for I in `seq 2`; do
+		for I in `seq 3`; do
 			NEW_DIR=${FIRST_DIR}_b${I}
 			if [ ! -f $NEW_DIR/simulation_settings.txt -o ! -f $NEW_DIR/simila* ]; then break; fi
 			awk '{print $(1)+'$CURT', $(2), $(3), $(4), $(5), $(6), $(7);}' $NEW_DIR/simila* >> $OUT_FILE
@@ -79,13 +79,18 @@ PLOT=${PLOT:0:${#PLOT}-2}
 PLOT_CONTACT=${PLOT_CONTACT:0:${#PLOT_CONTACT}-2}
 
 gnuplot -persist <<EOFGNU
-set terminal aqua dashed
+set terminal aqua dashed enhanced
 set grid
+set xlabel 't'
+set ylabel '{/Symbol D}'
 $PLOT
 
 EOFGNU
 
 gnuplot -persist <<EOFGNU
+set terminal aqua enhanced
 set grid
+set xlabel 't'
+set ylabel '{/Symbol D}_{c}'
 $PLOT_CONTACT
 EOFGNU
