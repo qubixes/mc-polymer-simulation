@@ -10,11 +10,13 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 	if(sp->updSPRouse)   WriteSpaceRouse(sp, ptl);
 	if(sp->updSpacDif)   WriteSpacDif(sp,ptl);
 	if(sp->updMagDip)    WriteMagDip(sp,ptl);
+	if(sp->updMagDip && sp->updGyr) WriteMagCor(sp,ptl);
 	if(sp->updDif) {
 		WriteDiff(sp, ptl, ptl->cmsDif, "cms", ptl->nEqd);
-		WriteDiff(sp, ptl, ptl->smDif, "sm", ptl->nEqd);
-		WriteDiff(sp, ptl, ptl->emDif, "em", ptl->nEqd);
-		WriteDiff(sp, ptl, ptl->mmDif, "mm", ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->smDif,  "sm",  ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->emDif,  "em",  ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->mmDif,  "mm",  ptl->nEqd);
+		WriteDiff(sp, ptl, ptl->g2Dif,  "g2",  ptl->nEqd);
 	}
 	if(sp->updPC){
 		WriteContactProbability(sp, ptl);
@@ -24,7 +26,6 @@ void WriteAllFiles(SimProperties* sp, PolyTimeLapse *ptl){
 	if(sp->updRee) WriteRee(sp,ptl);
 	if(sp->updAvgPos) WriteAvgPos(sp,ptl);
 }
-
 
 
 void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl){
@@ -78,7 +79,11 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 		exit(192);
 	}
 	
-	fprintf(pFile, "#Avg_norm= %lf\n", ptl->avgMagDip/ptl->nPolAdded);
+	double sigmaRMag=0;
+	if(ptl->nPolAdded > 1)
+		sigmaRMag = sqrt(ptl->avgMagDipSq/ptl->nPolAdded-ptl->avgMagDip*ptl->avgMagDip/(ptl->nPolAdded*ptl->nPolAdded))/sqrt(ptl->nPolAdded-1);
+	
+	fprintf(pFile, "#Avg_norm= %le %le\n", ptl->avgMagDip/ptl->nPolAdded, sigmaRMag);
 	for(int dt=0; dt<ptl->nEqd; dt++){
 		if(ptl->magDipCor[dt])
 			fprintf(pFile, "%li %le\n", dt*sp->dT, ptl->magDipCor[dt]/ptl->nPolAdded);
@@ -99,6 +104,18 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	Histogram* allHist = HistogramSum(ptl->magDipHist+ptl->nTherm, sp->nTime-ptl->nTherm);
 	
 	int maxBin=0;
+	for(int iBin=allHist->nBin-1; iBin>0; iBin--){
+		if(allHist->count[iBin]){
+			maxBin = iBin+1;
+			break;
+		}
+	}
+	
+	int binFact = MAX(1, maxBin/25);
+	HistogramRebin(allHist, binFact);
+	for(int i=0; i<sp->nTime; i++) HistogramRebin(ptl->magDipHist+i, binFact);
+	
+	maxBin=0;
 	for(int iBin=allHist->nBin-1; iBin>0; iBin--){
 		if(allHist->count[iBin]){
 			maxBin = iBin+1;
@@ -139,13 +156,26 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	for(int iBin=0; iBin<maxBin; iBin++){
-		fprintf(pFile, "%lf ", (iBin+0.5));
+		fprintf(pFile, "%lf ", (iBin+0.5)*ptl->magDipHist[iTime].dBin);
 		for(int iTime=0; iTime<sp->nTime; iTime++){
 			fprintf(pFile, "%lf ", ptl->magDipHist[iTime].count[iBin]/(double)ptl->magDipHist[iTime].totCount);
 		}
 		fprintf(pFile, "\n");
 	}
 	fclose(pFile);
+	
+	sprintf(file, "%s/mag_temp.dat", sp->resDir);
+	pFile = fopen(file, "w");
+	for(int t=0; t<sp->nTime; t++){
+		for(int iPol=0; iPol<ptl->nPolAdded; iPol++){
+			fprintf(pFile, "%li %i %le\n", t*sp->dT, iPol, ptl->allMag[t+sp->nTime*iPol]);
+		}
+	}
+	fclose(pFile);
+	
+	char exec[2000];
+	sprintf(exec, "sort -r -g -k 3 %s/mag_temp.dat > %s/magdip_all.dat; rm -f %s/mag_temp.dat;", sp->resDir, sp->resDir, sp->resDir);
+	system(exec);
 }
 
 
@@ -199,7 +229,14 @@ void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl){
 		exit(192);
 	}
 	
-	fprintf(pFile, "%le\n", ptl->avgRGyr/(ptl->nEqd*ptl->nPolAdded));
+	double sigmaRGyr=0;
+	if(ptl->nPolAdded > 1){
+		sigmaRGyr= sqrt(ptl->avgRGyrSq/ptl->nPolAdded - ptl->avgRGyr*ptl->avgRGyr/(ptl->nPolAdded*ptl->nPolAdded))/sqrt(ptl->nPolAdded-1);
+	}
+	else
+		sigmaRGyr=0;
+	
+	fprintf(pFile, "%le %le\n", ptl->avgRGyr/(ptl->nPolAdded), sigmaRGyr);
 	fclose(pFile);
 	
 	sprintf(file, "%s/rgyr_time.dat", sp->resDir);
@@ -407,22 +444,22 @@ void WriteDiff(SimProperties* sp, PolyTimeLapse* ptl, double* dif, char* base, l
 	fclose(pFile);
 }
 
-
-void WriteCMSDiff(SimProperties* sp, PolyTimeLapse* ptl){
-	char file[1000];
-	FILE* pFile;
+void WriteMagCor(SimProperties* sp, PolyTimeLapse* ptl){
+	char file[10000];
 	
-	double* cmsDif = ptl->cmsDif;
-	
-	if(sp->updAvgPos)
-		sprintf(file, "%s/cmsdif_raw.dat", sp->resDir);
-	else
-		sprintf(file, "%s/cmsdif.dat", sp->resDir);
-	pFile = fopen(file, "w"); if(!pFile) return;
-	
+	sprintf(file, "%s/rmag_rgyr_cms.dat", sp->resDir);
+	FILE* pFile = fopen(file, "w");
 	for(int dt=0; dt<ptl->nEqd; dt++){
-		if(!cmsDif[dt]) continue;
-		fprintf(pFile, "%li %le\n", dt*sp->dT, cmsDif[dt]/(double)(ptl->nPolAdded));
+		if(!ptl->rGyrCms[dt]) continue;
+		fprintf(pFile, "%li %le %le %le %le %le\n", dt*sp->dT, ptl->rGyrCms[dt]/(ptl->cmsDif[dt]*ptl->avgRGyr)*ptl->nPolAdded, ptl->rMagCms[dt]/(ptl->cmsDif[dt]*ptl->avgMagDip)*ptl->nPolAdded, ptl->rMagCms[dt]/ptl->nPolAdded, ptl->cmsDif[dt]/ptl->nPolAdded, ptl->avgMagDip/ptl->nPolAdded);
+	}
+	fclose(pFile);
+	
+	sprintf(file, "%s/cms_dir_mag.dat", sp->resDir);
+	fopen(file, "w");
+	for(int dt=1; dt<ptl->nEqd; dt++){
+		if(!ptl->magInt[dt]) continue;
+		fprintf(pFile, "%li %le %le %le %le %le %le\n", dt*sp->dT, 1.5*ptl->cmsPerp[dt]/ptl->nPolAdded, 3*ptl->cmsPar[dt]/ptl->nPolAdded, ptl->magInt[dt]/ptl->nPolAdded, 1.5*ptl->magCmsPerp[dt]/ptl->magInt[dt], 3*ptl->magCmsPar[dt]/ptl->magInt[dt], ptl->cmsDif[dt]/ptl->nPolAdded); 
 	}
 	fclose(pFile);
 }

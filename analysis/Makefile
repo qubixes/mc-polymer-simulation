@@ -2,7 +2,7 @@
 
 VPATH=../util
 
-EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms ptl2t scaleup similarity mobility sim_contact pascal_contact_map similarity_pascal tuv2pov detailed_comp_pascal
+EXECS=lowm_modes create_ptl avg_data localization merge_tseries get_diff create_cms ptl2t scaleup similarity mobility sim_contact pascal_contact_map similarity_pascal tuv2pov detailed_comp_pascal tuv2xyz
 EXTRA_INC=../util
 BIN_DIR=../bin
 CFLAGS= -Wall -O2
@@ -36,6 +36,8 @@ similarity_pascal: similarity_pascal.o pascal_lib.o mode_util.o
 detailed_comp_pascal: detailed_comp_pascal.o pascal_lib.o mode_util.o
 
 tuv2pov: tuv2pov.o mode_util.o
+
+tuv2xyz: tuv2xyz.o mode_util.o
 
 install:
 	cp $(EXECS) $(BIN_DIR)

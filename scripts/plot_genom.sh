@@ -62,9 +62,9 @@ EOFGNU
 
 gnuplot << EOFGNU
 
-set log x
-set log y
-plot "$TMP_FILE" u (1/\$1):4 w l
+# set log x
+# set log y
+plot "$TMP_FILE" u (\$1**-0.3):4 w l, 16.4-35*x
 
 EOFGNU
 # 10.8

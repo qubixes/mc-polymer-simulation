@@ -101,12 +101,14 @@ typedef struct PolyConfig{
 	int nModes;
 	long nMono, polSize, polType;
 	double rGyr;
+	double rMag;
 	double slRat;
 	Coor cms;
 	double tuvCMS[3];
 	double stress[3];
 	double ree[3];
 	double magDip[3];
+	double magDipCum[3];
 }PolyConfig;
 
 typedef struct TDT{
@@ -154,17 +156,22 @@ typedef struct PolyTimeLapse{
 	double** avgPosition;
 	double* rGyrT;
 	double* magDipTime;
+	double* rMagCms;
+	double* rGyrCms;
 	double** avgModesStat;
 	double** avgModesDyn;
 	double* cmsDif;
 	double* mmDif;
 	double* smDif;
 	double* emDif;
+	double* g2Dif;
 	double* avgUnitCor;
 	double* avgGenom;
 	double* avgSL;
 	double* avgShearMod;
 	double* avgRee;
+	int nAllMag;
+	double* allMag;
 	double** genomProb;
 	double** pc;
 	double** pcss;
@@ -172,7 +179,14 @@ typedef struct PolyTimeLapse{
 	double* pcssAvg;
 	double avgRGyr;
 	double avgMagDip;
+	double avgRGyrSq;
+	double avgMagDipSq;
 	double* magDipCor;
+	double* magCmsPerp;
+	double* magCmsPar;
+	double* cmsPerp;
+	double* cmsPar;
+	double* magInt;
 	double**** sAvgSpacMode;
 	double**** cAvgSpacMode;
 	double**** avgSpacDif;
@@ -241,7 +255,7 @@ double TRelax(SimProperties* sp);
 void HistogramAlloc(Histogram* hist, double dBin, int nBin);
 Histogram* NewHistogram(double dBin, int nBin);
 void HistogramReset(Histogram* hist);
-
+void HistogramRebin(Histogram* hist, int fact);
 
 void AddAverages(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSpaceRouse(SimProperties* sp, PolyTimeLapse* ptl);
@@ -257,6 +271,7 @@ void ComputeTUVCMS(SimProperties* sp, PolyConfig* pcfg);
 void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg);
 void ComputeRee(SimProperties* sp, PolyConfig* pcfg);
 void ComputeMagDip(SimProperties* sp, PolyConfig* pcfg);
+void ComputeMagDipCumulative(SimProperties* sp, PolyTimeLapse* ptl);
 
 void AddRGyr(SimProperties* sp, PolyTimeLapse* ptl);
 void AddSL(SimProperties* sp, PolyTimeLapse* ptl);
@@ -277,6 +292,8 @@ void AddGenomNew(SimProperties* sp, PolyTimeLapse* ptl);
 void AddGenomNew2(SimProperties* sp, PolyTimeLapse* ptl);
 void AddAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 void AddMagDip(SimProperties* sp, PolyTimeLapse* ptl);
+void AddCMSCross(SimProperties* sp, PolyTimeLapse* ptl);
+void AddG2(SimProperties* sp, PolyTimeLapse* ptl);
 
 void SetSimProps(SimProperties* sp, char* sampleDir);
 void WriteGyration(SimProperties* sp, PolyTimeLapse* ptl);
@@ -293,10 +310,12 @@ void WriteSpacDif(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteShearMod(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteRee(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl);
+void WriteMagCor(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 void WriteAvgContactProbability(SimProperties* sp, PolyTimeLapse* ptl);
 int CharToHex(char c);
 void WriteAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
 void LoadPol(SimProperties* sp, PolyTimeLapse* pt);
 double** ReadAvgPos(SimProperties* sp, PolyTimeLapse* ptl);
+void WriteG2(SimProperties* sp, PolyTimeLapse* ptl);
 

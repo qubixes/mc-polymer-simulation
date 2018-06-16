@@ -13,6 +13,24 @@ Histogram* HistogramSum(Histogram* hist, int nHist){
 	return newHist;
 }
 
+void HistogramRebin(Histogram* hist, int fact){
+	for(int iBin=0; iBin<hist->nBin/fact+((hist->nBin%fact)?1:0); iBin++){
+		long count=0;
+		double val=0;
+		for(int i=0; i<fact && iBin*fact+i<hist->nBin; i++){
+			count += hist->count[iBin*fact+i];
+			val += hist->avgVal[iBin*fact+i];
+		}
+		hist->count[iBin] = count;
+		hist->avgVal[iBin]= val;
+	}
+	for(int iBin=hist->nBin/fact+((hist->nBin%fact)?1:0); iBin<hist->nBin; iBin++){
+		hist->count[iBin] = 0;
+		hist->avgVal[iBin] = 0;
+	}
+	hist->dBin *= fact;
+}
+
 Histogram* NewHistogram(double dBin, int nBin){
 	Histogram* hist = malloc(sizeof(Histogram));
 	HistogramAlloc(hist, dBin, nBin);
@@ -86,6 +104,7 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	ptl->rGyrT = malloc(sizeof(double)*sp->nTime); 
 	ptl->magDipTime = malloc(sizeof(double)*sp->nTime);
+	ptl->allMag = malloc(sizeof(double)*sp->nTime*sp->nPol);
 	ptl->magDipHist = malloc(sizeof(Histogram)*sp->nTime);
 	for(int iTime=0; iTime<sp->nTime; iTime++) HistogramAlloc(ptl->magDipHist+iTime, 1, sp->maxNMono);
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->maxNMono);
@@ -95,9 +114,17 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->smDif       = malloc(sizeof(double)*ptl->nEqd);
 		ptl->mmDif       = malloc(sizeof(double)*ptl->nEqd);
 		ptl->emDif       = malloc(sizeof(double)*ptl->nEqd);
+		ptl->g2Dif       = malloc(sizeof(double)*ptl->nEqd);
 		ptl->avgRee      = malloc(sizeof(double)*ptl->nEqd);
 		ptl->avgShearMod = malloc(sizeof(double)*ptl->nEqd);
 		ptl->magDipCor   = malloc(sizeof(double)*ptl->nEqd);
+		ptl->rMagCms     = malloc(sizeof(double)*ptl->nEqd);
+		ptl->rGyrCms     = malloc(sizeof(double)*ptl->nEqd);
+		ptl->magCmsPerp  = malloc(sizeof(double)*ptl->nEqd);
+		ptl->magCmsPar   = malloc(sizeof(double)*ptl->nEqd);
+		ptl->cmsPerp     = malloc(sizeof(double)*ptl->nEqd);
+		ptl->cmsPar      = malloc(sizeof(double)*ptl->nEqd);
+		ptl->magInt      = malloc(sizeof(double)*ptl->nEqd);
 	} else {
 		ptl->cmsDif      = malloc(sizeof(double));
 		ptl->smDif       = malloc(sizeof(double));
@@ -106,6 +133,13 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->avgRee      = malloc(sizeof(double));
 		ptl->avgShearMod = malloc(sizeof(double));
 		ptl->magDipCor   = malloc(sizeof(double));
+		ptl->rMagCms     = malloc(sizeof(double));
+		ptl->rGyrCms     = malloc(sizeof(double));
+		ptl->magCmsPerp  = malloc(sizeof(double));
+		ptl->magCmsPar   = malloc(sizeof(double));
+		ptl->magInt      = malloc(sizeof(double));
+		ptl->cmsPerp     = malloc(sizeof(double));
+		ptl->cmsPar      = malloc(sizeof(double));
 	}
 	
 	ptl->avgSL = malloc(sizeof(double)*sp->nTime);
@@ -250,6 +284,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	ptl->avgRGyr = 0;
 	ptl->avgMagDip = 0;
+	ptl->avgRGyrSq = 0;
+	ptl->avgMagDipSq = 0;
+	ptl->nAllMag=0;
 
 	
 	for(int i=0; i<ptl->L*ptl->L*ptl->L; i++)
@@ -273,9 +310,17 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 		ptl->smDif[i]=0;
 		ptl->emDif[i]=0;
 		ptl->mmDif[i]=0;
+		ptl->g2Dif[i]=0;
 		ptl->avgShearMod[i]=0;
 		ptl->avgRee[i]=0;
 		ptl->magDipCor[i]=0;
+		ptl->rMagCms[i]=0;
+		ptl->rGyrCms[i]=0;
+		ptl->cmsPerp[i]=0;
+		ptl->cmsPar[i]=0;
+		ptl->magInt[i]=0;
+		ptl->magCmsPerp[i]=0;
+		ptl->magCmsPar[i]=0;
 	}
 
 	for(long i=0; i<sp->nTime; i++){
@@ -338,18 +383,27 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	if(sp->updShearMod){ nUpd++; printf("Updating shear modulus\n");}	
 	
 	sp->updRee = NeedsUpdatePath("ptl/pol=0_dev=0.res", "ree.dat", sampleDir);
-	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}	
+	if(sp->updRee){ nUpd++; printf("Updating R_ee\n");}
 	
 	sp->updMagDip = NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip.dat", sampleDir);
 	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_time.dat", sampleDir);
 	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_hist.dat", sampleDir);
 	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_hist_time.dat", sampleDir);
+	sp->updMagDip |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "magdip_all.dat", sampleDir);
 	if(sp->updMagDip){ nUpd++; printf("Updating magnetic dipole\n");}
+	
+	if(NeedsUpdatePath("ptl/pol=0_dev=0.res", "rmag_rgyr_cms.dat", sampleDir) || NeedsUpdatePath("ptl/pol=0_dev=0.res", "cms_dir_mag.dat", sampleDir)){
+		nUpd += 2-((sp->updMagDip?1:0)+(sp->updGyr?1:0)+(sp->updDif?1:0));
+		sp->updMagDip=1;
+		sp->updGyr=1;
+		sp->updDif=1;
+		printf("Updating magnetic and gyration radius correlations with cms displacement\n");
+	}
 	
 	sp->updPC  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc.dat", sampleDir);
 	sp->updPC |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc_avg.dat", sampleDir);
 	sp->updPC |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "pc_avg_ss.dat", sampleDir);
-	if(sp->updPC){ nUpd++; printf("Updating p_c\n");}	
+	if(sp->updPC){ nUpd++; printf("Updating p_c\n");}
 
 	return nUpd;
 }

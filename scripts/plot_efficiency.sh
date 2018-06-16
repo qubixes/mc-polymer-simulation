@@ -23,12 +23,12 @@ PLOT=${PLOT:0:${#PLOT}-2}
 PLOT2=${PLOT2:0:${#PLOT2}-2}
 
 
-gnuplot -persist <<EOFGNU
+gnuplot -persist << EOFGNU
 set log y
 $PLOT
 EOFGNU
 
-gnuplot -persist <<EOFGNU
+gnuplot -persist << EOFGNU
 set log y
 set key bottom right
 set term aqua enhanced font 'Times Roman, 24'
