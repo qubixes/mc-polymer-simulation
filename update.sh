@@ -15,13 +15,13 @@ else
 	BDIR="./data"
 fi
 
-DIRS=($BDIR/*denspol*/*/);
+DIRS=($BDIR/*/*/);
 
 UPD_DIRS=();
 NUPD=0
 
 MERGE_FILES=("cmsdif.dat" "emdif.dat" "mmdif.dat" "smdif.dat" )
-LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat" "magdip.dat" "magdip_time.dat" "magdip_hist.dat" "magdip_hist_time.dat" "cms_dir_mag.dat")
+LONG_FILES=("slrat.dat" "rgyr.dat" "genom.dat" "ucor.dat" "ucor_avg.dat" "simulation_settings.txt" "pc_avg.dat" "rouse_stat.dat" "rgyr_time.dat" "pc_avg_ss.dat" "magdip.dat" "magdip_time.dat" "magdip_hist.dat" "magdip_hist_time.dat" "cms_dir_mag.dat" "g2dif.dat")
 ROUSE_FILES=("ree.dat" "rouse_dyn.dat")
 ALL_FILES=(${MERGE_FILES[*]} ${LONG_FILES[*]} ${ROUSE_FILES[*]})
 

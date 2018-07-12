@@ -373,11 +373,21 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	sp->updSL = NeedsUpdatePath("ptl/pol=0_dev=0.res", "slrat.dat", sampleDir);
 	if(sp->updSL){ nUpd++; printf("Updating SL ratio\n");}
 	
-	sp->updDif = NeedsUpdatePath("cmsdif_raw.dat", "cmsdif.dat", sampleDir);
+	sp->updDif  = NeedsUpdatePath("cmsdif_raw.dat", "cmsdif.dat", sampleDir);
+	sp->updDif |= NeedsUpdatePath("mmdif_raw.dat", "mmdif.dat", sampleDir);
+	sp->updDif |= NeedsUpdatePath("smdif_raw.dat", "smdif.dat", sampleDir);
+	sp->updDif |= NeedsUpdatePath("emdif_raw.dat", "emdif.dat", sampleDir);
+	sp->updDif |= NeedsUpdatePath("g2dif_raw.dat", "g2dif.dat", sampleDir);
+	
 	if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM diffusion\n");}
 	
-	sp->updAvgPos = NeedsUpdatePath("ptl/pol=0_dev=0.res", "cmsdif_raw.dat", sampleDir);
-	if(sp->updAvgPos){sp->updDif=1; nUpd++; printf("Updating raw CMS/MM/EM/SM diffusion\n");}
+	sp->updAvgPos  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "cmsdif_raw.dat", sampleDir);
+	sp->updAvgPos |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "mmdif_raw.dat", sampleDir);
+	sp->updAvgPos |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "smdif_raw.dat", sampleDir);
+	sp->updAvgPos |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "emdif_raw.dat", sampleDir);
+	sp->updAvgPos |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "g2dif_raw.dat", sampleDir);
+	
+	if(sp->updAvgPos){sp->updDif=1; nUpd++; printf("Updating raw CMS/MM/EM/SM/g2 diffusion\n");}
 	
 	sp->updShearMod = NeedsUpdatePath("ptl/pol=0_dev=0.res", "shearmod.dat", sampleDir);
 	if(sp->updShearMod){ nUpd++; printf("Updating shear modulus\n");}	

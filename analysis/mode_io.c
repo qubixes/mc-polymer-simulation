@@ -148,7 +148,7 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 		}
 	}
 	
-	sprintf(file, "%s/magdip_hist_time.dat", sp->resDir);
+	sprintf(file, "%s/magdip_hist_time_trans.dat", sp->resDir);
 	pFile = fopen(file, "w");
 	if(!pFile){
 		printf("Error opening file %s\n", file);
@@ -156,13 +156,30 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	for(int iBin=0; iBin<maxBin; iBin++){
-		fprintf(pFile, "%lf ", (iBin+0.5)*ptl->magDipHist[iTime].dBin);
+		fprintf(pFile, "%lf ", (iBin+0.5)*ptl->magDipHist[0].dBin);
 		for(int iTime=0; iTime<sp->nTime; iTime++){
 			fprintf(pFile, "%lf ", ptl->magDipHist[iTime].count[iBin]/(double)ptl->magDipHist[iTime].totCount);
 		}
 		fprintf(pFile, "\n");
 	}
 	fclose(pFile);
+	
+	sprintf(file, "%s/magdip_hist_time.dat", sp->resDir);
+	pFile = fopen(file, "w");
+	if(!pFile){
+		printf("Error opening file %s\n", file);
+		exit(192);
+	}
+	
+	for(int iTime=0; iTime<sp->nTime; iTime++){
+		fprintf(pFile, "%li ", sp->dT*iTime);
+		for(int iBin=0; iBin<maxBin; iBin++){
+			fprintf(pFile, "%lf ", ptl->magDipHist[iTime].count[iBin]/(double)ptl->magDipHist[iTime].totCount);
+		}
+		fprintf(pFile, "\n");
+	}
+	fclose(pFile);
+	
 	
 	sprintf(file, "%s/mag_temp.dat", sp->resDir);
 	pFile = fopen(file, "w");

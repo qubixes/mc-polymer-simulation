@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# NOTE These values are for the denspol algorithm. 
+
 LK="1.31"
 LE="5.6"
 NE="10.1"
@@ -41,8 +43,8 @@ set log x
 set log y
 set xlabel "N/N_e"
 set ylabel "r_m^2/(L_e*l_k/12)"
-set key top right
-plot [1:100] "$MAG_FILE" u (\$1/$NE):(\$2/($LE*$LK)*(12./(2*$PI))):(\$3/($LE*$LK)*(12./(2*$PI))) with errorbars title "r_m" , 0.29*x**(2./3.), "$MAG_FILE" u (\$1/$NE):(\$4/($LE*$LK)*(12.)):(\$5/(($LE*$LK)*(12.))) with errorbars title "r_g" , 0.8*x**(2./3.)
+set key top left
+plot [1:] "$MAG_FILE" u (\$1/$NE):(\$2/($LE*$LK)*(12./(2*$PI))):(\$3/($LE*$LK)*(12./(2*$PI))) with errorbars title "r_m" , 2.5*x**(2./3.), "$MAG_FILE" u (\$1/$NE):(\$4/($LE*$LK)*(12.)):(\$5/(($LE*$LK)*(12.))) with errorbars title "r_g" , 0.95*x**(2./3.)
 EOF
 # 
 # 
