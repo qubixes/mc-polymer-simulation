@@ -35,4 +35,4 @@ install:
 	cp $(EXECS) input_template.dat $(BIN_DIR)
 
 clean:
-	rm -f $(PRGM) *.o
+	rm -f $(EXECS) *.o

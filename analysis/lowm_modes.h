@@ -146,6 +146,7 @@ typedef struct PolyTimeLapse{
 	long* genomCount;
 	
 	Histogram* magDipHist;
+	Histogram* magDipHistByPol;
 	double** genomR;
 	double* sqrtList;
 	int* pointDensity;

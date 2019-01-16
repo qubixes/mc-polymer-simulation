@@ -10,3 +10,4 @@ mkdir -p $OUT_DIR
 sed 's/RING_LENGTH_SUB/'$LENGTH'/' ./input_template.dat > $OUT_DIR/input.dat
 
 ./secstr_wrap $DIR ./ 10000000 2
+

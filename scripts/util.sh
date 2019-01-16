@@ -30,6 +30,28 @@ function needs_update {
 	return 1;
 }
 
+function get_teq {
+local DIR=$1
+local DENSITY=`get_attr 'Density' $DIR`
+local EXEC=`get_attr 'Executable' $DIR`
+local N=`get_attr 'Length' $DIR`
+LINE=(`grep '^'"$EXEC ${DENSITY:0:3}" "ne_list.dat"`)
+NE=${LINE[2]}
+TFAC=${LINE[4]}
+
+gnuplot << EOFGNU 2> /dev/stdout
+
+max(x,y)=(x>y)?x:y;
+tConst(z) = 128*128*2;
+tRouse(z,tfac,Ne) = 1.4*z**2.2*tfac*Ne**2.2;
+tRept(z,tfac,Ne) = 0.261*z**3.08*tfac*Ne**2.2;
+
+z=$N/(1.0*$NE);
+print max(tConst(z), max(tRouse(z,$TFAC,$NE), tRept(z,$TFAC,$NE)))/3.9;
+EOFGNU
+
+}
+
 function cross_sect_files {
 	F1=$1
 	F2=$2

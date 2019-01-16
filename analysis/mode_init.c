@@ -106,7 +106,9 @@ void PTLAllocate(SimProperties* sp, PolyTimeLapse* ptl){
 	ptl->magDipTime = malloc(sizeof(double)*sp->nTime);
 	ptl->allMag = malloc(sizeof(double)*sp->nTime*sp->nPol);
 	ptl->magDipHist = malloc(sizeof(Histogram)*sp->nTime);
+	ptl->magDipHistByPol = malloc(sizeof(Histogram)*sp->nPol);
 	for(int iTime=0; iTime<sp->nTime; iTime++) HistogramAlloc(ptl->magDipHist+iTime, 1, sp->maxNMono);
+	for(int iPol=0; iPol<sp->nPol; iPol++) HistogramAlloc(ptl->magDipHistByPol+iPol, 1, sp->maxNMono);
 	ptl->avgUnitCor = malloc(sizeof(double)*sp->maxNMono);
 	ptl->avgGenom = malloc(sizeof(double)*sp->maxNMono);
 	if(ptl->nEqd > 0){
@@ -330,6 +332,9 @@ void PTLInit(SimProperties* sp, PolyTimeLapse* ptl){
 		HistogramReset(&ptl->magDipHist[i]);
 	}
 	
+	for(int iPol=0; iPol<sp->nPol; iPol++)
+		HistogramReset(&ptl->magDipHistByPol[iPol]);
+	
 	for(int i=0; i<ptl->nModes; i++){
 		for(int j=0; j<ptl->nModes; j++)
 			ptl->avgModesStat[i][j] = 0;
@@ -379,7 +384,7 @@ int GetNUpdates(SimProperties* sp, char* sampleDir){
 	sp->updDif |= NeedsUpdatePath("emdif_raw.dat", "emdif.dat", sampleDir);
 	sp->updDif |= NeedsUpdatePath("g2dif_raw.dat", "g2dif.dat", sampleDir);
 	
-	if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM diffusion\n");}
+	if(sp->updDif){ nUpd++; printf("Updating CMS/MM/EM/SM/g2 diffusion\n");}
 	
 	sp->updAvgPos  = NeedsUpdatePath("ptl/pol=0_dev=0.res", "cmsdif_raw.dat", sampleDir);
 	sp->updAvgPos |= NeedsUpdatePath("ptl/pol=0_dev=0.res", "mmdif_raw.dat", sampleDir);

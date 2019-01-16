@@ -19,8 +19,10 @@ void AddAverages(SimProperties* sp, PolyTimeLapse* ptl){
 	Timer time;
 	
 	TimerStart(&time);
-	for(pcfg = ptl->polys; pcfg < ptl->polys+sp->nTime; pcfg++)
+	for(pcfg = ptl->polys; pcfg < ptl->polys+sp->nTime; pcfg++){
 		ComputeObsPoly(sp, pcfg);
+// 		printf("%lf %lf\n", pcfg->rGyr, pcfg->rMag);
+	}
 	curPolId++;
 	
 	if(sp->updMagDip) ComputeMagDipCumulative(sp,ptl);
@@ -66,7 +68,7 @@ void VectorProduct(double u[3], double v[3], double res[3]){
 	
 	res[0]=  u[1]*v[2]-u[2]*v[1];
 	res[1]= -u[0]*v[2]+u[2]*v[0];
-	res[2]=  u[0]*v[1]+u[1]*v[0];
+	res[2]=  u[0]*v[1]-u[1]*v[0];
 }
 
 void ComputeMagDipCumulative(SimProperties* sp, PolyTimeLapse* ptl){
@@ -91,19 +93,19 @@ void ComputeMagDip(SimProperties* sp, PolyConfig* pcfg){
 		r[2] = pcfg->z[iMono]/sqrt(2);
 		
 		tang[0] = pcfg->x[jMono]/sqrt(2)-r[0]; 
-		tang[1] = pcfg->y[iMono]/sqrt(2)-r[1];
-		tang[2] = pcfg->z[iMono]/sqrt(2)-r[2];
+		tang[1] = pcfg->y[jMono]/sqrt(2)-r[1];
+		tang[2] = pcfg->z[jMono]/sqrt(2)-r[2];
 		
 		double newMag[3];
 		VectorProduct(r,tang,newMag);
 		for(int k=0; k<3; k++)
-			pcfg->magDip[k] += newMag[k];
+			pcfg->magDip[k] += newMag[k]/2.0;
 	}
 	pcfg->rMag = 0;
 	for(int k=0; k<3; k++){
 		pcfg->rMag += pcfg->magDip[k]*pcfg->magDip[k];
 	}
-	pcfg->rMag = sqrt(pcfg->rMag);
+	pcfg->rMag = sqrt(pcfg->rMag)/PI;
 }
 
 void ComputeShearMod(SimProperties* sp, PolyConfig* pcfg){
@@ -194,7 +196,7 @@ void ComputeGyration(SimProperties* sp, PolyConfig* pcfg){
 		dx = pcfg->x[i]*invSqrt2-pcfg->cms.x;
 		dy = pcfg->y[i]*invSqrt2-pcfg->cms.y;
 		dz = pcfg->z[i]*invSqrt2-pcfg->cms.z;
-		rg += (dx*dx+dy*dy+dz*dz)/2;
+		rg += (dx*dx+dy*dy+dz*dz);
 	}
 	rg /= pcfg->nMono;
 	pcfg->rGyr = rg;
@@ -271,7 +273,7 @@ void AddRGyr(SimProperties* sp, PolyTimeLapse* ptl){
 	double avgRGyr=0;
 	for(int t=0; t<sp->nTime; t++){
 		ptl->rGyrT[t] += ptl->polys[t].rGyr;
-		if(t>ptl->nTherm)
+		if(t>=ptl->nTherm)
 			avgRGyr += ptl->polys[t].rGyr;
 	}
 	avgRGyr /= ptl->nEqd;
@@ -664,6 +666,7 @@ void AddCMSCross(SimProperties* sp, PolyTimeLapse* ptl){
 void AddMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	int dtStep=1, num;
 	double magDipAdd;
+	
 	for(int dt=0; dt<ptl->nEqd; dt+=dtStep){
 		num=0; magDipAdd=0;
 		for(int t=ptl->nTherm; t<sp->nTime-dt; t+= MAX(1,dt/10)){
@@ -679,22 +682,23 @@ void AddMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	magDipAdd=0;
 	for(int t=0; t<sp->nTime; t++){
-		double magDip=0;
-		
-		for(int k=0; k<3; k++)
-			magDip += ptl->polys[t].magDip[k]*ptl->polys[t].magDip[k];
-		magDip = sqrt(magDip);
+		double magDip = ptl->polys[t].rMag;
 		ptl->magDipTime[t] += magDip;
-		ptl->allMag[ptl->nAllMag++]=magDip;
+		ptl->allMag[ptl->nAllMag++] = magDip;
 		int iBin = (int) (magDip/ptl->magDipHist->dBin);
 // 		printf("iBin = %i, time=%i\n", iBin, t);
 		ptl->magDipHist[t].count[iBin]++;
 		ptl->magDipHist[t].avgVal[iBin] += magDip;
 		ptl->magDipHist[t].totCount++;
-		if(t>=ptl->nTherm)
+		
+		if(t>=ptl->nTherm){
+			ptl->magDipHistByPol[ptl->polId].count   [iBin]++;
+			ptl->magDipHistByPol[ptl->polId].avgVal  [iBin]+= magDip;
+			ptl->magDipHistByPol[ptl->polId].totCount++;
 			magDipAdd += magDip;
+		}
 	}
-	magDipAdd /= (double)(sp->nTime-ptl->nTherm);
+	magDipAdd /= ptl->nEqd;
 	ptl->avgMagDip += magDipAdd;
 	ptl->avgMagDipSq += magDipAdd*magDipAdd;
 }

@@ -29,7 +29,7 @@ gpupol2_cuda_ring: override EXTRA_CFLAGS+= -DLCELL=3
 ifeq ($(OS), Darwin)
  $(CUDA_EXECS): override CXX=/usr/bin/clang
  $(CUDA_EXECS): override LDFLAGS+= -L/usr/local/cuda/lib
- override NVCC+= -ccbin=/usr/bin/clang
+ override NVCC+= -ccbin=clang
 else
  override TARGETS=$(CUDA_EXECS)
  $(CUDA_EXECS): override LDFLAGS+= -L$(CUDA_HOME)/lib64

@@ -59,7 +59,8 @@ for DIR in ${DIRS[*]}; do
 			print '$N', minim;
 		}' "$DIR/cmsdif.dat"`
 	D2=`../bin/get_diff $DIR/cmsdif.dat`
-	RG=`cat "$DIR/rgyr.dat"`
+	RG=(`cat "$DIR/rgyr.dat"`)
+	RG=${RG[0]}
 	echo $D1 $D2 $RG $NE_FAC $R_FAC $T_FAC >> $FILE
 	let "I=I+1"
 done
@@ -74,7 +75,7 @@ for FILE in ${FILES[*]}; do
 # 	PLOT="$PLOT \"$FILE\" u (\$1/\$7):(\$3*\$9*\$7**1.2) w l title \"$BTITLE\" lw 2, "
 	PLOT="$PLOT \"$FILE\" u (\$1/\$7):(\$3) w l title \"$BTITLE\" lw 2, "
 	PLOT_TEX="$PLOT_TEX \"$FILE\" u (\$1/\$7):(\$3) w l title \"MC Data\" lw 2, "
-	PLOT2="$PLOT2 \"$FILE\" u (\$1/\$7):(7.8*\$6/\$3/6.0/\$9/\$7**2.2) w l title \"$BTITLE (Diffuse RG)\" lw 2, "
+	PLOT2="$PLOT2 \"$FILE\" u (\$1/\$7):(3.9*\$6/\$3/6.0/\$9/\$7**2.2) w l title \"$BTITLE (Diffuse RG)\" lw 2, "
 # 	PLOT2="$PLOT2 \"$FILE\" u 1:4 w l title \"$BTITLE (CMS Decay)\" lw 2, "
 	let "I++"
 done

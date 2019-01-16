@@ -9,8 +9,8 @@ if [ $TYPE == "ring" ]; then
 else
 	EX_PLOT="0.6*x**-0.16 title '\$0.6 t^{-0.16}\$' lc 2 lw 2"
 fi
-PLOT="plot [:][1e-6:1]"
-
+# PLOT="plot [:][1e-6:1]"
+PLOT="plot [:][:]"
 I=0
 for DIR in ${DIRS[*]}; do
 	if [ ! -f "$DIR/mmdif.dat" ]; then continue; fi
@@ -27,6 +27,13 @@ set ylabel '<{r^2}_{cms}> N t^{-1}'
 set xlabel 't'
 f(x) = x**0
 g(x) = x**-1
-h(x) = x**1.0
-$PLOT $EX_PLOT
+h(x) = x**0.0
+$PLOT $EX_PLOT, 21.25
 EOFGNU
+# 
+# 
+# gnuplot << EOFGNU
+# 
+# set log x
+# set log y
+# 

@@ -113,7 +113,10 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	
 	int binFact = MAX(1, maxBin/25);
 	HistogramRebin(allHist, binFact);
-	for(int i=0; i<sp->nTime; i++) HistogramRebin(ptl->magDipHist+i, binFact);
+	for(int i=0; i<sp->nTime; i++)
+		HistogramRebin(ptl->magDipHist+i, binFact);
+	for(int iPol=0; iPol<sp->nPol; iPol++)
+		HistogramRebin(ptl->magDipHistByPol+iPol, binFact);
 	
 	maxBin=0;
 	for(int iBin=allHist->nBin-1; iBin>0; iBin--){
@@ -131,10 +134,17 @@ void WriteMagDip(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	for(int iBin=0; iBin<maxBin; iBin++){
-		if(allHist->count[iBin])
-			fprintf(pFile, "%lf %lf %lf\n", (iBin+0.5)*allHist->dBin, allHist->avgVal[iBin]/allHist->count[iBin], allHist->count[iBin]/(double)allHist->totCount);
+		if(allHist->count[iBin]){
+			double countSq=0;
+			double count = allHist->count[iBin]/(double)allHist->totCount;
+			for(int iPol=0; iPol<sp->nPol; iPol++)
+				countSq += pow(ptl->magDipHistByPol[iPol].count[iBin]/(double)ptl->magDipHistByPol[iPol].totCount,2);
+			countSq /= sp->nPol;
+			
+			fprintf(pFile, "%lf %lf %lf %lf\n", (iBin+0.5)*allHist->dBin, allHist->avgVal[iBin]/allHist->count[iBin], count, sqrt(countSq-count*count)/sqrt(sp->nPol-1));
+		}
 		else
-			fprintf(pFile, "%lf %lf %lf\n", (iBin+0.5)*allHist->dBin, 0.0,0.0);
+			fprintf(pFile, "%lf %lf %lf %lf\n", (iBin+0.5)*allHist->dBin, 0.0,0.0,0.0);
 	}
 	fclose(pFile);
 	
@@ -299,15 +309,16 @@ void WriteGenom(SimProperties* sp, PolyTimeLapse* ptl){
 	}
 	
 	fprintf(pFile, "# ");
-	for(int g=0; g<nMono; g++){
-		if(ptl->avgGenom[g])
+	for(int ig=0; ig<ptl->nIg; ig++){
+		int g = ptl->genomIdList[ig];
+		if(ptl->avgGenom[ig])
 			fprintf(pFile, "%i ", g);
 	}
 	fprintf(pFile, "\n");
 	for(int i=0; i<ptl->nGenomBin; i++){
 		for(int ig=0; ig<ptl->nIg; ig++){
 			int g = ptl->genomIdList[ig];
-			if(ptl->avgGenom[g]){
+			if(ptl->avgGenom[ig]){
 				if(ptl->genomProb[ig][i]==0)
 					fprintf(pFile, "nan nan ");
 				else{
